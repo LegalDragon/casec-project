@@ -134,11 +134,11 @@ public class ClubsController : ControllerBase
             }
 
             var currentUserId = GetCurrentUserId();
-            
+
             var totalMembers = await _context.ClubMemberships
                 .Where(cm => cm.ClubId == club.ClubId)
                 .CountAsync();
-            
+
             var admins = await _context.ClubAdmins
                 .Where(ca => ca.ClubId == club.ClubId)
                 .Include(ca => ca.User)
@@ -151,11 +151,11 @@ public class ClubsController : ControllerBase
                     AssignedDate = ca.AssignedDate
                 })
                 .ToListAsync();
-            
-            var isUserMember = currentUserId > 0 && 
+
+            var isUserMember = currentUserId > 0 &&
                 await _context.ClubMemberships.AnyAsync(cm => cm.ClubId == club.ClubId && cm.UserId == currentUserId);
-            
-            var isUserAdmin = currentUserId > 0 && 
+
+            var isUserAdmin = currentUserId > 0 &&
                 await _context.ClubAdmins.AnyAsync(ca => ca.ClubId == club.ClubId && ca.UserId == currentUserId);
 
             var clubDto = new ClubDetailDto
@@ -188,6 +188,231 @@ public class ClubsController : ControllerBase
             {
                 Success = false,
                 Message = "An error occurred while fetching club"
+            });
+        }
+    }
+
+    // GET: api/Clubs/my-clubs
+    [Authorize]
+    [HttpGet("my-clubs")]
+    public async Task<ActionResult<ApiResponse<List<ClubDetailDto>>>> GetMyClubs()
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+
+            var myClubIds = await _context.ClubMemberships
+                .Where(cm => cm.UserId == currentUserId)
+                .Select(cm => cm.ClubId)
+                .ToListAsync();
+
+            var clubs = await _context.Clubs
+                .Where(club => myClubIds.Contains(club.ClubId) && club.IsActive)
+                .ToListAsync();
+
+            var clubDtos = new List<ClubDetailDto>();
+
+            foreach (var club in clubs)
+            {
+                var totalMembers = await _context.ClubMemberships
+                    .Where(cm => cm.ClubId == club.ClubId)
+                    .CountAsync();
+
+                var admins = await _context.ClubAdmins
+                    .Where(ca => ca.ClubId == club.ClubId)
+                    .Include(ca => ca.User)
+                    .Select(ca => new ClubAdminDto
+                    {
+                        UserId = ca.User!.UserId,
+                        UserName = ca.User.FirstName + " " + ca.User.LastName,
+                        Email = ca.User.Email,
+                        AvatarUrl = ca.User.AvatarUrl,
+                        AssignedDate = ca.AssignedDate
+                    })
+                    .ToListAsync();
+
+                var isUserAdmin = await _context.ClubAdmins.AnyAsync(ca => ca.ClubId == club.ClubId && ca.UserId == currentUserId);
+
+                clubDtos.Add(new ClubDetailDto
+                {
+                    ClubId = club.ClubId,
+                    Name = club.Name,
+                    Description = club.Description,
+                    AvatarUrl = club.AvatarUrl,
+                    FoundedDate = club.FoundedDate,
+                    MeetingSchedule = club.MeetingSchedule,
+                    ContactEmail = club.ContactEmail,
+                    IsActive = club.IsActive,
+                    TotalMembers = totalMembers,
+                    Admins = admins,
+                    IsUserMember = true,
+                    IsUserAdmin = isUserAdmin,
+                    CreatedAt = club.CreatedAt
+                });
+            }
+
+            return Ok(new ApiResponse<List<ClubDetailDto>>
+            {
+                Success = true,
+                Data = clubDtos
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user clubs");
+            return StatusCode(500, new ApiResponse<List<ClubDetailDto>>
+            {
+                Success = false,
+                Message = "An error occurred while fetching your clubs"
+            });
+        }
+    }
+
+    // POST: api/Clubs/{id}/join
+    [Authorize]
+    [HttpPost("{id}/join")]
+    public async Task<ActionResult<ApiResponse<string>>> JoinClub(int id)
+    {
+        try
+        {
+            var club = await _context.Clubs.FindAsync(id);
+            if (club == null)
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Club not found"
+                });
+            }
+
+            if (!club.IsActive)
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "This club is not active"
+                });
+            }
+
+            var currentUserId = GetCurrentUserId();
+
+            // Check if already a member
+            var existingMembership = await _context.ClubMemberships
+                .FirstOrDefaultAsync(cm => cm.ClubId == id && cm.UserId == currentUserId);
+
+            if (existingMembership != null)
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "You are already a member of this club"
+                });
+            }
+
+            var membership = new ClubMembership
+            {
+                ClubId = id,
+                UserId = currentUserId,
+                JoinedDate = DateTime.UtcNow
+            };
+
+            _context.ClubMemberships.Add(membership);
+            await _context.SaveChangesAsync();
+
+            // Log activity
+            var log = new ActivityLog
+            {
+                UserId = currentUserId,
+                ActivityType = "ClubJoined",
+                Description = $"Joined club: {club.Name}"
+            };
+            _context.ActivityLogs.Add(log);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Message = $"Successfully joined {club.Name}"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error joining club");
+            return StatusCode(500, new ApiResponse<string>
+            {
+                Success = false,
+                Message = "An error occurred while joining the club"
+            });
+        }
+    }
+
+    // POST: api/Clubs/{id}/leave
+    [Authorize]
+    [HttpPost("{id}/leave")]
+    public async Task<ActionResult<ApiResponse<string>>> LeaveClub(int id)
+    {
+        try
+        {
+            var club = await _context.Clubs.FindAsync(id);
+            if (club == null)
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Club not found"
+                });
+            }
+
+            var currentUserId = GetCurrentUserId();
+
+            // Check if user is a member
+            var membership = await _context.ClubMemberships
+                .FirstOrDefaultAsync(cm => cm.ClubId == id && cm.UserId == currentUserId);
+
+            if (membership == null)
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "You are not a member of this club"
+                });
+            }
+
+            // Check if user is a club admin - remove admin role first
+            var adminRole = await _context.ClubAdmins
+                .FirstOrDefaultAsync(ca => ca.ClubId == id && ca.UserId == currentUserId);
+
+            if (adminRole != null)
+            {
+                _context.ClubAdmins.Remove(adminRole);
+            }
+
+            _context.ClubMemberships.Remove(membership);
+            await _context.SaveChangesAsync();
+
+            // Log activity
+            var log = new ActivityLog
+            {
+                UserId = currentUserId,
+                ActivityType = "ClubLeft",
+                Description = $"Left club: {club.Name}"
+            };
+            _context.ActivityLogs.Add(log);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Message = $"Successfully left {club.Name}"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error leaving club");
+            return StatusCode(500, new ApiResponse<string>
+            {
+                Success = false,
+                Message = "An error occurred while leaving the club"
             });
         }
     }
