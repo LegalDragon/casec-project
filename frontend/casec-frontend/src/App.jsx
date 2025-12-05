@@ -24,8 +24,15 @@ function AdminRoute({ children }) {
     isAuthenticated: state.isAuthenticated,
     user: state.user,
   }));
-  
+
   return isAuthenticated && user?.isAdmin ? children : <Navigate to="/dashboard" />;
+}
+
+// Route that allows both system admins and club admins
+// The AdminClubs page will filter to show only clubs the user can manage
+function ClubAdminRoute({ children }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
 function App() {
@@ -55,7 +62,7 @@ function App() {
             <AdminRoute><AdminMembershipTypes /></AdminRoute>
           } />
           <Route path="admin/clubs" element={
-            <AdminRoute><AdminClubs /></AdminRoute>
+            <ClubAdminRoute><AdminClubs /></ClubAdminRoute>
           } />
           <Route path="admin/events" element={
             <AdminRoute><AdminEvents /></AdminRoute>

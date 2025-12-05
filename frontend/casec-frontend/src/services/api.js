@@ -61,6 +61,17 @@ export const clubsAPI = {
   delete: (id) => api.delete(`/clubs/${id}`),
   join: (id) => api.post(`/clubs/${id}/join`),
   leave: (id) => api.post(`/clubs/${id}/leave`),
+  // Admin endpoints
+  uploadAvatar: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/clubs/${id}/avatar`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  assignAdmin: (clubId, userId) => api.post(`/clubs/${clubId}/admins`, { userId }),
+  removeAdmin: (clubId, userId) => api.delete(`/clubs/${clubId}/admins/${userId}`),
+  getEvents: (id) => api.get(`/clubs/${id}/events`),
 };
 
 // Events APIs
