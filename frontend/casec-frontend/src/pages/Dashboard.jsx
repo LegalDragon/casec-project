@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, Calendar, Award, TrendingUp } from 'lucide-react';
+import { Users, Calendar, Award, TrendingUp, Search, UserCheck } from 'lucide-react';
 import { usersAPI } from '../services/api';
 import { useAuthStore } from '../store/useStore';
 
@@ -118,24 +118,56 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="card bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
-          <h3 className="text-xl font-bold text-gray-900 mb-3">Explore Clubs</h3>
-          <p className="text-gray-600 mb-4">
+          <div className="flex items-center space-x-3 mb-3">
+            <Users className="w-6 h-6 text-accent" />
+            <h3 className="text-xl font-bold text-gray-900">Explore Clubs</h3>
+          </div>
+          <p className="text-gray-600 mb-4 text-sm">
             Join clubs that match your interests and connect with like-minded members.
           </p>
-          <a href="/clubs" className="btn btn-accent inline-block">
+          <a href="/clubs" className="btn btn-accent inline-block text-sm">
             Browse Clubs
           </a>
         </div>
 
         <div className="card bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <h3 className="text-xl font-bold text-gray-900 mb-3">Upcoming Events</h3>
-          <p className="text-gray-600 mb-4">
+          <div className="flex items-center space-x-3 mb-3">
+            <Calendar className="w-6 h-6 text-primary" />
+            <h3 className="text-xl font-bold text-gray-900">Events</h3>
+          </div>
+          <p className="text-gray-600 mb-4 text-sm">
             Register for community events and activities happening soon.
           </p>
-          <a href="/events" className="btn btn-primary inline-block">
+          <a href="/events" className="btn btn-primary inline-block text-sm">
             View Events
+          </a>
+        </div>
+
+        <div className="card bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+          <div className="flex items-center space-x-3 mb-3">
+            <Search className="w-6 h-6 text-blue-600" />
+            <h3 className="text-xl font-bold text-gray-900">Members</h3>
+          </div>
+          <p className="text-gray-600 mb-4 text-sm">
+            Search and connect with fellow CASEC community members.
+          </p>
+          <a href="/members" className="btn bg-blue-600 text-white hover:bg-blue-700 inline-block text-sm">
+            Find Members
+          </a>
+        </div>
+
+        <div className="card bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+          <div className="flex items-center space-x-3 mb-3">
+            <UserCheck className="w-6 h-6 text-purple-600" />
+            <h3 className="text-xl font-bold text-gray-900">Directors</h3>
+          </div>
+          <p className="text-gray-600 mb-4 text-sm">
+            Meet the board of directors leading our organization.
+          </p>
+          <a href="/board-of-directors" className="btn bg-purple-600 text-white hover:bg-purple-700 inline-block text-sm">
+            View Board
           </a>
         </div>
       </div>

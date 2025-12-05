@@ -8,6 +8,9 @@ import Clubs from './pages/Clubs';
 import Events from './pages/Events';
 import Profile from './pages/Profile';
 import Payment from './pages/Payment';
+import Members from './pages/Members';
+import BoardOfDirectors from './pages/BoardOfDirectors';
+import PublicProfile from './pages/PublicProfile';
 import AdminUsers from './pages/admin/Users';
 import AdminMembershipTypes from './pages/admin/MembershipTypes';
 import AdminClubs from './pages/admin/Clubs';
@@ -53,7 +56,11 @@ function App() {
           <Route path="events" element={<Events />} />
           <Route path="profile" element={<Profile />} />
           <Route path="payment" element={<Payment />} />
-          
+          <Route path="members" element={<Members />} />
+          <Route path="member/:userId" element={<PublicProfile />} />
+          <Route path="board-of-directors" element={<BoardOfDirectors />} />
+          <Route path="board-profile/:userId" element={<PublicProfile />} />
+
           {/* Admin Routes */}
           <Route path="admin/users" element={
             <AdminRoute><AdminUsers /></AdminRoute>

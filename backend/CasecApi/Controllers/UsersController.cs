@@ -371,6 +371,77 @@ public class UsersController : ControllerBase
         }
     }
 
+    // GET: api/Users/search (Members can search other members)
+    [HttpGet("search")]
+    public async Task<ActionResult<ApiResponse<List<PublicProfileDto>>>> SearchMembers([FromQuery] string? query = null, [FromQuery] string? profession = null, [FromQuery] string? city = null)
+    {
+        try
+        {
+            var membersQuery = _context.Users
+                .Where(u => u.IsActive)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var lowerQuery = query.ToLower();
+                membersQuery = membersQuery.Where(u =>
+                    u.FirstName.ToLower().Contains(lowerQuery) ||
+                    u.LastName.ToLower().Contains(lowerQuery) ||
+                    (u.Profession != null && u.Profession.ToLower().Contains(lowerQuery)) ||
+                    (u.Hobbies != null && u.Hobbies.ToLower().Contains(lowerQuery)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(profession))
+            {
+                membersQuery = membersQuery.Where(u => u.Profession == profession);
+            }
+
+            if (!string.IsNullOrWhiteSpace(city))
+            {
+                membersQuery = membersQuery.Where(u => u.City == city);
+            }
+
+            var members = await membersQuery
+                .Include(u => u.MembershipType)
+                .OrderBy(u => u.LastName)
+                .ThenBy(u => u.FirstName)
+                .Select(u => new PublicProfileDto
+                {
+                    UserId = u.UserId,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    AvatarUrl = u.AvatarUrl,
+                    Profession = u.Profession,
+                    Hobbies = u.Hobbies,
+                    Bio = u.Bio,
+                    City = u.City,
+                    State = u.State,
+                    IsBoardMember = u.IsBoardMember,
+                    BoardTitle = u.IsBoardMember ? u.BoardTitle : null,
+                    LinkedInUrl = u.LinkedInUrl,
+                    TwitterHandle = u.TwitterHandle,
+                    MembershipTypeName = u.MembershipType != null ? u.MembershipType.Name : null,
+                    MemberSince = u.MemberSince
+                })
+                .ToListAsync();
+
+            return Ok(new ApiResponse<List<PublicProfileDto>>
+            {
+                Success = true,
+                Data = members
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching members");
+            return StatusCode(500, new ApiResponse<List<PublicProfileDto>>
+            {
+                Success = false,
+                Message = "An error occurred while searching members"
+            });
+        }
+    }
+
     // GET: api/Users/board-members (Public - no auth required)
     [AllowAnonymous]
     [HttpGet("board-members")]

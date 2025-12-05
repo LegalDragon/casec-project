@@ -578,6 +578,7 @@ public class PublicProfileDto
     public string LastName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public string? Profession { get; set; }
+    public string? Hobbies { get; set; }
     public string? Bio { get; set; }
     public string? City { get; set; }
     public string? State { get; set; }
@@ -585,5 +586,6 @@ public class PublicProfileDto
     public string? BoardTitle { get; set; }
     public string? LinkedInUrl { get; set; }
     public string? TwitterHandle { get; set; }
+    public string? MembershipTypeName { get; set; }
     public DateTime MemberSince { get; set; }
 }
