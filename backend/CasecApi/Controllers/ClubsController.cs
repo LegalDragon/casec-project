@@ -15,13 +15,13 @@ namespace CasecApi.Controllers;
 public class ClubsController : ControllerBase
 {
     private readonly CasecDbContext _context;
-    private readonly IFileStorageService _fileStorage;
+    private readonly IAssetService _assetService;
     private readonly ILogger<ClubsController> _logger;
 
-    public ClubsController(CasecDbContext context, IFileStorageService fileStorage, ILogger<ClubsController> logger)
+    public ClubsController(CasecDbContext context, IAssetService assetService, ILogger<ClubsController> logger)
     {
         _context = context;
-        _fileStorage = fileStorage;
+        _assetService = assetService;
         _logger = logger;
     }
 
@@ -621,16 +621,24 @@ public class ClubsController : ControllerBase
                 return Forbid();
             }
 
-            // Delete old avatar if exists
-            if (!string.IsNullOrEmpty(club.AvatarUrl))
+            // Delete old avatar asset if exists (by parsing FileId from URL /api/asset/{id})
+            if (!string.IsNullOrEmpty(club.AvatarUrl) && club.AvatarUrl.StartsWith("/api/asset/"))
             {
-                await _fileStorage.DeleteFileAsync(club.AvatarUrl);
+                var oldFileIdStr = club.AvatarUrl.Replace("/api/asset/", "");
+                if (int.TryParse(oldFileIdStr, out var oldFileId))
+                {
+                    await _assetService.DeleteAssetAsync(oldFileId);
+                }
             }
 
-            // Upload new avatar using file storage service
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            var fileName = $"club_{club.ClubId}_{Guid.NewGuid()}{extension}";
-            var uploadResult = await _fileStorage.UploadFileAsync(file, "clubs", fileName);
+            // Upload new avatar using asset service (saves to database)
+            var uploadResult = await _assetService.UploadAssetAsync(
+                file,
+                "clubs",
+                objectType: "Club",
+                objectId: club.ClubId,
+                uploadedBy: currentUserId
+            );
 
             if (!uploadResult.Success)
             {
@@ -641,7 +649,7 @@ public class ClubsController : ControllerBase
                 });
             }
 
-            club.AvatarUrl = uploadResult.Url;
+            club.AvatarUrl = uploadResult.Url; // Now saves as /api/asset/{id}
             await _context.SaveChangesAsync();
 
             // Log activity

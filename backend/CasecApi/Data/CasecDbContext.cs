@@ -32,6 +32,9 @@ public class CasecDbContext : DbContext
     public DbSet<ThemeSettings> ThemeSettings { get; set; }
     public DbSet<ThemePreset> ThemePresets { get; set; }
 
+    // Asset entities
+    public DbSet<Asset> Assets { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -207,6 +210,27 @@ public class CasecDbContext : DbContext
             entity.Property(e => e.PresetName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.PrimaryColor).IsRequired().HasMaxLength(50);
             entity.Property(e => e.AccentColor).IsRequired().HasMaxLength(50);
+        });
+
+        // Asset entity configuration
+        modelBuilder.Entity<Asset>(entity =>
+        {
+            entity.HasKey(e => e.FileId);
+            entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.OriginalFileName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.ContentType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.StorageProvider).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.StoragePath).IsRequired().HasMaxLength(1000);
+
+            entity.HasOne(e => e.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.UploadedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => new { e.ObjectType, e.ObjectId });
+            entity.HasIndex(e => e.UploadedBy);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.Folder);
         });
     }
 }

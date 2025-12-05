@@ -15,13 +15,13 @@ namespace CasecApi.Controllers;
 public class ThemeController : ControllerBase
 {
     private readonly CasecDbContext _context;
-    private readonly IFileStorageService _fileStorage;
+    private readonly IAssetService _assetService;
     private readonly ILogger<ThemeController> _logger;
 
-    public ThemeController(CasecDbContext context, IFileStorageService fileStorage, ILogger<ThemeController> logger)
+    public ThemeController(CasecDbContext context, IAssetService assetService, ILogger<ThemeController> logger)
     {
         _context = context;
-        _fileStorage = fileStorage;
+        _assetService = assetService;
         _logger = logger;
     }
 
@@ -237,22 +237,32 @@ public class ThemeController : ControllerBase
     {
         try
         {
+            var currentUserId = GetCurrentUserId();
+
             // Get current theme
             var theme = await _context.ThemeSettings
                 .Where(t => t.IsActive)
                 .OrderByDescending(t => t.ThemeId)
                 .FirstOrDefaultAsync();
 
-            // Delete old logo if exists
-            if (theme != null && !string.IsNullOrEmpty(theme.LogoUrl))
+            // Delete old logo asset if exists
+            if (theme != null && !string.IsNullOrEmpty(theme.LogoUrl) && theme.LogoUrl.StartsWith("/api/asset/"))
             {
-                await _fileStorage.DeleteFileAsync(theme.LogoUrl);
+                var oldFileIdStr = theme.LogoUrl.Replace("/api/asset/", "");
+                if (int.TryParse(oldFileIdStr, out var oldFileId))
+                {
+                    await _assetService.DeleteAssetAsync(oldFileId);
+                }
             }
 
-            // Upload new logo using file storage service
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            var fileName = $"logo_{Guid.NewGuid()}{extension}";
-            var uploadResult = await _fileStorage.UploadFileAsync(file, "theme", fileName);
+            // Upload new logo using asset service (saves to database)
+            var uploadResult = await _assetService.UploadAssetAsync(
+                file,
+                "theme",
+                objectType: "Theme",
+                objectId: theme?.ThemeId,
+                uploadedBy: currentUserId
+            );
 
             if (!uploadResult.Success)
             {
@@ -266,14 +276,13 @@ public class ThemeController : ControllerBase
             // Update theme if exists
             if (theme != null)
             {
-                theme.LogoUrl = uploadResult.Url;
-                theme.UpdatedBy = GetCurrentUserId();
+                theme.LogoUrl = uploadResult.Url; // Now saves as /api/asset/{id}
+                theme.UpdatedBy = currentUserId;
                 theme.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
             }
 
             // Log activity
-            var currentUserId = GetCurrentUserId();
             var log = new ActivityLog
             {
                 UserId = currentUserId,
@@ -308,22 +317,32 @@ public class ThemeController : ControllerBase
     {
         try
         {
+            var currentUserId = GetCurrentUserId();
+
             // Get current theme
             var theme = await _context.ThemeSettings
                 .Where(t => t.IsActive)
                 .OrderByDescending(t => t.ThemeId)
                 .FirstOrDefaultAsync();
 
-            // Delete old favicon if exists
-            if (theme != null && !string.IsNullOrEmpty(theme.FaviconUrl))
+            // Delete old favicon asset if exists
+            if (theme != null && !string.IsNullOrEmpty(theme.FaviconUrl) && theme.FaviconUrl.StartsWith("/api/asset/"))
             {
-                await _fileStorage.DeleteFileAsync(theme.FaviconUrl);
+                var oldFileIdStr = theme.FaviconUrl.Replace("/api/asset/", "");
+                if (int.TryParse(oldFileIdStr, out var oldFileId))
+                {
+                    await _assetService.DeleteAssetAsync(oldFileId);
+                }
             }
 
-            // Upload new favicon using file storage service
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            var fileName = $"favicon_{Guid.NewGuid()}{extension}";
-            var uploadResult = await _fileStorage.UploadFileAsync(file, "theme", fileName);
+            // Upload new favicon using asset service (saves to database)
+            var uploadResult = await _assetService.UploadAssetAsync(
+                file,
+                "theme",
+                objectType: "Theme",
+                objectId: theme?.ThemeId,
+                uploadedBy: currentUserId
+            );
 
             if (!uploadResult.Success)
             {
@@ -337,14 +356,13 @@ public class ThemeController : ControllerBase
             // Update theme if exists
             if (theme != null)
             {
-                theme.FaviconUrl = uploadResult.Url;
-                theme.UpdatedBy = GetCurrentUserId();
+                theme.FaviconUrl = uploadResult.Url; // Now saves as /api/asset/{id}
+                theme.UpdatedBy = currentUserId;
                 theme.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
             }
 
             // Log activity
-            var currentUserId = GetCurrentUserId();
             var log = new ActivityLog
             {
                 UserId = currentUserId,

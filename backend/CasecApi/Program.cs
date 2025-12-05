@@ -26,6 +26,9 @@ else
     builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
 }
 
+// Add Asset Service (wraps file storage and saves to database)
+builder.Services.AddScoped<IAssetService, AssetService>();
+
 // Add Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "DefaultSecretKeyForDevelopmentOnly123!";
 var key = Encoding.ASCII.GetBytes(jwtKey);
@@ -159,7 +162,8 @@ app.MapGet("/", () => new
         "/api/events",
         "/api/users/profile",
         "/api/users/dashboard",
-        "/api/payments/process"
+        "/api/payments/process",
+        "/api/asset/{id}"
     }
 });
 
