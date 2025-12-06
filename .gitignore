@@ -10,6 +10,7 @@ desktop.ini
 *.swp
 *.swo
 *~
+.vs/
 
 # Logs
 *.log
@@ -30,3 +31,8 @@ temp/
 # Backup files
 *.backup
 backup/
+
+
+#uploads
+uploads/
+upload/
