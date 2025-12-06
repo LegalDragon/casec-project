@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useStore';
+import ThemeProvider from './components/ThemeProvider';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -43,8 +44,9 @@ function ClubAdminRoute({ children }) {
 
 function App() {
   return (
-    <Router>
-      <Routes>
+    <ThemeProvider>
+      <Router>
+        <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
@@ -85,8 +87,9 @@ function App() {
             <AdminRoute><AdminTheme /></AdminRoute>
           } />
         </Route>
-      </Routes>
-    </Router>
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 

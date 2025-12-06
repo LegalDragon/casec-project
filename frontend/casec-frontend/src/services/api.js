@@ -104,6 +104,7 @@ export const paymentsAPI = {
 
 // Theme APIs
 export const themeAPI = {
+  getActive: () => api.get('/theme/active'),
   getCurrent: () => api.get('/theme'),
   update: (data) => api.put('/theme', data),
   uploadLogo: (formData) => {

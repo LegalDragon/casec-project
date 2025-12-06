@@ -2,6 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LogOut, User, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../store/useStore';
 import { useState } from 'react';
+import LogoOrText from './LogoOrText';
 
 export default function Layout() {
   const { user, logout } = useAuthStore();
@@ -38,9 +39,7 @@ export default function Layout() {
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
             <div className="flex-shrink-0">
-              <h1 className="text-3xl font-display font-extrabold text-primary">
-                CASEC<span className="text-accent">.</span>
-              </h1>
+              <LogoOrText />
             </div>
 
             {/* Desktop Navigation */}
