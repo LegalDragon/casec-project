@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, Edit, Save, X, Calendar, MapPin, Users, DollarSign,
-  Upload, Image, FileText, Trash2, Download, Building2, Star, Tag, Clock
+  Upload, Image, FileText, Trash2, Download, Building2, Star, Tag, Clock,
+  Eye, EyeOff, ArrowUp, ArrowDown, GripVertical
 } from 'lucide-react';
 import { eventsAPI, clubsAPI } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
@@ -88,13 +89,39 @@ export default function EventDetail() {
 
   const fetchAssets = async () => {
     try {
-      const response = await api.get(`/events/${eventId}/assets`);
+      // Include private assets for admin view
+      const response = await api.get(`/events/${eventId}/assets?includePrivate=true`);
       if (response.success) {
         setAssets(response.data);
       }
     } catch (error) {
       console.error('Error fetching assets:', error);
     }
+  };
+
+  const handleUpdateAsset = async (fileId, updates) => {
+    try {
+      const response = await api.put(`/events/${eventId}/assets/${fileId}`, updates);
+      if (response.success) {
+        fetchAssets();
+      }
+    } catch (error) {
+      console.error('Error updating asset:', error);
+      alert('Failed to update asset');
+    }
+  };
+
+  const handleToggleStatus = async (fileId, currentStatus) => {
+    const newStatus = currentStatus === 'Public' ? 'Private' : 'Public';
+    await handleUpdateAsset(fileId, { status: newStatus });
+  };
+
+  const handleUpdateSortOrder = async (fileId, sortOrder) => {
+    await handleUpdateAsset(fileId, { sortOrder: parseInt(sortOrder) || 0 });
+  };
+
+  const handleUpdateCaption = async (fileId, caption) => {
+    await handleUpdateAsset(fileId, { caption });
   };
 
   const handleSave = async () => {
@@ -507,7 +534,10 @@ export default function EventDetail() {
             <Image className="w-5 h-5 text-primary" />
             Event Photos ({assets.photos.length})
           </h2>
-          <div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">
+              {assets.photos.filter(p => p.status === 'Public').length} public
+            </span>
             <input
               ref={photoInputRef}
               type="file"
@@ -528,21 +558,68 @@ export default function EventDetail() {
         </div>
 
         {assets.photos.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {assets.photos.map((photo) => (
-              <div key={photo.fileId} className="relative group">
-                <img
-                  src={photo.url}
-                  alt={photo.fileName}
-                  className="w-full h-32 object-cover rounded-lg"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <button
-                    onClick={() => handleDeleteAsset(photo.fileId)}
-                    className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+              <div key={photo.fileId} className={`border rounded-lg overflow-hidden ${photo.status === 'Private' ? 'border-gray-300 bg-gray-50' : 'border-green-300 bg-green-50'}`}>
+                <div className="relative">
+                  <img
+                    src={photo.url}
+                    alt={photo.fileName}
+                    className={`w-full h-40 object-cover ${photo.status === 'Private' ? 'opacity-60' : ''}`}
+                  />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${photo.status === 'Public' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
+                      {photo.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-3 space-y-2">
+                  <p className="text-sm font-medium text-gray-900 truncate">{photo.fileName}</p>
+
+                  {/* Caption Input */}
+                  <input
+                    type="text"
+                    placeholder="Add caption..."
+                    defaultValue={photo.caption || ''}
+                    onBlur={(e) => {
+                      if (e.target.value !== (photo.caption || '')) {
+                        handleUpdateCaption(photo.fileId, e.target.value);
+                      }
+                    }}
+                    className="input w-full text-sm py-1"
+                  />
+
+                  <div className="flex items-center justify-between gap-2">
+                    {/* Sort Order */}
+                    <div className="flex items-center gap-1">
+                      <GripVertical className="w-4 h-4 text-gray-400" />
+                      <input
+                        type="number"
+                        defaultValue={photo.sortOrder}
+                        onBlur={(e) => handleUpdateSortOrder(photo.fileId, e.target.value)}
+                        className="input w-16 text-sm py-1 text-center"
+                        title="Sort order (lower = first)"
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleToggleStatus(photo.fileId, photo.status)}
+                        className={`p-2 rounded ${photo.status === 'Public' ? 'text-green-600 hover:bg-green-100' : 'text-gray-600 hover:bg-gray-200'}`}
+                        title={photo.status === 'Public' ? 'Make Private' : 'Make Public'}
+                      >
+                        {photo.status === 'Public' ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAsset(photo.fileId)}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -563,7 +640,10 @@ export default function EventDetail() {
             <FileText className="w-5 h-5 text-primary" />
             Event Documents ({assets.documents.length})
           </h2>
-          <div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">
+              {assets.documents.filter(d => d.status === 'Public').length} public
+            </span>
             <input
               ref={docInputRef}
               type="file"
@@ -584,33 +664,73 @@ export default function EventDetail() {
         </div>
 
         {assets.documents.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {assets.documents.map((doc) => (
-              <div key={doc.fileId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-8 h-8 text-blue-500" />
-                  <div>
-                    <p className="font-medium text-gray-900">{doc.fileName}</p>
-                    <p className="text-xs text-gray-500">
-                      {formatFileSize(doc.fileSize)} • Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
-                    </p>
+              <div key={doc.fileId} className={`p-4 rounded-lg border ${doc.status === 'Private' ? 'border-gray-300 bg-gray-50' : 'border-green-300 bg-green-50'}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <FileText className={`w-10 h-10 flex-shrink-0 ${doc.status === 'Private' ? 'text-gray-400' : 'text-blue-500'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium text-gray-900 truncate">{doc.fileName}</p>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${doc.status === 'Public' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
+                          {doc.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mb-2">
+                        {formatFileSize(doc.fileSize)} • Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
+                      </p>
+
+                      {/* Caption Input */}
+                      <input
+                        type="text"
+                        placeholder="Add description..."
+                        defaultValue={doc.caption || ''}
+                        onBlur={(e) => {
+                          if (e.target.value !== (doc.caption || '')) {
+                            handleUpdateCaption(doc.fileId, e.target.value);
+                          }
+                        }}
+                        className="input w-full text-sm py-1"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={doc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 text-gray-600 hover:text-primary"
-                  >
-                    <Download className="w-5 h-5" />
-                  </a>
-                  <button
-                    onClick={() => handleDeleteAsset(doc.fileId)}
-                    className="p-2 text-gray-600 hover:text-red-500"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {/* Sort Order */}
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        defaultValue={doc.sortOrder}
+                        onBlur={(e) => handleUpdateSortOrder(doc.fileId, e.target.value)}
+                        className="input w-14 text-sm py-1 text-center"
+                        title="Sort order"
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <button
+                      onClick={() => handleToggleStatus(doc.fileId, doc.status)}
+                      className={`p-2 rounded ${doc.status === 'Public' ? 'text-green-600 hover:bg-green-100' : 'text-gray-600 hover:bg-gray-200'}`}
+                      title={doc.status === 'Public' ? 'Make Private' : 'Make Public'}
+                    >
+                      {doc.status === 'Public' ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                    </button>
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-gray-600 hover:text-primary rounded hover:bg-blue-50"
+                    >
+                      <Download className="w-5 h-5" />
+                    </a>
+                    <button
+                      onClick={() => handleDeleteAsset(doc.fileId)}
+                      className="p-2 text-red-600 hover:bg-red-100 rounded"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -622,6 +742,17 @@ export default function EventDetail() {
             <p className="text-sm">Upload event summaries, presentations, or other documents</p>
           </div>
         )}
+      </div>
+
+      {/* Registrants Section */}
+      <div className="card">
+        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary" />
+          Registered Attendees ({event.totalRegistrations || 0})
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">
+          View the <Link to={`/events/${eventId}`} className="text-primary hover:underline">public event page</Link> to see the full registrant list.
+        </p>
       </div>
     </div>
   );

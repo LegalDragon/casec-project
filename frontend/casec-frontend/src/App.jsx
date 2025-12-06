@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Clubs from './pages/Clubs';
 import Events from './pages/Events';
+import EventDetail from './pages/EventDetail';
 import Profile from './pages/Profile';
 import Payment from './pages/Payment';
 import Members from './pages/Members';
@@ -55,6 +56,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="clubs" element={<Clubs />} />
           <Route path="events" element={<Events />} />
+          <Route path="events/:eventId" element={<EventDetail />} />
           <Route path="profile" element={<Profile />} />
           <Route path="payment" element={<Payment />} />
           <Route path="members" element={<Members />} />

@@ -579,6 +579,17 @@ public class Asset
 
     public int? UploadedBy { get; set; }
 
+    // Status: Public, Private, MembersOnly
+    [MaxLength(50)]
+    public string Status { get; set; } = "Private";
+
+    // Sort order for displaying assets
+    public int SortOrder { get; set; } = 0;
+
+    // Optional caption/description for the asset
+    [MaxLength(500)]
+    public string? Caption { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public bool IsDeleted { get; set; } = false;

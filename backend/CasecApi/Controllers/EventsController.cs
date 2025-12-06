@@ -683,10 +683,10 @@ public class EventsController : ControllerBase
         }
     }
 
-    // GET: api/Events/{id}/assets (Get event photos and documents)
+    // GET: api/Events/{id}/assets (Get event photos and documents - admin gets all, public gets only Public status)
     [AllowAnonymous]
     [HttpGet("{id}/assets")]
-    public async Task<ActionResult<ApiResponse<EventAssetsDto>>> GetEventAssets(int id)
+    public async Task<ActionResult<ApiResponse<EventAssetsDto>>> GetEventAssets(int id, [FromQuery] bool includePrivate = false)
     {
         try
         {
@@ -700,10 +700,21 @@ public class EventsController : ControllerBase
                 });
             }
 
+            var currentUserId = GetCurrentUserId();
+            var canManage = currentUserId > 0 && await CanManageEvent(currentUserId, eventItem);
+
             var assets = await _assetService.GetAssetsByObjectAsync("Event", id);
+
+            // Filter by status if not admin or includePrivate not requested
+            if (!canManage || !includePrivate)
+            {
+                assets = assets.Where(a => a.Status == "Public").ToList();
+            }
 
             var photos = assets
                 .Where(a => a.ContentType.StartsWith("image/"))
+                .OrderBy(a => a.SortOrder)
+                .ThenByDescending(a => a.CreatedAt)
                 .Select(a => new EventAssetDto
                 {
                     FileId = a.FileId,
@@ -711,12 +722,17 @@ public class EventsController : ControllerBase
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
                     Url = $"/api/asset/{a.FileId}",
+                    Status = a.Status,
+                    SortOrder = a.SortOrder,
+                    Caption = a.Caption,
                     UploadedAt = a.CreatedAt
                 })
                 .ToList();
 
             var documents = assets
                 .Where(a => !a.ContentType.StartsWith("image/"))
+                .OrderBy(a => a.SortOrder)
+                .ThenByDescending(a => a.CreatedAt)
                 .Select(a => new EventAssetDto
                 {
                     FileId = a.FileId,
@@ -724,6 +740,9 @@ public class EventsController : ControllerBase
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
                     Url = $"/api/asset/{a.FileId}",
+                    Status = a.Status,
+                    SortOrder = a.SortOrder,
+                    Caption = a.Caption,
                     UploadedAt = a.CreatedAt
                 })
                 .ToList();
@@ -746,6 +765,286 @@ public class EventsController : ControllerBase
             {
                 Success = false,
                 Message = "An error occurred while fetching event assets"
+            });
+        }
+    }
+
+    // GET: api/Events/{id}/registrants (Get event registrants - members only)
+    [Authorize]
+    [HttpGet("{id}/registrants")]
+    public async Task<ActionResult<ApiResponse<List<EventRegistrantDto>>>> GetEventRegistrants(int id)
+    {
+        try
+        {
+            var eventItem = await _context.Events.FindAsync(id);
+            if (eventItem == null)
+            {
+                return NotFound(new ApiResponse<List<EventRegistrantDto>>
+                {
+                    Success = false,
+                    Message = "Event not found"
+                });
+            }
+
+            var registrants = await _context.EventRegistrations
+                .Where(er => er.EventId == id)
+                .Include(er => er.User)
+                .OrderBy(er => er.RegistrationDate)
+                .Select(er => new EventRegistrantDto
+                {
+                    UserId = er.UserId,
+                    FirstName = er.User!.FirstName,
+                    LastName = er.User!.LastName,
+                    AvatarUrl = er.User!.AvatarUrl,
+                    NumberOfGuests = er.NumberOfGuests,
+                    RegistrationDate = er.RegistrationDate,
+                    PaymentStatus = er.PaymentStatus
+                })
+                .ToListAsync();
+
+            return Ok(new ApiResponse<List<EventRegistrantDto>>
+            {
+                Success = true,
+                Data = registrants
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching event registrants");
+            return StatusCode(500, new ApiResponse<List<EventRegistrantDto>>
+            {
+                Success = false,
+                Message = "An error occurred while fetching event registrants"
+            });
+        }
+    }
+
+    // GET: api/Events/{id}/detail (Get event with assets and registrants)
+    [AllowAnonymous]
+    [HttpGet("{id}/detail")]
+    public async Task<ActionResult<ApiResponse<EventDetailDto>>> GetEventDetail(int id)
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+            var eventItem = await _context.Events
+                .Include(e => e.HostClub)
+                .FirstOrDefaultAsync(e => e.EventId == id);
+
+            if (eventItem == null)
+            {
+                return NotFound(new ApiResponse<EventDetailDto>
+                {
+                    Success = false,
+                    Message = "Event not found"
+                });
+            }
+
+            var canManage = currentUserId > 0 && await CanManageEvent(currentUserId, eventItem);
+            var isAuthenticated = currentUserId > 0;
+
+            // Get public assets only for public view
+            var assets = await _assetService.GetAssetsByObjectAsync("Event", id);
+            var publicAssets = assets.Where(a => a.Status == "Public").ToList();
+
+            var photos = publicAssets
+                .Where(a => a.ContentType.StartsWith("image/"))
+                .OrderBy(a => a.SortOrder)
+                .ThenByDescending(a => a.CreatedAt)
+                .Select(a => new EventAssetDto
+                {
+                    FileId = a.FileId,
+                    FileName = a.OriginalFileName,
+                    ContentType = a.ContentType,
+                    FileSize = a.FileSize,
+                    Url = $"/api/asset/{a.FileId}",
+                    Status = a.Status,
+                    SortOrder = a.SortOrder,
+                    Caption = a.Caption,
+                    UploadedAt = a.CreatedAt
+                })
+                .ToList();
+
+            var documents = publicAssets
+                .Where(a => !a.ContentType.StartsWith("image/"))
+                .OrderBy(a => a.SortOrder)
+                .ThenByDescending(a => a.CreatedAt)
+                .Select(a => new EventAssetDto
+                {
+                    FileId = a.FileId,
+                    FileName = a.OriginalFileName,
+                    ContentType = a.ContentType,
+                    FileSize = a.FileSize,
+                    Url = $"/api/asset/{a.FileId}",
+                    Status = a.Status,
+                    SortOrder = a.SortOrder,
+                    Caption = a.Caption,
+                    UploadedAt = a.CreatedAt
+                })
+                .ToList();
+
+            // Get registrants (only for authenticated users)
+            var registrants = new List<EventRegistrantDto>();
+            if (isAuthenticated)
+            {
+                registrants = await _context.EventRegistrations
+                    .Where(er => er.EventId == id)
+                    .Include(er => er.User)
+                    .OrderBy(er => er.RegistrationDate)
+                    .Select(er => new EventRegistrantDto
+                    {
+                        UserId = er.UserId,
+                        FirstName = er.User!.FirstName,
+                        LastName = er.User!.LastName,
+                        AvatarUrl = er.User!.AvatarUrl,
+                        NumberOfGuests = er.NumberOfGuests,
+                        RegistrationDate = er.RegistrationDate,
+                        PaymentStatus = er.PaymentStatus
+                    })
+                    .ToListAsync();
+            }
+
+            var totalRegistrations = await _context.EventRegistrations.CountAsync(er => er.EventId == id);
+
+            var eventDetail = new EventDetailDto
+            {
+                EventId = eventItem.EventId,
+                Title = eventItem.Title,
+                Description = eventItem.Description,
+                EventDate = eventItem.EventDate,
+                Location = eventItem.Location,
+                EventType = eventItem.EventType,
+                EventCategory = eventItem.EventCategory,
+                EventScope = eventItem.EventScope,
+                HostClubId = eventItem.HostClubId,
+                HostClubName = eventItem.HostClub?.Name,
+                HostClubAvatar = eventItem.HostClub?.AvatarUrl,
+                PartnerName = eventItem.PartnerName,
+                PartnerLogo = eventItem.PartnerLogo,
+                PartnerWebsite = eventItem.PartnerWebsite,
+                RegistrationUrl = eventItem.RegistrationUrl,
+                EventFee = eventItem.EventFee,
+                MaxCapacity = eventItem.MaxCapacity,
+                IsRegistrationRequired = eventItem.IsRegistrationRequired,
+                IsFeatured = eventItem.IsFeatured,
+                TotalRegistrations = totalRegistrations,
+                SpotsRemaining = eventItem.MaxCapacity - totalRegistrations,
+                IsUserRegistered = currentUserId > 0 &&
+                    await _context.EventRegistrations.AnyAsync(er => er.EventId == id && er.UserId == currentUserId),
+                CreatedAt = eventItem.CreatedAt,
+                Photos = photos,
+                Documents = documents,
+                Registrants = registrants
+            };
+
+            return Ok(new ApiResponse<EventDetailDto>
+            {
+                Success = true,
+                Data = eventDetail
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching event detail");
+            return StatusCode(500, new ApiResponse<EventDetailDto>
+            {
+                Success = false,
+                Message = "An error occurred while fetching event detail"
+            });
+        }
+    }
+
+    // PUT: api/Events/{id}/assets/{fileId} (Update asset status, sortOrder, caption - Admin/Club Admin)
+    [Authorize]
+    [HttpPut("{id}/assets/{fileId}")]
+    public async Task<ActionResult<ApiResponse<EventAssetDto>>> UpdateEventAsset(int id, int fileId, [FromBody] UpdateAssetRequest request)
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+            var eventItem = await _context.Events.FindAsync(id);
+
+            if (eventItem == null)
+            {
+                return NotFound(new ApiResponse<EventAssetDto>
+                {
+                    Success = false,
+                    Message = "Event not found"
+                });
+            }
+
+            // Check permissions
+            if (!await CanManageEvent(currentUserId, eventItem))
+            {
+                return Forbid();
+            }
+
+            // Get asset and verify it belongs to this event
+            var asset = await _context.Assets.FindAsync(fileId);
+            if (asset == null || asset.ObjectType != "Event" || asset.ObjectId != id || asset.IsDeleted)
+            {
+                return NotFound(new ApiResponse<EventAssetDto>
+                {
+                    Success = false,
+                    Message = "Asset not found for this event"
+                });
+            }
+
+            // Update asset properties
+            if (request.Status != null)
+            {
+                // Validate status
+                var validStatuses = new[] { "Public", "Private", "MembersOnly" };
+                if (!validStatuses.Contains(request.Status))
+                {
+                    return BadRequest(new ApiResponse<EventAssetDto>
+                    {
+                        Success = false,
+                        Message = "Invalid status. Must be 'Public', 'Private', or 'MembersOnly'"
+                    });
+                }
+                asset.Status = request.Status;
+            }
+
+            if (request.SortOrder.HasValue)
+            {
+                asset.SortOrder = request.SortOrder.Value;
+            }
+
+            if (request.Caption != null)
+            {
+                asset.Caption = request.Caption;
+            }
+
+            await _context.SaveChangesAsync();
+
+            var updatedAsset = new EventAssetDto
+            {
+                FileId = asset.FileId,
+                FileName = asset.OriginalFileName,
+                ContentType = asset.ContentType,
+                FileSize = asset.FileSize,
+                Url = $"/api/asset/{asset.FileId}",
+                Status = asset.Status,
+                SortOrder = asset.SortOrder,
+                Caption = asset.Caption,
+                UploadedAt = asset.CreatedAt
+            };
+
+            return Ok(new ApiResponse<EventAssetDto>
+            {
+                Success = true,
+                Message = "Asset updated successfully",
+                Data = updatedAsset
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating event asset");
+            return StatusCode(500, new ApiResponse<EventAssetDto>
+            {
+                Success = false,
+                Message = "An error occurred while updating asset"
             });
         }
     }
