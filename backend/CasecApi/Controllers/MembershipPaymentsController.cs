@@ -593,6 +593,15 @@ public class MembershipPaymentsController : ControllerBase
                 });
             }
 
+            if (payment.User == null)
+            {
+                return BadRequest(new ApiResponse<MembershipPaymentDto>
+                {
+                    Success = false,
+                    Message = "User associated with this payment not found"
+                });
+            }
+
             if (request.Approve)
             {
                 // Approve the payment
@@ -610,7 +619,7 @@ public class MembershipPaymentsController : ControllerBase
                     payment.Notes = (payment.Notes ?? "") + "\n[Admin] " + request.Notes;
 
                 // Update the user's membership
-                var user = payment.User!;
+                var user = payment.User;
                 user.MembershipTypeId = payment.MembershipTypeId;
                 user.MembershipValidUntil = payment.ValidUntil;
                 user.IsActive = true;
@@ -684,11 +693,11 @@ public class MembershipPaymentsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error confirming payment");
+            _logger.LogError(ex, "Error confirming payment {PaymentId}: {Message}", id, ex.Message);
             return StatusCode(500, new ApiResponse<MembershipPaymentDto>
             {
                 Success = false,
-                Message = "An error occurred while processing payment"
+                Message = $"An error occurred while processing payment: {ex.Message}"
             });
         }
     }
