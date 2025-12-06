@@ -702,6 +702,9 @@ public class MembershipPaymentDto
     public string? UserAvatarUrl { get; set; }
     public int MembershipTypeId { get; set; }
     public string MembershipTypeName { get; set; } = string.Empty;
+    public int? DurationId { get; set; }
+    public string? DurationName { get; set; }
+    public int? DurationMonths { get; set; }
     public decimal Amount { get; set; }
     public DateTime PaymentDate { get; set; }
     public string PaymentMethod { get; set; } = "Zelle";
@@ -719,6 +722,10 @@ public class MembershipPaymentDto
     public DateTime CreatedAt { get; set; }
     public List<int>? CoveredFamilyMemberIds { get; set; }
     public List<FamilyMemberSummaryDto>? CoveredFamilyMembers { get; set; }
+    // For linked users - shows who paid for their membership
+    public bool IsCoveredByFamilyPayment { get; set; } = false;
+    public string? PaidByUserName { get; set; }
+    public int? PaidByUserId { get; set; }
 }
 
 // Family Member Summary DTO (for payment coverage display)
@@ -732,10 +739,32 @@ public class FamilyMemberSummaryDto
     public string? Relationship { get; set; }
 }
 
+// Membership Duration DTO
+public class MembershipDurationDto
+{
+    public int DurationId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Months { get; set; }
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+// Create/Update Duration Request DTO
+public class CreateDurationRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public int Months { get; set; }
+    public string? Description { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int DisplayOrder { get; set; } = 0;
+}
+
 // Submit Payment Request DTO
 public class SubmitPaymentRequest
 {
     public int MembershipTypeId { get; set; }
+    public int DurationId { get; set; } // Required - selected duration
     public decimal Amount { get; set; }
     public string PaymentMethod { get; set; } = "Zelle";
     public string? TransactionId { get; set; }
@@ -753,6 +782,12 @@ public class ConfirmPaymentRequest
     public DateTime? ValidUntil { get; set; }
     public List<int>? FamilyMemberIds { get; set; } // User IDs to apply family membership to
     public string? Notes { get; set; }
+}
+
+// Admin Update Linked Users Request DTO
+public class UpdateLinkedUsersRequest
+{
+    public List<int>? FamilyMemberIds { get; set; }
 }
 
 // User Membership Status DTO

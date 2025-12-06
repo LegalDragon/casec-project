@@ -602,10 +602,217 @@ export default function AdminPayments() {
                       )}
                     </div>
                   )}
+
+                  {/* Show and edit linked users for confirmed payments */}
+                  {payment.status === 'Confirmed' && (
+                    <LinkedUsersSection
+                      payment={payment}
+                      onUpdate={loadPayments}
+                    />
+                  )}
                 </div>
               )}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Component to manage linked users on confirmed payments
+function LinkedUsersSection({ payment, onUpdate }) {
+  const [editing, setEditing] = useState(false);
+  const [linkedUserIds, setLinkedUserIds] = useState(payment.coveredFamilyMemberIds || []);
+  const [linkedUsers, setLinkedUsers] = useState([]);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (payment.coveredFamilyMemberIds?.length > 0) {
+      loadLinkedUsers();
+    }
+  }, [payment.coveredFamilyMemberIds]);
+
+  const loadLinkedUsers = async () => {
+    // We need to fetch user details for linked IDs
+    // For now, we'll use the search endpoint to get user info
+    const users = [];
+    for (const userId of payment.coveredFamilyMemberIds) {
+      try {
+        const response = await membershipPaymentsAPI.searchUsers(userId.toString(), payment.userId);
+        if (response.success && response.data.length > 0) {
+          const user = response.data.find(u => u.userId === userId);
+          if (user) users.push(user);
+        }
+      } catch (err) {
+        console.error('Failed to load user:', err);
+      }
+    }
+    setLinkedUsers(users);
+  };
+
+  const searchUsers = async (query) => {
+    if (!query || query.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+    setSearchingUsers(true);
+    try {
+      const response = await membershipPaymentsAPI.searchUsers(query, payment.userId);
+      if (response.success) {
+        // Filter out already linked users
+        setUserSearchResults(response.data.filter(u => !linkedUserIds.includes(u.userId)));
+      }
+    } catch (err) {
+      console.error('Failed to search users:', err);
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (userSearchQuery) searchUsers(userSearchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [userSearchQuery]);
+
+  const addUser = (user) => {
+    if (!linkedUserIds.includes(user.userId)) {
+      setLinkedUserIds([...linkedUserIds, user.userId]);
+      setLinkedUsers([...linkedUsers, user]);
+    }
+    setUserSearchQuery('');
+    setUserSearchResults([]);
+  };
+
+  const removeUser = (userId) => {
+    setLinkedUserIds(linkedUserIds.filter(id => id !== userId));
+    setLinkedUsers(linkedUsers.filter(u => u.userId !== userId));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const response = await membershipPaymentsAPI.updateLinkedUsers(payment.paymentId, linkedUserIds);
+      if (response.success) {
+        alert('Linked users updated successfully');
+        setEditing(false);
+        onUpdate();
+      }
+    } catch (err) {
+      alert('Failed to update linked users: ' + (err.message || 'Please try again'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setLinkedUserIds(payment.coveredFamilyMemberIds || []);
+    setEditing(false);
+    setUserSearchQuery('');
+    setUserSearchResults([]);
+  };
+
+  return (
+    <div className="border-t pt-4 mt-4">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-semibold text-gray-700 flex items-center">
+          <Users className="w-4 h-4 mr-2" />
+          Linked Family Members ({linkedUserIds.length})
+        </h4>
+        {!editing && (
+          <button
+            onClick={() => setEditing(true)}
+            className="text-sm text-primary hover:underline"
+          >
+            Edit
+          </button>
+        )}
+      </div>
+
+      {linkedUsers.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {linkedUsers.map((user) => (
+            <span
+              key={user.userId}
+              className="inline-flex items-center bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm"
+            >
+              {user.firstName} {user.lastName}
+              {editing && (
+                <button
+                  onClick={() => removeUser(user.userId)}
+                  className="ml-2 hover:text-red-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {linkedUsers.length === 0 && !editing && (
+        <p className="text-sm text-gray-500 italic">No linked family members</p>
+      )}
+
+      {editing && (
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search users to link..."
+              value={userSearchQuery}
+              onChange={(e) => setUserSearchQuery(e.target.value)}
+              className="input pl-9 w-full"
+            />
+            {searchingUsers && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              </div>
+            )}
+          </div>
+
+          {userSearchResults.length > 0 && (
+            <div className="bg-white border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+              {userSearchResults.map((user) => (
+                <button
+                  key={user.userId}
+                  onClick={() => addUser(user)}
+                  className="w-full flex items-center p-2 hover:bg-gray-50 border-b last:border-b-0 text-left"
+                >
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mr-2 text-primary font-bold text-xs">
+                    {user.firstName[0]}{user.lastName[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={handleCancel}
+              className="btn btn-secondary text-sm"
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="btn btn-primary text-sm"
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       )}
     </div>

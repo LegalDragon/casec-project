@@ -130,11 +130,21 @@ export const themeAPI = {
   reset: () => api.post('/theme/reset'),
 };
 
+// Membership Durations APIs
+export const membershipDurationsAPI = {
+  getAll: () => api.get('/membershipdurations'),
+  getAllAdmin: () => api.get('/membershipdurations/admin/all'),
+  create: (data) => api.post('/membershipdurations/admin', data),
+  update: (id, data) => api.put(`/membershipdurations/admin/${id}`, data),
+  delete: (id) => api.delete(`/membershipdurations/admin/${id}`),
+};
+
 // Membership Payments APIs
 export const membershipPaymentsAPI = {
   // User endpoints
   getStatus: () => api.get('/membershippayments/status'),
   getMethods: () => api.get('/membershippayments/methods'),
+  getDurations: () => api.get('/membershipdurations'),
   submit: (data) => api.post('/membershippayments', data),
   uploadProof: (paymentId, file) => {
     const formData = new FormData();
@@ -150,6 +160,7 @@ export const membershipPaymentsAPI = {
   getAll: (params) => api.get('/membershippayments/admin/all', { params }),
   getPaymentDetails: (paymentId) => api.get(`/membershippayments/admin/${paymentId}`),
   confirm: (paymentId, data) => api.post(`/membershippayments/admin/${paymentId}/confirm`, data),
+  updateLinkedUsers: (paymentId, familyMemberIds) => api.put(`/membershippayments/admin/${paymentId}/linked-users`, { familyMemberIds }),
   getUserFamily: (userId) => api.get(`/membershippayments/admin/user/${userId}/family`),
   searchUsers: (query, excludeUserId) => api.get('/membershippayments/admin/users/search', {
     params: { query, excludeUserId }

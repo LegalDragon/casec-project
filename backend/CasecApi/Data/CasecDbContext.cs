@@ -12,6 +12,7 @@ public class CasecDbContext : DbContext
     // Core entities
     public DbSet<User> Users { get; set; }
     public DbSet<MembershipType> MembershipTypes { get; set; }
+    public DbSet<MembershipDuration> MembershipDurations { get; set; }
     public DbSet<MembershipPayment> MembershipPayments { get; set; }
     public DbSet<ActivityLog> ActivityLogs { get; set; }
     

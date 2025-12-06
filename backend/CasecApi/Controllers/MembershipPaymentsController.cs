@@ -54,15 +54,49 @@ public class MembershipPaymentsController : ControllerBase
                 });
             }
 
-            // Get payment history
-            var payments = await _context.MembershipPayments
+            // Get payment history - own payments
+            var ownPayments = await _context.MembershipPayments
                 .Where(p => p.UserId == userId)
                 .OrderByDescending(p => p.CreatedAt)
                 .Include(p => p.MembershipType)
+                .Include(p => p.Duration)
                 .Include(p => p.ConfirmedByUser)
                 .ToListAsync();
 
-            var paymentDtos = payments.Select(p => MapToPaymentDto(p)).ToList();
+            var paymentDtos = ownPayments.Select(p => MapToPaymentDto(p)).ToList();
+
+            // Also get payments where user is a covered family member
+            var userIdStr = userId.ToString();
+            var familyPayments = await _context.MembershipPayments
+                .Where(p => p.CoveredFamilyMemberIds != null &&
+                           p.CoveredFamilyMemberIds.Contains(userIdStr) &&
+                           p.Status == "Confirmed")
+                .OrderByDescending(p => p.CreatedAt)
+                .Include(p => p.User)
+                .Include(p => p.MembershipType)
+                .Include(p => p.Duration)
+                .ToListAsync();
+
+            // Filter to only include payments where user is actually in the list
+            foreach (var fp in familyPayments)
+            {
+                if (!string.IsNullOrEmpty(fp.CoveredFamilyMemberIds))
+                {
+                    try
+                    {
+                        var coveredIds = JsonSerializer.Deserialize<List<int>>(fp.CoveredFamilyMemberIds);
+                        if (coveredIds != null && coveredIds.Contains(userId))
+                        {
+                            var paidByName = fp.User != null ? $"{fp.User.FirstName} {fp.User.LastName}" : "Unknown";
+                            paymentDtos.Add(MapToPaymentDto(fp, isCoveredPayment: true, paidByName: paidByName, paidByUserId: fp.UserId));
+                        }
+                    }
+                    catch { }
+                }
+            }
+
+            // Sort by date
+            paymentDtos = paymentDtos.OrderByDescending(p => p.CreatedAt).ToList();
 
             // Get family members if user belongs to a family group
             var familyMembers = new List<FamilyMemberSummaryDto>();
@@ -189,18 +223,30 @@ public class MembershipPaymentsController : ControllerBase
                 });
             }
 
-            // Calculate validity period (1 year from now or from current expiration if not expired)
+            // Validate duration
+            var duration = await _context.MembershipDurations.FindAsync(request.DurationId);
+            if (duration == null || !duration.IsActive)
+            {
+                return BadRequest(new ApiResponse<MembershipPaymentDto>
+                {
+                    Success = false,
+                    Message = "Invalid membership duration"
+                });
+            }
+
+            // Calculate validity period based on duration
             var validFrom = DateTime.UtcNow;
             if (user.MembershipValidUntil.HasValue && user.MembershipValidUntil.Value > validFrom)
             {
                 validFrom = user.MembershipValidUntil.Value; // Extend from current expiration
             }
-            var validUntil = validFrom.AddYears(1);
+            var validUntil = validFrom.AddMonths(duration.Months);
 
             var payment = new MembershipPayment
             {
                 UserId = userId,
                 MembershipTypeId = request.MembershipTypeId,
+                DurationId = request.DurationId,
                 Amount = request.Amount,
                 PaymentMethod = request.PaymentMethod,
                 TransactionId = request.TransactionId,
@@ -456,6 +502,7 @@ public class MembershipPaymentsController : ControllerBase
             var query = _context.MembershipPayments
                 .Include(p => p.User)
                 .Include(p => p.MembershipType)
+                .Include(p => p.Duration)
                 .Include(p => p.ConfirmedByUser)
                 .AsQueryable();
 
@@ -703,6 +750,105 @@ public class MembershipPaymentsController : ControllerBase
         }
     }
 
+    // PUT: api/MembershipPayments/admin/{id}/linked-users
+    // Update linked family members on a confirmed payment (Admin only)
+    [HttpPut("admin/{id}/linked-users")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<MembershipPaymentDto>>> UpdateLinkedUsers(int id, [FromBody] UpdateLinkedUsersRequest request)
+    {
+        try
+        {
+            var payment = await _context.MembershipPayments
+                .Include(p => p.User)
+                .Include(p => p.MembershipType)
+                .Include(p => p.Duration)
+                .FirstOrDefaultAsync(p => p.PaymentId == id);
+
+            if (payment == null)
+            {
+                return NotFound(new ApiResponse<MembershipPaymentDto>
+                {
+                    Success = false,
+                    Message = "Payment not found"
+                });
+            }
+
+            // Get current linked user IDs
+            var currentLinkedIds = new List<int>();
+            if (!string.IsNullOrEmpty(payment.CoveredFamilyMemberIds))
+            {
+                try
+                {
+                    currentLinkedIds = JsonSerializer.Deserialize<List<int>>(payment.CoveredFamilyMemberIds) ?? new List<int>();
+                }
+                catch { }
+            }
+
+            var newLinkedIds = request.FamilyMemberIds ?? new List<int>();
+
+            // Find users to remove (were linked but no longer)
+            var toRemove = currentLinkedIds.Except(newLinkedIds).ToList();
+            // Find users to add (newly linked)
+            var toAdd = newLinkedIds.Except(currentLinkedIds).ToList();
+
+            // Remove membership from users no longer linked
+            foreach (var memberId in toRemove)
+            {
+                var member = await _context.Users.FindAsync(memberId);
+                if (member != null)
+                {
+                    // Only clear if their membership was from this payment
+                    if (member.MembershipValidUntil == payment.ValidUntil)
+                    {
+                        member.MembershipValidUntil = null;
+                        member.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+            }
+
+            // Add membership to newly linked users
+            foreach (var memberId in toAdd)
+            {
+                var member = await _context.Users.FindAsync(memberId);
+                if (member != null)
+                {
+                    member.MembershipTypeId = payment.MembershipTypeId;
+                    member.MembershipValidUntil = payment.ValidUntil;
+                    member.IsActive = true;
+                    member.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
+            // Update payment
+            payment.CoveredFamilyMemberIds = newLinkedIds.Count > 0
+                ? JsonSerializer.Serialize(newLinkedIds)
+                : null;
+            payment.PaymentScope = newLinkedIds.Count > 0 ? "Family" : "Self";
+            payment.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Reload confirmed by user
+            await _context.Entry(payment).Reference(p => p.ConfirmedByUser).LoadAsync();
+
+            return Ok(new ApiResponse<MembershipPaymentDto>
+            {
+                Success = true,
+                Message = "Linked users updated successfully",
+                Data = MapToPaymentDto(payment)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating linked users for payment {PaymentId}", id);
+            return StatusCode(500, new ApiResponse<MembershipPaymentDto>
+            {
+                Success = false,
+                Message = "An error occurred while updating linked users"
+            });
+        }
+    }
+
     // GET: api/MembershipPayments/admin/user/{userId}/family
     // Get a user's family members for family membership assignment (Admin only)
     [HttpGet("admin/user/{userId}/family")]
@@ -817,7 +963,7 @@ public class MembershipPaymentsController : ControllerBase
     }
 
     // Helper method to map payment entity to DTO
-    private MembershipPaymentDto MapToPaymentDto(MembershipPayment payment)
+    private MembershipPaymentDto MapToPaymentDto(MembershipPayment payment, bool isCoveredPayment = false, string? paidByName = null, int? paidByUserId = null)
     {
         var dto = new MembershipPaymentDto
         {
@@ -828,6 +974,9 @@ public class MembershipPaymentsController : ControllerBase
             UserAvatarUrl = payment.User?.AvatarUrl,
             MembershipTypeId = payment.MembershipTypeId,
             MembershipTypeName = payment.MembershipType?.Name ?? "Unknown",
+            DurationId = payment.DurationId,
+            DurationName = payment.Duration?.Name,
+            DurationMonths = payment.Duration?.Months,
             Amount = payment.Amount,
             PaymentDate = payment.PaymentDate,
             PaymentMethod = payment.PaymentMethod,
@@ -844,7 +993,10 @@ public class MembershipPaymentsController : ControllerBase
             ValidFrom = payment.ValidFrom,
             ValidUntil = payment.ValidUntil,
             Notes = payment.Notes,
-            CreatedAt = payment.CreatedAt
+            CreatedAt = payment.CreatedAt,
+            IsCoveredByFamilyPayment = isCoveredPayment,
+            PaidByUserName = paidByName,
+            PaidByUserId = paidByUserId
         };
 
         if (!string.IsNullOrEmpty(payment.CoveredFamilyMemberIds))

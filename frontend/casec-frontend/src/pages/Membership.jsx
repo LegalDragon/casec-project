@@ -10,6 +10,7 @@ export default function Membership() {
   const { user } = useAuthStore();
   const [status, setStatus] = useState(null);
   const [membershipTypes, setMembershipTypes] = useState([]);
+  const [durations, setDurations] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -20,6 +21,7 @@ export default function Membership() {
 
   const [formData, setFormData] = useState({
     membershipTypeId: '',
+    durationId: '',
     amount: '',
     paymentMethod: 'Zelle',
     transactionId: '',
@@ -34,14 +36,16 @@ export default function Membership() {
 
   const loadData = async () => {
     try {
-      const [statusRes, typesRes, methodsRes] = await Promise.all([
+      const [statusRes, typesRes, durationsRes, methodsRes] = await Promise.all([
         membershipPaymentsAPI.getStatus(),
         membershipTypesAPI.getAll(),
+        membershipPaymentsAPI.getDurations(),
         membershipPaymentsAPI.getMethods()
       ]);
 
       if (statusRes.success) setStatus(statusRes.data);
       if (typesRes.success) setMembershipTypes(typesRes.data);
+      if (durationsRes.success) setDurations(durationsRes.data);
       if (methodsRes.success) setPaymentMethods(methodsRes.data);
     } catch (err) {
       console.error('Failed to load data:', err);
@@ -58,6 +62,7 @@ export default function Membership() {
       const response = await membershipPaymentsAPI.submit({
         ...formData,
         membershipTypeId: parseInt(formData.membershipTypeId),
+        durationId: parseInt(formData.durationId),
         amount: parseFloat(formData.amount)
       });
 
@@ -351,6 +356,23 @@ export default function Membership() {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Membership Duration</label>
+                  <select
+                    className="input w-full"
+                    value={formData.durationId}
+                    onChange={(e) => setFormData({ ...formData, durationId: e.target.value })}
+                    required
+                  >
+                    <option value="">Select duration</option>
+                    {durations.map((duration) => (
+                      <option key={duration.durationId} value={duration.durationId}>
+                        {duration.name} ({duration.months} months)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Amount Paid</label>
                   <input
                     type="number"
@@ -453,7 +475,7 @@ export default function Membership() {
           <div className="space-y-4">
             {status.paymentHistory.map((payment) => (
               <div
-                key={payment.paymentId}
+                key={`${payment.paymentId}-${payment.isCoveredByFamilyPayment ? 'family' : 'own'}`}
                 className={`border rounded-lg p-4 ${
                   payment.status === 'Confirmed' ? 'border-green-200 bg-green-50' :
                   payment.status === 'Rejected' ? 'border-red-200 bg-red-50' :
@@ -465,10 +487,20 @@ export default function Membership() {
                     <div className="flex items-center space-x-3">
                       <span className="font-semibold">${payment.amount}</span>
                       {getStatusBadge(payment.status)}
+                      {payment.isCoveredByFamilyPayment && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <Users className="w-3 h-3 mr-1" /> Family
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600">
-                      {payment.membershipTypeName} • {payment.paymentMethod}
+                      {payment.membershipTypeName} • {payment.durationName || '1 Year'} • {payment.paymentMethod}
                     </p>
+                    {payment.isCoveredByFamilyPayment && payment.paidByUserName && (
+                      <p className="text-sm text-blue-600 font-medium">
+                        Paid by: {payment.paidByUserName}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-500">
                       Submitted: {formatDate(payment.createdAt)}
                     </p>
@@ -484,7 +516,7 @@ export default function Membership() {
                     )}
                   </div>
 
-                  {payment.proofOfPaymentUrl && (
+                  {payment.proofOfPaymentUrl && !payment.isCoveredByFamilyPayment && (
                     <a
                       href={payment.proofOfPaymentUrl}
                       target="_blank"

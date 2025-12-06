@@ -140,6 +140,30 @@ public class MembershipType
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
+// MembershipDuration Entity - Defines available membership duration options
+public class MembershipDuration
+{
+    [Key]
+    public int DurationId { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty; // e.g., "1 Year", "2 Years"
+
+    [Required]
+    public int Months { get; set; } // Duration in months
+
+    public string? Description { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
 // MembershipPayment Entity - Enhanced for payment tracking workflow
 public class MembershipPayment
 {
@@ -151,6 +175,9 @@ public class MembershipPayment
 
     [Required]
     public int MembershipTypeId { get; set; }
+
+    // Duration selected for this payment
+    public int? DurationId { get; set; }
 
     [Required]
     [Column(TypeName = "decimal(10, 2)")]
@@ -206,6 +233,9 @@ public class MembershipPayment
 
     [ForeignKey("MembershipTypeId")]
     public virtual MembershipType? MembershipType { get; set; }
+
+    [ForeignKey("DurationId")]
+    public virtual MembershipDuration? Duration { get; set; }
 
     [ForeignKey("ConfirmedBy")]
     public virtual User? ConfirmedByUser { get; set; }
