@@ -616,11 +616,17 @@ public class MembershipPaymentsController : ControllerBase
                 user.IsActive = true;
                 user.UpdatedAt = DateTime.UtcNow;
 
-                // Handle family membership
-                if (payment.PaymentScope == "Family" && request.FamilyMemberIds != null && request.FamilyMemberIds.Any())
+                // Handle family membership - allow linking family members for any payment
+                if (request.FamilyMemberIds != null && request.FamilyMemberIds.Any())
                 {
                     // Store covered family member IDs
                     payment.CoveredFamilyMemberIds = JsonSerializer.Serialize(request.FamilyMemberIds);
+
+                    // Update payment scope to Family if it wasn't already
+                    if (payment.PaymentScope != "Family")
+                    {
+                        payment.PaymentScope = "Family";
+                    }
 
                     // Update family members' membership
                     var familyMembers = await _context.Users

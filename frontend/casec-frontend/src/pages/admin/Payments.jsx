@@ -140,12 +140,8 @@ export default function AdminPayments() {
       notes: ''
     });
 
-    // Load existing family members if this is a family payment
-    if (payment.paymentScope === 'Family') {
-      await loadFamilyMembers(payment.userId);
-    } else {
-      setFamilyMembers([]);
-    }
+    // Always try to load existing family members for linking
+    await loadFamilyMembers(payment.userId);
   };
 
   const handleConfirmPayment = async (paymentId) => {
@@ -428,120 +424,127 @@ export default function AdminPayments() {
                             </div>
                           </div>
 
-                          {/* Family Members Selection */}
-                          {payment.paymentScope === 'Family' && (
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                <Users className="inline w-4 h-4 mr-1" />
-                                Apply Membership to Family Members
-                              </label>
+                          {/* Link Family Members - Available for all payments */}
+                          <div className="border-t pt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              <Users className="inline w-4 h-4 mr-1" />
+                              Link Family Members to This Membership
+                              {payment.paymentScope !== 'Family' && (
+                                <span className="text-xs text-gray-500 font-normal ml-2">(optional)</span>
+                              )}
+                            </label>
 
-                              {/* Existing family members from user's family group */}
-                              {familyMembers.length > 0 && (
-                                <div className="space-y-2 mb-4">
-                                  <p className="text-xs text-gray-500 uppercase tracking-wide">Existing Family Members</p>
-                                  {familyMembers.map((member) => (
-                                    <label key={member.userId} className="flex items-center bg-white rounded-lg p-3 border">
-                                      <input
-                                        type="checkbox"
-                                        checked={confirmForm.familyMemberIds.includes(member.userId)}
-                                        onChange={(e) => {
-                                          const ids = e.target.checked
-                                            ? [...confirmForm.familyMemberIds, member.userId]
-                                            : confirmForm.familyMemberIds.filter(id => id !== member.userId);
-                                          setConfirmForm({ ...confirmForm, familyMemberIds: ids });
-                                        }}
-                                        className="mr-3"
-                                      />
-                                      {member.avatarUrl ? (
-                                        <img src={member.avatarUrl} alt="" className="w-8 h-8 rounded-full mr-2" />
-                                      ) : (
-                                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2 text-primary font-bold text-xs">
-                                          {member.firstName[0]}{member.lastName[0]}
-                                        </div>
-                                      )}
-                                      <div>
-                                        <span className="font-medium">{member.firstName} {member.lastName}</span>
-                                        {member.relationship && (
-                                          <span className="text-sm text-gray-500 ml-2">({member.relationship})</span>
-                                        )}
+                            {/* Existing family members from user's family group */}
+                            {familyMembers.length > 0 && (
+                              <div className="space-y-2 mb-4">
+                                <p className="text-xs text-gray-500 uppercase tracking-wide">Existing Family Group Members</p>
+                                {familyMembers.map((member) => (
+                                  <label key={member.userId} className="flex items-center bg-white rounded-lg p-3 border">
+                                    <input
+                                      type="checkbox"
+                                      checked={confirmForm.familyMemberIds.includes(member.userId)}
+                                      onChange={(e) => {
+                                        const ids = e.target.checked
+                                          ? [...confirmForm.familyMemberIds, member.userId]
+                                          : confirmForm.familyMemberIds.filter(id => id !== member.userId);
+                                        setConfirmForm({ ...confirmForm, familyMemberIds: ids });
+                                      }}
+                                      className="mr-3"
+                                    />
+                                    {member.avatarUrl ? (
+                                      <img src={member.avatarUrl} alt="" className="w-8 h-8 rounded-full mr-2" />
+                                    ) : (
+                                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2 text-primary font-bold text-xs">
+                                        {member.firstName[0]}{member.lastName[0]}
                                       </div>
-                                    </label>
+                                    )}
+                                    <div>
+                                      <span className="font-medium">{member.firstName} {member.lastName}</span>
+                                      {member.relationship && (
+                                        <span className="text-sm text-gray-500 ml-2">({member.relationship})</span>
+                                      )}
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Search and link other users */}
+                            <div className="space-y-2">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">
+                                <UserPlus className="inline w-3 h-3 mr-1" />
+                                Search & Link Other Users
+                              </p>
+
+                              {/* Linked users list */}
+                              {linkedUsers.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                  {linkedUsers.map((user) => (
+                                    <span
+                                      key={user.userId}
+                                      className="inline-flex items-center bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
+                                    >
+                                      {user.firstName} {user.lastName}
+                                      <button
+                                        onClick={() => removeLinkedUser(user.userId)}
+                                        className="ml-2 hover:text-red-600"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </span>
                                   ))}
                                 </div>
                               )}
 
-                              {/* Search and link other users */}
-                              <div className="space-y-2">
-                                <p className="text-xs text-gray-500 uppercase tracking-wide">
-                                  <UserPlus className="inline w-3 h-3 mr-1" />
-                                  Link Other Users
-                                </p>
-
-                                {/* Linked users list */}
-                                {linkedUsers.length > 0 && (
-                                  <div className="flex flex-wrap gap-2 mb-2">
-                                    {linkedUsers.map((user) => (
-                                      <span
-                                        key={user.userId}
-                                        className="inline-flex items-center bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
-                                      >
-                                        {user.firstName} {user.lastName}
-                                        <button
-                                          onClick={() => removeLinkedUser(user.userId)}
-                                          className="ml-2 hover:text-red-600"
-                                        >
-                                          <X className="w-3 h-3" />
-                                        </button>
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {/* User search input */}
-                                <div className="relative">
-                                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                  <input
-                                    type="text"
-                                    placeholder="Search users by name or email..."
-                                    value={userSearchQuery}
-                                    onChange={(e) => setUserSearchQuery(e.target.value)}
-                                    className="input pl-9 w-full"
-                                  />
-                                  {searchingUsers && (
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Search results dropdown */}
-                                {userSearchResults.length > 0 && (
-                                  <div className="bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                    {userSearchResults.map((user) => (
-                                      <button
-                                        key={user.userId}
-                                        onClick={() => addLinkedUser(user)}
-                                        className="w-full flex items-center p-3 hover:bg-gray-50 border-b last:border-b-0"
-                                      >
-                                        {user.avatarUrl ? (
-                                          <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full mr-3" />
-                                        ) : (
-                                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3 text-primary font-bold text-xs">
-                                            {user.firstName[0]}{user.lastName[0]}
-                                          </div>
-                                        )}
-                                        <div className="text-left">
-                                          <p className="font-medium">{user.firstName} {user.lastName}</p>
-                                          <p className="text-xs text-gray-500">{user.email}</p>
-                                        </div>
-                                      </button>
-                                    ))}
+                              {/* User search input */}
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                  type="text"
+                                  placeholder="Search users by name or email..."
+                                  value={userSearchQuery}
+                                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                                  className="input pl-9 w-full"
+                                />
+                                {searchingUsers && (
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                                   </div>
                                 )}
                               </div>
+
+                              {/* Search results dropdown */}
+                              {userSearchResults.length > 0 && (
+                                <div className="bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                  {userSearchResults.map((user) => (
+                                    <button
+                                      key={user.userId}
+                                      onClick={() => addLinkedUser(user)}
+                                      className="w-full flex items-center p-3 hover:bg-gray-50 border-b last:border-b-0"
+                                    >
+                                      {user.avatarUrl ? (
+                                        <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full mr-3" />
+                                      ) : (
+                                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3 text-primary font-bold text-xs">
+                                          {user.firstName[0]}{user.lastName[0]}
+                                        </div>
+                                      )}
+                                      <div className="text-left">
+                                        <p className="font-medium">{user.firstName} {user.lastName}</p>
+                                        <p className="text-xs text-gray-500">{user.email}</p>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              {linkedUsers.length === 0 && familyMembers.length === 0 && !userSearchQuery && (
+                                <p className="text-sm text-gray-500 italic">
+                                  Search for users above to link them to this membership
+                                </p>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </>
                       ) : (
                         <div>
