@@ -624,35 +624,18 @@ export default function AdminPayments() {
 function LinkedUsersSection({ payment, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [linkedUserIds, setLinkedUserIds] = useState(payment.coveredFamilyMemberIds || []);
-  const [linkedUsers, setLinkedUsers] = useState([]);
+  // Initialize linkedUsers from the DTO's coveredFamilyMembers
+  const [linkedUsers, setLinkedUsers] = useState(payment.coveredFamilyMembers || []);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userSearchResults, setUserSearchResults] = useState([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Update state when payment prop changes
   useEffect(() => {
-    if (payment.coveredFamilyMemberIds?.length > 0) {
-      loadLinkedUsers();
-    }
-  }, [payment.coveredFamilyMemberIds]);
-
-  const loadLinkedUsers = async () => {
-    // We need to fetch user details for linked IDs
-    // For now, we'll use the search endpoint to get user info
-    const users = [];
-    for (const userId of payment.coveredFamilyMemberIds) {
-      try {
-        const response = await membershipPaymentsAPI.searchUsers(userId.toString(), payment.userId);
-        if (response.success && response.data.length > 0) {
-          const user = response.data.find(u => u.userId === userId);
-          if (user) users.push(user);
-        }
-      } catch (err) {
-        console.error('Failed to load user:', err);
-      }
-    }
-    setLinkedUsers(users);
-  };
+    setLinkedUserIds(payment.coveredFamilyMemberIds || []);
+    setLinkedUsers(payment.coveredFamilyMembers || []);
+  }, [payment.coveredFamilyMemberIds, payment.coveredFamilyMembers]);
 
   const searchUsers = async (query) => {
     if (!query || query.length < 2) {
@@ -712,6 +695,7 @@ function LinkedUsersSection({ payment, onUpdate }) {
 
   const handleCancel = () => {
     setLinkedUserIds(payment.coveredFamilyMemberIds || []);
+    setLinkedUsers(payment.coveredFamilyMembers || []);
     setEditing(false);
     setUserSearchQuery('');
     setUserSearchResults([]);

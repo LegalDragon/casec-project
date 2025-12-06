@@ -514,6 +514,24 @@ export default function Membership() {
                         Reason: {payment.rejectionReason}
                       </p>
                     )}
+                    {/* Show linked users for payments made by current user */}
+                    {!payment.isCoveredByFamilyPayment && payment.coveredFamilyMembers && payment.coveredFamilyMembers.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 font-medium flex items-center">
+                          <Users className="w-3 h-3 mr-1" /> Applied to:
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {payment.coveredFamilyMembers.map((member) => (
+                            <span
+                              key={member.userId}
+                              className="inline-flex items-center bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs"
+                            >
+                              {member.firstName} {member.lastName}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {payment.proofOfPaymentUrl && !payment.isCoveredByFamilyPayment && (

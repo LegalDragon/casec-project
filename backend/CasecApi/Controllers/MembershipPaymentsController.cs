@@ -63,7 +63,12 @@ public class MembershipPaymentsController : ControllerBase
                 .Include(p => p.ConfirmedByUser)
                 .ToListAsync();
 
-            var paymentDtos = ownPayments.Select(p => MapToPaymentDto(p)).ToList();
+            // Map payments with covered member details
+            var paymentDtos = new List<MembershipPaymentDto>();
+            foreach (var p in ownPayments)
+            {
+                paymentDtos.Add(await MapToPaymentDtoAsync(p));
+            }
 
             // Also get payments where user is a covered family member
             var userIdStr = userId.ToString();
@@ -531,7 +536,12 @@ public class MembershipPaymentsController : ControllerBase
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
-            var dtos = payments.Select(p => MapToPaymentDto(p)).ToList();
+            // Map payments with covered member details
+            var dtos = new List<MembershipPaymentDto>();
+            foreach (var p in payments)
+            {
+                dtos.Add(await MapToPaymentDtoAsync(p));
+            }
 
             return Ok(new ApiResponse<List<MembershipPaymentDto>>
             {
@@ -835,7 +845,7 @@ public class MembershipPaymentsController : ControllerBase
             {
                 Success = true,
                 Message = "Linked users updated successfully",
-                Data = MapToPaymentDto(payment)
+                Data = await MapToPaymentDtoAsync(payment)
             });
         }
         catch (Exception ex)
@@ -963,7 +973,7 @@ public class MembershipPaymentsController : ControllerBase
     }
 
     // Helper method to map payment entity to DTO
-    private MembershipPaymentDto MapToPaymentDto(MembershipPayment payment, bool isCoveredPayment = false, string? paidByName = null, int? paidByUserId = null)
+    private MembershipPaymentDto MapToPaymentDto(MembershipPayment payment, bool isCoveredPayment = false, string? paidByName = null, int? paidByUserId = null, List<FamilyMemberSummaryDto>? coveredMembers = null)
     {
         var dto = new MembershipPaymentDto
         {
@@ -996,7 +1006,8 @@ public class MembershipPaymentsController : ControllerBase
             CreatedAt = payment.CreatedAt,
             IsCoveredByFamilyPayment = isCoveredPayment,
             PaidByUserName = paidByName,
-            PaidByUserId = paidByUserId
+            PaidByUserId = paidByUserId,
+            CoveredFamilyMembers = coveredMembers
         };
 
         if (!string.IsNullOrEmpty(payment.CoveredFamilyMemberIds))
@@ -1009,5 +1020,38 @@ public class MembershipPaymentsController : ControllerBase
         }
 
         return dto;
+    }
+
+    // Async helper to map payment with covered member details
+    private async Task<MembershipPaymentDto> MapToPaymentDtoAsync(MembershipPayment payment, bool isCoveredPayment = false, string? paidByName = null, int? paidByUserId = null)
+    {
+        List<FamilyMemberSummaryDto>? coveredMembers = null;
+
+        // Load covered family member details if there are linked users
+        if (!string.IsNullOrEmpty(payment.CoveredFamilyMemberIds))
+        {
+            try
+            {
+                var memberIds = JsonSerializer.Deserialize<List<int>>(payment.CoveredFamilyMemberIds);
+                if (memberIds != null && memberIds.Count > 0)
+                {
+                    coveredMembers = await _context.Users
+                        .Where(u => memberIds.Contains(u.UserId))
+                        .Select(u => new FamilyMemberSummaryDto
+                        {
+                            UserId = u.UserId,
+                            FirstName = u.FirstName,
+                            LastName = u.LastName,
+                            AvatarUrl = u.AvatarUrl,
+                            Email = u.Email,
+                            Relationship = u.RelationshipToPrimary
+                        })
+                        .ToListAsync();
+                }
+            }
+            catch { }
+        }
+
+        return MapToPaymentDto(payment, isCoveredPayment, paidByName, paidByUserId, coveredMembers);
     }
 }
