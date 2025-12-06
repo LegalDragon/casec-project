@@ -589,6 +589,16 @@ public class PublicProfileDto
     public string? TwitterHandle { get; set; }
     public string? MembershipTypeName { get; set; }
     public DateTime MemberSince { get; set; }
+    public List<ProfileClubDto> Clubs { get; set; } = new();
+}
+
+// Simple club info for profile display
+public class ProfileClubDto
+{
+    public int ClubId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
+    public string? Icon { get; set; }
 }
 
 // Event Asset DTOs

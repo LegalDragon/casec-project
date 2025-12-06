@@ -492,6 +492,19 @@ public class UsersController : ControllerBase
                 });
             }
 
+            // Get user's clubs
+            var clubs = await _context.ClubMembers
+                .Where(cm => cm.UserId == id)
+                .Include(cm => cm.Club)
+                .Select(cm => new ProfileClubDto
+                {
+                    ClubId = cm.Club.ClubId,
+                    Name = cm.Club.Name,
+                    AvatarUrl = cm.Club.AvatarUrl,
+                    Icon = cm.Club.Icon
+                })
+                .ToListAsync();
+
             var profile = new PublicProfileDto
             {
                 UserId = user.UserId,
@@ -507,7 +520,8 @@ public class UsersController : ControllerBase
                 BoardTitle = user.IsBoardMember ? user.BoardTitle : null,
                 LinkedInUrl = user.LinkedInUrl,
                 TwitterHandle = user.TwitterHandle,
-                MemberSince = user.MemberSince
+                MemberSince = user.MemberSince,
+                Clubs = clubs
             };
 
             return Ok(new ApiResponse<PublicProfileDto>
