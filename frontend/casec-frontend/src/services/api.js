@@ -130,4 +130,27 @@ export const themeAPI = {
   reset: () => api.post('/theme/reset'),
 };
 
+// Membership Payments APIs
+export const membershipPaymentsAPI = {
+  // User endpoints
+  getStatus: () => api.get('/membershippayments/status'),
+  getMethods: () => api.get('/membershippayments/methods'),
+  submit: (data) => api.post('/membershippayments', data),
+  uploadProof: (paymentId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/membershippayments/${paymentId}/proof`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  cancel: (paymentId) => api.delete(`/membershippayments/${paymentId}`),
+
+  // Admin endpoints
+  getPending: () => api.get('/membershippayments/admin/pending'),
+  getAll: (params) => api.get('/membershippayments/admin/all', { params }),
+  getPaymentDetails: (paymentId) => api.get(`/membershippayments/admin/${paymentId}`),
+  confirm: (paymentId, data) => api.post(`/membershippayments/admin/${paymentId}/confirm`, data),
+  getUserFamily: (userId) => api.get(`/membershippayments/admin/user/${userId}/family`),
+};
+
 export default api;

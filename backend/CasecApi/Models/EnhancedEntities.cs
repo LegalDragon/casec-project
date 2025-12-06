@@ -80,6 +80,9 @@ public class User
 
     public DateTime MemberSince { get; set; } = DateTime.UtcNow;
 
+    // Membership validity tracking
+    public DateTime? MembershipValidUntil { get; set; }
+
     public DateTime? LastLoginAt { get; set; }
 
     public bool IsActive { get; set; } = true;
@@ -137,7 +140,7 @@ public class MembershipType
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
-// MembershipPayment Entity
+// MembershipPayment Entity - Enhanced for payment tracking workflow
 public class MembershipPayment
 {
     [Key]
@@ -157,18 +160,45 @@ public class MembershipPayment
     public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
 
     [MaxLength(50)]
-    public string? PaymentMethod { get; set; }
+    public string PaymentMethod { get; set; } = "Zelle";
 
     [MaxLength(100)]
     public string? TransactionId { get; set; }
 
+    // Payment status: Pending, Confirmed, Rejected
+    [Required]
+    [MaxLength(50)]
+    public string Status { get; set; } = "Pending";
+
+    // URL to uploaded proof of payment (image or PDF)
+    [MaxLength(500)]
+    public string? ProofOfPaymentUrl { get; set; }
+
+    // For family memberships - tracks if this payment is for self only or includes family
+    [MaxLength(50)]
+    public string PaymentScope { get; set; } = "Self"; // Self, Family
+
+    // Admin who confirmed the payment
+    public int? ConfirmedBy { get; set; }
+
+    public DateTime? ConfirmedAt { get; set; }
+
+    // If rejected, reason for rejection
+    public string? RejectionReason { get; set; }
+
+    // Membership validity period
     public DateTime ValidFrom { get; set; }
 
     public DateTime ValidUntil { get; set; }
 
+    // For annual renewal tracking
+    public int? RenewalOfPaymentId { get; set; }
+
     public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
     [ForeignKey("UserId")]
@@ -176,6 +206,15 @@ public class MembershipPayment
 
     [ForeignKey("MembershipTypeId")]
     public virtual MembershipType? MembershipType { get; set; }
+
+    [ForeignKey("ConfirmedBy")]
+    public virtual User? ConfirmedByUser { get; set; }
+
+    [ForeignKey("RenewalOfPaymentId")]
+    public virtual MembershipPayment? RenewalOfPayment { get; set; }
+
+    // Family members covered by this payment (stored as JSON array of user IDs)
+    public string? CoveredFamilyMemberIds { get; set; }
 }
 
 // Club Entity

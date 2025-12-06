@@ -680,6 +680,7 @@ public class EventDetailDto
     public int MaxCapacity { get; set; }
     public bool IsRegistrationRequired { get; set; }
     public bool IsFeatured { get; set; }
+    public string? ThumbnailUrl { get; set; }
     public int TotalRegistrations { get; set; }
     public int SpotsRemaining { get; set; }
     public bool IsUserRegistered { get; set; }
@@ -687,4 +688,94 @@ public class EventDetailDto
     public List<EventAssetDto> Photos { get; set; } = new();
     public List<EventAssetDto> Documents { get; set; } = new();
     public List<EventRegistrantDto> Registrants { get; set; } = new();
+}
+
+// ============ MEMBERSHIP PAYMENT DTOs ============
+
+// Membership Payment DTO
+public class MembershipPaymentDto
+{
+    public int PaymentId { get; set; }
+    public int UserId { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string? UserEmail { get; set; }
+    public string? UserAvatarUrl { get; set; }
+    public int MembershipTypeId { get; set; }
+    public string MembershipTypeName { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public DateTime PaymentDate { get; set; }
+    public string PaymentMethod { get; set; } = "Zelle";
+    public string? TransactionId { get; set; }
+    public string Status { get; set; } = "Pending";
+    public string? ProofOfPaymentUrl { get; set; }
+    public string PaymentScope { get; set; } = "Self";
+    public int? ConfirmedBy { get; set; }
+    public string? ConfirmedByName { get; set; }
+    public DateTime? ConfirmedAt { get; set; }
+    public string? RejectionReason { get; set; }
+    public DateTime ValidFrom { get; set; }
+    public DateTime ValidUntil { get; set; }
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public List<int>? CoveredFamilyMemberIds { get; set; }
+    public List<FamilyMemberSummaryDto>? CoveredFamilyMembers { get; set; }
+}
+
+// Family Member Summary DTO (for payment coverage display)
+public class FamilyMemberSummaryDto
+{
+    public int UserId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
+    public string? Relationship { get; set; }
+}
+
+// Submit Payment Request DTO
+public class SubmitPaymentRequest
+{
+    public int MembershipTypeId { get; set; }
+    public decimal Amount { get; set; }
+    public string PaymentMethod { get; set; } = "Zelle";
+    public string? TransactionId { get; set; }
+    public DateTime PaymentDate { get; set; }
+    public string PaymentScope { get; set; } = "Self"; // Self or Family
+    public string? Notes { get; set; }
+}
+
+// Admin Confirm Payment Request DTO
+public class ConfirmPaymentRequest
+{
+    public bool Approve { get; set; }
+    public string? RejectionReason { get; set; }
+    public DateTime? ValidFrom { get; set; }
+    public DateTime? ValidUntil { get; set; }
+    public List<int>? FamilyMemberIds { get; set; } // User IDs to apply family membership to
+    public string? Notes { get; set; }
+}
+
+// User Membership Status DTO
+public class MembershipStatusDto
+{
+    public int UserId { get; set; }
+    public string MembershipTypeName { get; set; } = string.Empty;
+    public decimal MembershipPrice { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime? MembershipValidUntil { get; set; }
+    public bool IsExpired { get; set; }
+    public bool IsExpiringSoon { get; set; } // Within 30 days
+    public int DaysUntilExpiration { get; set; }
+    public MembershipPaymentDto? LatestPayment { get; set; }
+    public MembershipPaymentDto? PendingPayment { get; set; }
+    public List<MembershipPaymentDto> PaymentHistory { get; set; } = new();
+    public List<FamilyMemberSummaryDto> FamilyMembers { get; set; } = new();
+}
+
+// Payment Methods DTO (for future extensibility)
+public class PaymentMethodDto
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Instructions { get; set; }
+    public bool IsActive { get; set; } = true;
 }

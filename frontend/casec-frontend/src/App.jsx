@@ -20,6 +20,8 @@ import AdminClubs from './pages/admin/Clubs';
 import AdminEvents from './pages/admin/Events';
 import AdminEventDetail from './pages/admin/EventDetail';
 import AdminTheme from './pages/admin/ThemeCustomization';
+import AdminPayments from './pages/admin/Payments';
+import Membership from './pages/Membership';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -61,6 +63,7 @@ function App() {
           <Route path="events" element={<Events />} />
           <Route path="events/:eventId" element={<EventDetail />} />
           <Route path="profile" element={<EnhancedProfile />} />
+          <Route path="membership" element={<Membership />} />
           <Route path="payment" element={<Payment />} />
           <Route path="members" element={<Members />} />
           <Route path="member/:userId" element={<PublicProfile />} />
@@ -85,6 +88,9 @@ function App() {
           } />
           <Route path="admin/theme" element={
             <AdminRoute><AdminTheme /></AdminRoute>
+          } />
+          <Route path="admin/payments" element={
+            <AdminRoute><AdminPayments /></AdminRoute>
           } />
         </Route>
         </Routes>

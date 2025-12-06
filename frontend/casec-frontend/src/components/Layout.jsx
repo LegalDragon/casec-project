@@ -20,15 +20,17 @@ export default function Layout() {
     { path: '/events', label: 'Events' },
     { path: '/members', label: 'Members' },
     { path: '/board-of-directors', label: 'Directors' },
+    { path: '/membership', label: 'Membership' },
     { path: '/profile', label: 'Profile' },
   ];
 
   const adminLinks = user?.isAdmin ? [
     { path: '/admin/users', label: 'Manage Users' },
     { path: '/admin/membership-types', label: 'Membership Types' },
+    { path: '/admin/payments', label: 'Payments' },
     { path: '/admin/clubs', label: 'Manage Clubs' },
     { path: '/admin/events', label: 'Manage Events' },
-    { path: '/admin/theme', label: 'Theme Customization' },
+    { path: '/admin/theme', label: 'Theme' },
   ] : [];
 
   return (
