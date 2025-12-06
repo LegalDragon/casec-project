@@ -79,7 +79,19 @@ export default function PublicProfile() {
                   {profile.firstName[0]}{profile.lastName[0]}
                 </div>
               )}
-
+  {profile.boardTitle && (
+                  <div className="flex items-center space-x-2 text-accent text-lg font-bold mt-2">
+                    <Award className="w-5 h-5" />
+                    <span>{profile.boardTitle}</span>
+                  </div>
+                )}
+ {profile.profession && (
+                  <div className="flex items-center space-x-2 text-primary mt-1">
+                    <Briefcase className="w-4 h-4" />
+                    <span className="font-semibold">{profile.profession}</span>
+                  </div>
+                )}
+              
               {/* Social Links - under avatar */}
               {(profile.linkedInUrl || profile.twitterHandle) && (
                 <div className="flex justify-center space-x-3 mt-4">
@@ -115,19 +127,7 @@ export default function PublicProfile() {
                 <h1 className="text-4xl font-display font-bold text-gray-900">
                   {profile.firstName} {profile.lastName}
                 </h1>
-                {profile.profession && (
-                  <div className="flex items-center space-x-2 text-primary mt-1">
-                    <Briefcase className="w-4 h-4" />
-                    <span className="font-semibold">{profile.profession}</span>
-                  </div>
-                )}
-                {profile.boardTitle && (
-                  <div className="flex items-center space-x-2 text-accent text-lg font-bold mt-2">
-                    <Award className="w-5 h-5" />
-                    <span>{profile.boardTitle}</span>
-                  </div>
-                )}
-
+               
                 <div className="flex flex-wrap gap-4 mt-4">
                   {(profile.city || profile.state) && (
                     <div className="flex items-center space-x-2 text-gray-600">
