@@ -106,22 +106,19 @@ export const paymentsAPI = {
 export const themeAPI = {
   getCurrent: () => api.get('/theme'),
   update: (data) => api.put('/theme', data),
-  uploadLogo: (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
+  uploadLogo: (formData) => {
     return api.post('/theme/logo', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
-  uploadFavicon: (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
+  uploadFavicon: (formData) => {
     return api.post('/theme/favicon', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
   getPresets: () => api.get('/theme/presets'),
   applyPreset: (presetId) => api.post(`/theme/apply-preset/${presetId}`),
+  reset: () => api.post('/theme/reset'),
 };
 
 export default api;
