@@ -84,40 +84,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* Recent Activity */}
-      <div className="card">
-        <div className="flex items-center space-x-3 mb-6">
-          <TrendingUp className="w-6 h-6 text-primary" />
-          <h2 className="text-2xl font-display font-bold text-gray-900">Recent Activity</h2>
-        </div>
-
-        {dashboardData?.recentActivities && dashboardData.recentActivities.length > 0 ? (
-          <div className="space-y-4">
-            {dashboardData.recentActivities.map((activity) => (
-              <div
-                key={activity.logId}
-                className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg"
-              >
-                <div className="w-2 h-2 bg-primary rounded-full mt-2" />
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900">{activity.activityType}</p>
-                  <p className="text-gray-600 text-sm">{activity.description}</p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    {new Date(activity.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 text-gray-500">
-            <p>No recent activity. Start by joining clubs or registering for events!</p>
-          </div>
-        )}
-      </div>
-
-      {/* Quick Actions */}
+ {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="card bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
           <div className="flex items-center space-x-3 mb-3">
@@ -171,6 +138,41 @@ export default function Dashboard() {
           </a>
         </div>
       </div>
+
+      
+      {/* Recent Activity */}
+      <div className="card">
+        <div className="flex items-center space-x-3 mb-6">
+          <TrendingUp className="w-6 h-6 text-primary" />
+          <h2 className="text-2xl font-display font-bold text-gray-900">Recent Activity</h2>
+        </div>
+
+        {dashboardData?.recentActivities && dashboardData.recentActivities.length > 0 ? (
+          <div className="space-y-4">
+            {dashboardData.recentActivities.map((activity) => (
+              <div
+                key={activity.logId}
+                className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg"
+              >
+                <div className="w-2 h-2 bg-primary rounded-full mt-2" />
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900">{activity.activityType}</p>
+                  <p className="text-gray-600 text-sm">{activity.description}</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    {new Date(activity.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            <p>No recent activity. Start by joining clubs or registering for events!</p>
+          </div>
+        )}
+      </div>
+
+     
     </div>
   );
 }
