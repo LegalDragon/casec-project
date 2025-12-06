@@ -17,6 +17,8 @@ export default function Layout() {
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/clubs', label: 'Clubs' },
     { path: '/events', label: 'Events' },
+    { path: '/members', label: 'Members' },
+    { path: '/board-of-directors', label: 'Directors' },
     { path: '/profile', label: 'Profile' },
   ];
 

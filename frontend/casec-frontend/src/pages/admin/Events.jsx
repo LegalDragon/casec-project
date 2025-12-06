@@ -1,11 +1,843 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Plus, Edit, Trash2, Search, Calendar, MapPin, Users, Star,
+  X, DollarSign, Clock, Tag, ExternalLink, Building2, Eye
+} from 'lucide-react';
+import { eventsAPI, clubsAPI } from '../../services/api';
+import { useAuthStore } from '../../store/useStore';
+
 export default function AdminEvents() {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isSystemAdmin = user?.isAdmin;
+
+  const [events, setEvents] = useState([]);
+  const [clubs, setClubs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [filterTime, setFilterTime] = useState('all');
+  const [filterClub, setFilterClub] = useState('all');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [viewingEvent, setViewingEvent] = useState(null);
+
+  // Form data
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    eventDate: '',
+    location: '',
+    eventType: 'CasecEvent',
+    eventCategory: '',
+    eventScope: 'AllMembers',
+    hostClubId: '',
+    partnerName: '',
+    partnerLogo: '',
+    partnerWebsite: '',
+    registrationUrl: '',
+    eventFee: 0,
+    maxCapacity: 100,
+    isRegistrationRequired: true,
+    isFeatured: false,
+  });
+
+  const eventTypes = [
+    { value: 'CasecEvent', label: 'CASEC Event', icon: '🎉' },
+    { value: 'ClubEvent', label: 'Club Event', icon: '👥' },
+    { value: 'PartnerEvent', label: 'Partner Event', icon: '🤝' },
+    { value: 'Announcement', label: 'Announcement', icon: '📢' },
+  ];
+
+  const eventScopes = [
+    { value: 'AllMembers', label: 'All Members' },
+    { value: 'ClubMembers', label: 'Club Members Only' },
+    { value: 'Public', label: 'Public' },
+  ];
+
+  useEffect(() => {
+    fetchEvents();
+    fetchClubs();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const response = await eventsAPI.getAll();
+      setEvents(response.data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      alert('Failed to fetch events');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchClubs = async () => {
+    try {
+      const response = await clubsAPI.getAll();
+      // Filter to only clubs user can admin (for club admins)
+      if (isSystemAdmin) {
+        setClubs(response.data || []);
+      } else {
+        const adminClubs = (response.data || []).filter(c => c.isUserAdmin);
+        setClubs(adminClubs);
+      }
+    } catch (error) {
+      console.error('Error fetching clubs:', error);
+    }
+  };
+
+  const resetFormData = () => {
+    setFormData({
+      title: '',
+      description: '',
+      eventDate: '',
+      location: '',
+      eventType: 'CasecEvent',
+      eventCategory: '',
+      eventScope: 'AllMembers',
+      hostClubId: '',
+      partnerName: '',
+      partnerLogo: '',
+      partnerWebsite: '',
+      registrationUrl: '',
+      eventFee: 0,
+      maxCapacity: 100,
+      isRegistrationRequired: true,
+      isFeatured: false,
+    });
+  };
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    try {
+      const data = {
+        ...formData,
+        hostClubId: formData.hostClubId ? parseInt(formData.hostClubId) : null,
+        eventFee: parseFloat(formData.eventFee) || 0,
+        maxCapacity: parseInt(formData.maxCapacity) || 100,
+      };
+      await eventsAPI.create(data);
+      alert('Event created successfully!');
+      setShowCreateModal(false);
+      resetFormData();
+      fetchEvents();
+    } catch (error) {
+      console.error('Error creating event:', error);
+      alert(error.message || 'Failed to create event');
+    }
+  };
+
+  const handleEdit = (event) => {
+    setEditingEvent(event);
+    setFormData({
+      title: event.title,
+      description: event.description || '',
+      eventDate: event.eventDate ? event.eventDate.slice(0, 16) : '',
+      location: event.location || '',
+      eventType: event.eventType || 'CasecEvent',
+      eventCategory: event.eventCategory || '',
+      eventScope: event.eventScope || 'AllMembers',
+      hostClubId: event.hostClubId || '',
+      partnerName: event.partnerName || '',
+      partnerLogo: event.partnerLogo || '',
+      partnerWebsite: event.partnerWebsite || '',
+      registrationUrl: event.registrationUrl || '',
+      eventFee: event.eventFee || 0,
+      maxCapacity: event.maxCapacity || 100,
+      isRegistrationRequired: event.isRegistrationRequired ?? true,
+      isFeatured: event.isFeatured || false,
+    });
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const data = {
+        ...formData,
+        hostClubId: formData.hostClubId ? parseInt(formData.hostClubId) : null,
+        eventFee: parseFloat(formData.eventFee) || 0,
+        maxCapacity: parseInt(formData.maxCapacity) || 100,
+      };
+      await eventsAPI.update(editingEvent.eventId, data);
+      alert('Event updated successfully!');
+      setEditingEvent(null);
+      resetFormData();
+      fetchEvents();
+    } catch (error) {
+      console.error('Error updating event:', error);
+      alert(error.message || 'Failed to update event');
+    }
+  };
+
+  const handleDelete = async (eventId, eventTitle) => {
+    if (!confirm(`Are you sure you want to delete "${eventTitle}"? This will also delete all registrations.`)) return;
+
+    try {
+      await eventsAPI.delete(eventId);
+      alert('Event deleted successfully!');
+      fetchEvents();
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert(error.message || 'Failed to delete event');
+    }
+  };
+
+  const getEventTypeInfo = (type) => {
+    return eventTypes.find(t => t.value === type) || eventTypes[0];
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'TBD';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const isPastEvent = (dateString) => {
+    return new Date(dateString) < new Date();
+  };
+
+  const filteredEvents = events.filter(event => {
+    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (event.location && event.location.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesType = filterType === 'all' || event.eventType === filterType;
+
+    const matchesTime = filterTime === 'all' ||
+      (filterTime === 'upcoming' && !isPastEvent(event.eventDate)) ||
+      (filterTime === 'past' && isPastEvent(event.eventDate));
+
+    const matchesClub = filterClub === 'all' ||
+      (filterClub === 'casec' && !event.hostClubId) ||
+      (event.hostClubId && event.hostClubId.toString() === filterClub);
+
+    const eventDate = new Date(event.eventDate);
+    const matchesDateFrom = !filterDateFrom || eventDate >= new Date(filterDateFrom);
+    const matchesDateTo = !filterDateTo || eventDate <= new Date(filterDateTo + 'T23:59:59');
+
+    return matchesSearch && matchesType && matchesTime && matchesClub && matchesDateFrom && matchesDateTo;
+  });
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Loading events...</div>;
+  }
+
   return (
-    <div className="space-y-8">
-      <h1 className="text-4xl font-display font-bold text-gray-900">Manage Events</h1>
-      <div className="card">
-        <p className="text-gray-600">Admin functionality for managing events.</p>
-        <p className="text-sm text-gray-500 mt-2">Full CRUD implementation can be added here.</p>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Manage Events</h1>
+          <p className="text-gray-600 mt-1">
+            {isSystemAdmin ? 'Manage all events and announcements' : 'Manage events for your clubs'}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            resetFormData();
+            setShowCreateModal(true);
+          }}
+          className="btn btn-primary flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Create Event
+        </button>
       </div>
+
+      {/* Filters */}
+      <div className="card space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative lg:col-span-2">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search events..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input pl-10 w-full"
+            />
+          </div>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="input w-full"
+          >
+            <option value="all">All Types</option>
+            {eventTypes.map(type => (
+              <option key={type.value} value={type.value}>{type.icon} {type.label}</option>
+            ))}
+          </select>
+          <select
+            value={filterClub}
+            onChange={(e) => setFilterClub(e.target.value)}
+            className="input w-full"
+          >
+            <option value="all">All Clubs</option>
+            <option value="casec">CASEC (No Club)</option>
+            {clubs.map(club => (
+              <option key={club.clubId} value={club.clubId}>{club.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <select
+            value={filterTime}
+            onChange={(e) => setFilterTime(e.target.value)}
+            className="input w-full"
+          >
+            <option value="all">All Time</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="past">Past</option>
+          </select>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">From Date</label>
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="input w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">To Date</label>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="input w-full"
+            />
+          </div>
+        </div>
+        {(searchTerm || filterType !== 'all' || filterTime !== 'all' || filterClub !== 'all' || filterDateFrom || filterDateTo) && (
+          <div className="flex items-center justify-between pt-2 border-t">
+            <span className="text-sm text-gray-500">
+              Showing {filteredEvents.length} of {events.length} events
+            </span>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilterType('all');
+                setFilterTime('all');
+                setFilterClub('all');
+                setFilterDateFrom('');
+                setFilterDateTo('');
+              }}
+              className="text-sm text-primary hover:underline"
+            >
+              Clear all filters
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Events List */}
+      <div className="space-y-4">
+        {filteredEvents.map((event) => {
+          const typeInfo = getEventTypeInfo(event.eventType);
+          const past = isPastEvent(event.eventDate);
+
+          return (
+            <div
+              key={event.eventId}
+              className={`card ${past ? 'opacity-60 bg-gray-50' : ''}`}
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Event Info */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">{typeInfo.icon}</span>
+                    <h3 className="font-semibold text-lg text-gray-900">{event.title}</h3>
+                    {event.isFeatured && (
+                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                        <Star className="w-3 h-3" />
+                        Featured
+                      </span>
+                    )}
+                    {past && (
+                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-200 text-gray-600">
+                        Past
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mb-2">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {formatDate(event.eventDate)}
+                    </span>
+                    {event.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        {event.location}
+                      </span>
+                    )}
+                    {event.hostClubName && (
+                      <span className="flex items-center gap-1">
+                        <Building2 className="w-4 h-4" />
+                        {event.hostClubName}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2 py-1 rounded bg-blue-100 text-blue-800">
+                      {typeInfo.label}
+                    </span>
+                    {event.eventCategory && (
+                      <span className="px-2 py-1 rounded bg-purple-100 text-purple-800 flex items-center gap-1">
+                        <Tag className="w-3 h-3" />
+                        {event.eventCategory}
+                      </span>
+                    )}
+                    {event.eventFee > 0 && (
+                      <span className="px-2 py-1 rounded bg-green-100 text-green-800 flex items-center gap-1">
+                        <DollarSign className="w-3 h-3" />
+                        ${event.eventFee}
+                      </span>
+                    )}
+                    {event.maxCapacity > 0 && (
+                      <span className="px-2 py-1 rounded bg-orange-100 text-orange-800 flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {event.totalRegistrations || 0}/{event.maxCapacity}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate(`/admin/events/${event.eventId}`)}
+                    className="btn btn-secondary btn-sm flex items-center gap-1"
+                  >
+                    <Eye className="w-3 h-3" />
+                    View
+                  </button>
+                  <button
+                    onClick={() => handleEdit(event)}
+                    className="btn btn-secondary btn-sm flex items-center gap-1"
+                  >
+                    <Edit className="w-3 h-3" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(event.eventId, event.title)}
+                    className="btn btn-sm bg-red-100 text-red-700 hover:bg-red-200 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {filteredEvents.length === 0 && (
+        <div className="text-center py-12">
+          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">
+            {searchTerm || filterType !== 'all' || filterTime !== 'all'
+              ? 'No events match your filters'
+              : 'No events yet. Create your first event!'}
+          </p>
+        </div>
+      )}
+
+      {/* Create/Edit Event Modal */}
+      {(showCreateModal || editingEvent) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">
+                  {editingEvent ? 'Edit Event' : 'Create New Event'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setEditingEvent(null);
+                    resetFormData();
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={editingEvent ? handleUpdate : handleCreate} className="space-y-4">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="input"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Event Type *</label>
+                    <select
+                      value={formData.eventType}
+                      onChange={(e) => setFormData({ ...formData, eventType: e.target.value })}
+                      className="input"
+                      required
+                    >
+                      {eventTypes.map(type => (
+                        <option key={type.value} value={type.value}>{type.icon} {type.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Event Scope</label>
+                    <select
+                      value={formData.eventScope}
+                      onChange={(e) => setFormData({ ...formData, eventScope: e.target.value })}
+                      className="input"
+                    >
+                      {eventScopes.map(scope => (
+                        <option key={scope.value} value={scope.value}>{scope.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date & Time *</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.eventDate}
+                      onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
+                      className="input"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      className="input"
+                      placeholder="e.g., Community Center"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <input
+                      type="text"
+                      value={formData.eventCategory}
+                      onChange={(e) => setFormData({ ...formData, eventCategory: e.target.value })}
+                      className="input"
+                      placeholder="e.g., Social, Workshop, Sports"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Host Club</label>
+                    <select
+                      value={formData.hostClubId}
+                      onChange={(e) => setFormData({ ...formData, hostClubId: e.target.value })}
+                      className="input"
+                    >
+                      <option value="">No host club (CASEC Event)</option>
+                      {clubs.map(club => (
+                        <option key={club.clubId} value={club.clubId}>{club.name}</option>
+                      ))}
+                    </select>
+                    {!isSystemAdmin && !formData.hostClubId && (
+                      <p className="text-xs text-amber-600 mt-1">Club admins must select a host club</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="input"
+                    rows={3}
+                    placeholder="Event description..."
+                  />
+                </div>
+
+                {/* Registration & Capacity */}
+                <div className="border-t pt-4">
+                  <h3 className="font-medium text-gray-900 mb-3">Registration Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Event Fee ($)</label>
+                      <input
+                        type="number"
+                        value={formData.eventFee}
+                        onChange={(e) => setFormData({ ...formData, eventFee: e.target.value })}
+                        className="input"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Max Capacity</label>
+                      <input
+                        type="number"
+                        value={formData.maxCapacity}
+                        onChange={(e) => setFormData({ ...formData, maxCapacity: e.target.value })}
+                        className="input"
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Registration URL</label>
+                      <input
+                        type="url"
+                        value={formData.registrationUrl}
+                        onChange={(e) => setFormData({ ...formData, registrationUrl: e.target.value })}
+                        className="input"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-6 mt-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.isRegistrationRequired}
+                        onChange={(e) => setFormData({ ...formData, isRegistrationRequired: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                      <span className="text-sm text-gray-700">Registration Required</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.isFeatured}
+                        onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                      <span className="text-sm text-gray-700">Featured Event</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Partner Info (for Partner Events) */}
+                {formData.eventType === 'PartnerEvent' && (
+                  <div className="border-t pt-4">
+                    <h3 className="font-medium text-gray-900 mb-3">Partner Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Partner Name</label>
+                        <input
+                          type="text"
+                          value={formData.partnerName}
+                          onChange={(e) => setFormData({ ...formData, partnerName: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Partner Logo URL</label>
+                        <input
+                          type="url"
+                          value={formData.partnerLogo}
+                          onChange={(e) => setFormData({ ...formData, partnerLogo: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Partner Website</label>
+                        <input
+                          type="url"
+                          value={formData.partnerWebsite}
+                          onChange={(e) => setFormData({ ...formData, partnerWebsite: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setEditingEvent(null);
+                      resetFormData();
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={!isSystemAdmin && !formData.hostClubId}
+                  >
+                    {editingEvent ? 'Update Event' : 'Create Event'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Event Modal */}
+      {viewingEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">{viewingEvent.title}</h2>
+                <button
+                  onClick={() => setViewingEvent(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm">
+                    {getEventTypeInfo(viewingEvent.eventType).icon} {getEventTypeInfo(viewingEvent.eventType).label}
+                  </span>
+                  {viewingEvent.isFeatured && (
+                    <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm flex items-center gap-1">
+                      <Star className="w-3 h-3" /> Featured
+                    </span>
+                  )}
+                  <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm">
+                    {viewingEvent.eventScope}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-gray-400" />
+                    <span>{formatDate(viewingEvent.eventDate)}</span>
+                  </div>
+                  {viewingEvent.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-gray-400" />
+                      <span>{viewingEvent.location}</span>
+                    </div>
+                  )}
+                  {viewingEvent.hostClubName && (
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-gray-400" />
+                      <span>{viewingEvent.hostClubName}</span>
+                    </div>
+                  )}
+                  {viewingEvent.eventCategory && (
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-5 h-5 text-gray-400" />
+                      <span>{viewingEvent.eventCategory}</span>
+                    </div>
+                  )}
+                </div>
+
+                {viewingEvent.description && (
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-1">Description</h3>
+                    <p className="text-gray-600">{viewingEvent.description}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="text-center">
+                    <DollarSign className="w-5 h-5 text-gray-400 mx-auto mb-1" />
+                    <p className="text-lg font-semibold">${viewingEvent.eventFee || 0}</p>
+                    <p className="text-xs text-gray-500">Fee</p>
+                  </div>
+                  <div className="text-center">
+                    <Users className="w-5 h-5 text-gray-400 mx-auto mb-1" />
+                    <p className="text-lg font-semibold">{viewingEvent.maxCapacity || 'Unlimited'}</p>
+                    <p className="text-xs text-gray-500">Capacity</p>
+                  </div>
+                  <div className="text-center">
+                    <Users className="w-5 h-5 text-green-500 mx-auto mb-1" />
+                    <p className="text-lg font-semibold">{viewingEvent.totalRegistrations || 0}</p>
+                    <p className="text-xs text-gray-500">Registered</p>
+                  </div>
+                  <div className="text-center">
+                    <Clock className="w-5 h-5 text-gray-400 mx-auto mb-1" />
+                    <p className="text-lg font-semibold">{viewingEvent.spotsRemaining}</p>
+                    <p className="text-xs text-gray-500">Spots Left</p>
+                  </div>
+                </div>
+
+                {viewingEvent.registrationUrl && (
+                  <a
+                    href={viewingEvent.registrationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-primary hover:underline"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Registration Link
+                  </a>
+                )}
+
+                {viewingEvent.partnerName && (
+                  <div className="border-t pt-4">
+                    <h3 className="font-medium text-gray-900 mb-2">Partner Information</h3>
+                    <p className="text-gray-600">{viewingEvent.partnerName}</p>
+                    {viewingEvent.partnerWebsite && (
+                      <a
+                        href={viewingEvent.partnerWebsite}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline text-sm"
+                      >
+                        Visit Partner Website
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                <button
+                  onClick={() => {
+                    setViewingEvent(null);
+                    handleEdit(viewingEvent);
+                  }}
+                  className="btn btn-secondary flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit Event
+                </button>
+                <button
+                  onClick={() => setViewingEvent(null)}
+                  className="btn btn-primary"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

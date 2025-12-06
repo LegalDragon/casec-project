@@ -61,13 +61,27 @@ export const clubsAPI = {
   delete: (id) => api.delete(`/clubs/${id}`),
   join: (id) => api.post(`/clubs/${id}/join`),
   leave: (id) => api.post(`/clubs/${id}/leave`),
+  // Admin endpoints
+  uploadAvatar: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/clubs/${id}/avatar`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  assignAdmin: (clubId, userId) => api.post(`/clubs/${clubId}/admins`, { userId }),
+  removeAdmin: (clubId, userId) => api.delete(`/clubs/${clubId}/admins/${userId}`),
+  getEvents: (id) => api.get(`/clubs/${id}/events`),
 };
 
 // Events APIs
 export const eventsAPI = {
-  getAll: () => api.get('/events'),
+  getAll: (params) => api.get('/events', { params }),
+  getAllAdmin: () => api.get('/events/all'),
   getById: (id) => api.get(`/events/${id}`),
   getMyEvents: () => api.get('/events/my-events'),
+  getTypes: () => api.get('/events/types'),
+  getCategories: () => api.get('/events/categories'),
   create: (data) => api.post('/events', data),
   update: (id, data) => api.put(`/events/${id}`, data),
   delete: (id) => api.delete(`/events/${id}`),

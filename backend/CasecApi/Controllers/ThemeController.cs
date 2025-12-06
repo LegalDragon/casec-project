@@ -6,6 +6,7 @@ using CasecApi.Data;
 using UserEntity = CasecApi.Models.User;
 using CasecApi.Models;
 using CasecApi.Models.DTOs;
+using CasecApi.Services;
 
 namespace CasecApi.Controllers;
 
@@ -14,13 +15,13 @@ namespace CasecApi.Controllers;
 public class ThemeController : ControllerBase
 {
     private readonly CasecDbContext _context;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IAssetService _assetService;
     private readonly ILogger<ThemeController> _logger;
 
-    public ThemeController(CasecDbContext context, IWebHostEnvironment environment, ILogger<ThemeController> logger)
+    public ThemeController(CasecDbContext context, IAssetService assetService, ILogger<ThemeController> logger)
     {
         _context = context;
-        _environment = environment;
+        _assetService = assetService;
         _logger = logger;
     }
 
@@ -236,31 +237,7 @@ public class ThemeController : ControllerBase
     {
         try
         {
-            // Validate file
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".svg", ".webp" };
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            
-            if (!allowedExtensions.Contains(extension))
-            {
-                return BadRequest(new ApiResponse<UploadResponse>
-                {
-                    Success = false,
-                    Message = "Invalid file type. Only JPG, PNG, SVG, and WEBP are allowed."
-                });
-            }
-
-            if (file.Length > 5 * 1024 * 1024) // 5MB
-            {
-                return BadRequest(new ApiResponse<UploadResponse>
-                {
-                    Success = false,
-                    Message = "File size must be less than 5MB"
-                });
-            }
-
-            // Create uploads directory
-            var uploadsPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", "uploads", "theme");
-            Directory.CreateDirectory(uploadsPath);
+            var currentUserId = GetCurrentUserId();
 
             // Get current theme
             var theme = await _context.ThemeSettings
@@ -268,38 +245,44 @@ public class ThemeController : ControllerBase
                 .OrderByDescending(t => t.ThemeId)
                 .FirstOrDefaultAsync();
 
-            if (theme != null && !string.IsNullOrEmpty(theme.LogoUrl))
+            // Delete old logo asset if exists
+            if (theme != null && !string.IsNullOrEmpty(theme.LogoUrl) && theme.LogoUrl.StartsWith("/api/asset/"))
             {
-                // Delete old logo
-                var oldFilePath = Path.Combine(_environment.WebRootPath ?? "wwwroot", theme.LogoUrl.TrimStart('/'));
-                if (System.IO.File.Exists(oldFilePath))
+                var oldFileIdStr = theme.LogoUrl.Replace("/api/asset/", "");
+                if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
-                    System.IO.File.Delete(oldFilePath);
+                    await _assetService.DeleteAssetAsync(oldFileId);
                 }
             }
 
-            // Save new logo
-            var fileName = $"logo_{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(uploadsPath, fileName);
-            
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
+            // Upload new logo using asset service (saves to database)
+            var uploadResult = await _assetService.UploadAssetAsync(
+                file,
+                "theme",
+                objectType: "Theme",
+                objectId: theme?.ThemeId,
+                uploadedBy: currentUserId
+            );
 
-            var logoUrl = $"/uploads/theme/{fileName}";
+            if (!uploadResult.Success)
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = uploadResult.Error ?? "Failed to upload file"
+                });
+            }
 
             // Update theme if exists
             if (theme != null)
             {
-                theme.LogoUrl = logoUrl;
-                theme.UpdatedBy = GetCurrentUserId();
+                theme.LogoUrl = uploadResult.Url; // Now saves as /api/asset/{id}
+                theme.UpdatedBy = currentUserId;
                 theme.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
             }
 
             // Log activity
-            var currentUserId = GetCurrentUserId();
             var log = new ActivityLog
             {
                 UserId = currentUserId,
@@ -313,7 +296,7 @@ public class ThemeController : ControllerBase
             {
                 Success = true,
                 Message = "Logo uploaded successfully",
-                Data = new UploadResponse { Url = logoUrl }
+                Data = new UploadResponse { Url = uploadResult.Url }
             });
         }
         catch (Exception ex)
@@ -334,31 +317,7 @@ public class ThemeController : ControllerBase
     {
         try
         {
-            // Validate file
-            var allowedExtensions = new[] { ".ico", ".png", ".svg" };
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            
-            if (!allowedExtensions.Contains(extension))
-            {
-                return BadRequest(new ApiResponse<UploadResponse>
-                {
-                    Success = false,
-                    Message = "Invalid file type. Only ICO, PNG, and SVG are allowed."
-                });
-            }
-
-            if (file.Length > 1 * 1024 * 1024) // 1MB
-            {
-                return BadRequest(new ApiResponse<UploadResponse>
-                {
-                    Success = false,
-                    Message = "File size must be less than 1MB"
-                });
-            }
-
-            // Create uploads directory
-            var uploadsPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", "uploads", "theme");
-            Directory.CreateDirectory(uploadsPath);
+            var currentUserId = GetCurrentUserId();
 
             // Get current theme
             var theme = await _context.ThemeSettings
@@ -366,38 +325,44 @@ public class ThemeController : ControllerBase
                 .OrderByDescending(t => t.ThemeId)
                 .FirstOrDefaultAsync();
 
-            if (theme != null && !string.IsNullOrEmpty(theme.FaviconUrl))
+            // Delete old favicon asset if exists
+            if (theme != null && !string.IsNullOrEmpty(theme.FaviconUrl) && theme.FaviconUrl.StartsWith("/api/asset/"))
             {
-                // Delete old favicon
-                var oldFilePath = Path.Combine(_environment.WebRootPath ?? "wwwroot", theme.FaviconUrl.TrimStart('/'));
-                if (System.IO.File.Exists(oldFilePath))
+                var oldFileIdStr = theme.FaviconUrl.Replace("/api/asset/", "");
+                if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
-                    System.IO.File.Delete(oldFilePath);
+                    await _assetService.DeleteAssetAsync(oldFileId);
                 }
             }
 
-            // Save new favicon
-            var fileName = $"favicon_{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(uploadsPath, fileName);
-            
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
+            // Upload new favicon using asset service (saves to database)
+            var uploadResult = await _assetService.UploadAssetAsync(
+                file,
+                "theme",
+                objectType: "Theme",
+                objectId: theme?.ThemeId,
+                uploadedBy: currentUserId
+            );
 
-            var faviconUrl = $"/uploads/theme/{fileName}";
+            if (!uploadResult.Success)
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = uploadResult.Error ?? "Failed to upload file"
+                });
+            }
 
             // Update theme if exists
             if (theme != null)
             {
-                theme.FaviconUrl = faviconUrl;
-                theme.UpdatedBy = GetCurrentUserId();
+                theme.FaviconUrl = uploadResult.Url; // Now saves as /api/asset/{id}
+                theme.UpdatedBy = currentUserId;
                 theme.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
             }
 
             // Log activity
-            var currentUserId = GetCurrentUserId();
             var log = new ActivityLog
             {
                 UserId = currentUserId,
@@ -411,7 +376,7 @@ public class ThemeController : ControllerBase
             {
                 Success = true,
                 Message = "Favicon uploaded successfully",
-                Data = new UploadResponse { Url = faviconUrl }
+                Data = new UploadResponse { Url = uploadResult.Url }
             });
         }
         catch (Exception ex)

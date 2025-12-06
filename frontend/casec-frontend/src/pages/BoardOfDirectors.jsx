@@ -4,7 +4,7 @@ import { Award, Linkedin, Twitter, ExternalLink } from 'lucide-react';
 import api from '../services/api';
 
 export default function BoardOfDirectors() {
-  const [boardMembers, setBoard Members] = useState([]);
+  const [boardMembers, setBoardMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 

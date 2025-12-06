@@ -578,6 +578,7 @@ public class PublicProfileDto
     public string LastName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public string? Profession { get; set; }
+    public string? Hobbies { get; set; }
     public string? Bio { get; set; }
     public string? City { get; set; }
     public string? State { get; set; }
@@ -585,5 +586,24 @@ public class PublicProfileDto
     public string? BoardTitle { get; set; }
     public string? LinkedInUrl { get; set; }
     public string? TwitterHandle { get; set; }
+    public string? MembershipTypeName { get; set; }
     public DateTime MemberSince { get; set; }
+}
+
+// Event Asset DTOs
+public class EventAssetDto
+{
+    public int FileId { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string Url { get; set; } = string.Empty;
+    public DateTime UploadedAt { get; set; }
+}
+
+public class EventAssetsDto
+{
+    public int EventId { get; set; }
+    public List<EventAssetDto> Photos { get; set; } = new();
+    public List<EventAssetDto> Documents { get; set; } = new();
 }

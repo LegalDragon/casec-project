@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Calendar, MapPin, DollarSign, Users, ExternalLink, Sparkles, Megaphone, Handshake } from 'lucide-react';
-import { eventsAPI } from '../services/api';
+import { Calendar, MapPin, DollarSign, Users, ExternalLink, Sparkles, Megaphone, Handshake, Building2 } from 'lucide-react';
+import { eventsAPI, clubsAPI } from '../services/api';
 
 export default function EnhancedEvents() {
   const [events, setEvents] = useState([]);
@@ -8,16 +8,21 @@ export default function EnhancedEvents() {
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedClub, setSelectedClub] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [categories, setCategories] = useState([]);
+  const [clubs, setClubs] = useState([]);
 
   useEffect(() => {
     loadEvents();
     loadCategories();
+    loadClubs();
   }, []);
 
   useEffect(() => {
     filterEvents();
-  }, [selectedType, selectedCategory, events]);
+  }, [selectedType, selectedCategory, selectedClub, dateFrom, dateTo, events]);
 
   const loadEvents = async () => {
     try {
@@ -43,6 +48,17 @@ export default function EnhancedEvents() {
     }
   };
 
+  const loadClubs = async () => {
+    try {
+      const response = await clubsAPI.getAll();
+      if (response.success) {
+        setClubs(response.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to load clubs:', err);
+    }
+  };
+
   const filterEvents = () => {
     let filtered = events;
 
@@ -52,6 +68,22 @@ export default function EnhancedEvents() {
 
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(e => e.eventCategory === selectedCategory);
+    }
+
+    if (selectedClub !== 'all') {
+      if (selectedClub === 'casec') {
+        filtered = filtered.filter(e => !e.hostClubId);
+      } else {
+        filtered = filtered.filter(e => e.hostClubId && e.hostClubId.toString() === selectedClub);
+      }
+    }
+
+    if (dateFrom) {
+      filtered = filtered.filter(e => new Date(e.eventDate) >= new Date(dateFrom));
+    }
+
+    if (dateTo) {
+      filtered = filtered.filter(e => new Date(e.eventDate) <= new Date(dateTo + 'T23:59:59'));
     }
 
     setFilteredEvents(filtered);
@@ -85,11 +117,22 @@ export default function EnhancedEvents() {
   const getEventTypeInfo = (type) => {
     const types = {
       'CasecEvent': { icon: '🎉', color: 'bg-primary', textColor: 'text-primary', label: 'CASEC Event' },
+      'ClubEvent': { icon: '👥', color: 'bg-purple-600', textColor: 'text-purple-600', label: 'Club Event' },
       'PartnerEvent': { icon: '🤝', color: 'bg-blue-600', textColor: 'text-blue-600', label: 'Partner Event' },
       'Announcement': { icon: '📢', color: 'bg-amber-600', textColor: 'text-amber-600', label: 'Announcement' }
     };
     return types[type] || types['CasecEvent'];
   };
+
+  const clearFilters = () => {
+    setSelectedType('all');
+    setSelectedCategory('all');
+    setSelectedClub('all');
+    setDateFrom('');
+    setDateTo('');
+  };
+
+  const hasActiveFilters = selectedType !== 'all' || selectedCategory !== 'all' || selectedClub !== 'all' || dateFrom || dateTo;
 
   if (loading) return <div className="text-center py-12">Loading events...</div>;
 
@@ -103,7 +146,7 @@ export default function EnhancedEvents() {
 
       {/* Filters */}
       <div className="card">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Event Type Filter */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Event Type</label>
@@ -114,6 +157,7 @@ export default function EnhancedEvents() {
             >
               <option value="all">All Types</option>
               <option value="CasecEvent">🎉 CASEC Events</option>
+              <option value="ClubEvent">👥 Club Events</option>
               <option value="PartnerEvent">🤝 Partner Events</option>
               <option value="Announcement">📢 Announcements</option>
             </select>
@@ -133,11 +177,48 @@ export default function EnhancedEvents() {
               ))}
             </select>
           </div>
+
+          {/* Club Filter */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Hosting Club</label>
+            <select
+              value={selectedClub}
+              onChange={(e) => setSelectedClub(e.target.value)}
+              className="input w-full"
+            >
+              <option value="all">All Clubs</option>
+              <option value="casec">CASEC Organization</option>
+              {clubs.map(club => (
+                <option key={club.clubId} value={club.clubId}>{club.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date Filter */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">Date Range</label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="input w-full text-sm"
+                placeholder="From"
+              />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="input w-full text-sm"
+                placeholder="To"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Active Filters Display */}
-        {(selectedType !== 'all' || selectedCategory !== 'all') && (
-          <div className="mt-4 pt-4 border-t flex items-center space-x-2">
+        {hasActiveFilters && (
+          <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-2">
             <span className="text-sm text-gray-600">Active filters:</span>
             {selectedType !== 'all' && (
               <span className="inline-flex items-center px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
@@ -151,9 +232,21 @@ export default function EnhancedEvents() {
                 <button onClick={() => setSelectedCategory('all')} className="ml-2">×</button>
               </span>
             )}
+            {selectedClub !== 'all' && (
+              <span className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+                {selectedClub === 'casec' ? 'CASEC' : clubs.find(c => c.clubId.toString() === selectedClub)?.name}
+                <button onClick={() => setSelectedClub('all')} className="ml-2">×</button>
+              </span>
+            )}
+            {(dateFrom || dateTo) && (
+              <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                {dateFrom || 'Any'} - {dateTo || 'Any'}
+                <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="ml-2">×</button>
+              </span>
+            )}
             <button
-              onClick={() => { setSelectedType('all'); setSelectedCategory('all'); }}
-              className="text-sm text-primary hover:underline"
+              onClick={clearFilters}
+              className="text-sm text-primary hover:underline ml-2"
             >
               Clear all
             </button>
@@ -190,12 +283,20 @@ export default function EnhancedEvents() {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{event.title}</h3>
-                  {event.eventCategory && (
-                    <span className="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-semibold">
-                      {event.eventCategory}
-                    </span>
-                  )}
-                  <p className="text-gray-600 text-sm mt-2">{event.description}</p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {event.eventCategory && (
+                      <span className="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-semibold">
+                        {event.eventCategory}
+                      </span>
+                    )}
+                    {event.hostClubName && (
+                      <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
+                        <Building2 className="w-3 h-3 mr-1" />
+                        {event.hostClubName}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-600 text-sm mt-2 line-clamp-2">{event.description}</p>
                 </div>
                 <div className="text-center bg-primary text-white rounded-lg p-3 ml-4 flex-shrink-0">
                   <div className="text-2xl font-bold">{eventDate.getDate()}</div>
