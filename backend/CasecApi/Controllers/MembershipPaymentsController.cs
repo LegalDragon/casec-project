@@ -626,7 +626,7 @@ public class MembershipPaymentsController : ControllerBase
                 user.UpdatedAt = DateTime.UtcNow;
 
                 // Handle family membership - allow linking family members for any payment
-                if (request.FamilyMemberIds != null && request.FamilyMemberIds.Any())
+                if (request.FamilyMemberIds != null && request.FamilyMemberIds.Count > 0)
                 {
                     // Store covered family member IDs
                     payment.CoveredFamilyMemberIds = JsonSerializer.Serialize(request.FamilyMemberIds);
@@ -638,16 +638,17 @@ public class MembershipPaymentsController : ControllerBase
                     }
 
                     // Update family members' membership
-                    var familyMembers = await _context.Users
-                        .Where(u => request.FamilyMemberIds.Contains(u.UserId))
-                        .ToListAsync();
-
-                    foreach (var member in familyMembers)
+                    // Fetch each family member individually to avoid SQL Server CTE issues
+                    foreach (var memberId in request.FamilyMemberIds)
                     {
-                        member.MembershipTypeId = payment.MembershipTypeId;
-                        member.MembershipValidUntil = payment.ValidUntil;
-                        member.IsActive = true;
-                        member.UpdatedAt = DateTime.UtcNow;
+                        var member = await _context.Users.FindAsync(memberId);
+                        if (member != null)
+                        {
+                            member.MembershipTypeId = payment.MembershipTypeId;
+                            member.MembershipValidUntil = payment.ValidUntil;
+                            member.IsActive = true;
+                            member.UpdatedAt = DateTime.UtcNow;
+                        }
                     }
                 }
 
