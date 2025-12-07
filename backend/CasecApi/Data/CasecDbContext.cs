@@ -249,6 +249,9 @@ public class CasecDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => e.Token).IsUnique();
+
+            // Configure table to work with database trigger
+            entity.ToTable(t => t.HasTrigger("TR_PasswordResetTokens_SendEmail"));
         });
     }
 }
