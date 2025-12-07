@@ -32,21 +32,20 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary via-primary-light to-accent flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-primary-light to-accent flex items-center justify-center px-1">
       <div className="max-w-md w-full">
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-2">
           {theme?.logoUrl ? (
             <img
               src={getAssetUrl(theme.logoUrl)}
               alt={theme.organizationName || 'Logo'}
-              className="h-24 w-auto max-w-[280px] object-contain mx-auto mb-4"
+              className="h-96 w-auto max-w-[280px] object-contain mx-auto mb-1"
             />
-          ) : (
-            <h1 className="text-5xl font-display font-extrabold text-white mb-2">
+          ) : null}
+           <h1 className="text-5xl font-display font-extrabold text-accent mb-2">
               {theme?.organizationName || 'CASEC'}<span className="text-accent-light">.</span>
             </h1>
-          )}
           <p className="text-white/80 text-lg">Welcome back to your community</p>
         </div>
 

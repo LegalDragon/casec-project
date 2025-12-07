@@ -91,7 +91,7 @@ export default function Register() {
             <img
               src={getAssetUrl(theme.logoUrl)}
               alt={theme.organizationName || 'Logo'}
-              className="h-20 w-auto max-w-[250px] object-contain mx-auto mb-4"
+              className="h-32 w-auto max-w-[250px] object-contain mx-auto mb-4"
             />
           ) : (
             <h1 className="text-5xl font-display font-extrabold text-primary mb-2">
