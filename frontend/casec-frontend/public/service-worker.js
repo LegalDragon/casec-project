@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pickleball-college-v1';
+const CACHE_NAME = 'CASEC-App-v1';
 const urlsToCache = [
   '/',
   '/index.html',
