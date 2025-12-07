@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Award, Linkedin, Twitter, ExternalLink } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
 
 export default function BoardOfDirectors() {
   const [boardMembers, setBoardMembers] = useState([]);
@@ -69,7 +69,7 @@ export default function BoardOfDirectors() {
               <div className="relative mb-6">
                 {member.avatarUrl ? (
                   <img
-                    src={member.avatarUrl}
+                    src={getAssetUrl(member.avatarUrl)}
                     alt={`${member.firstName} ${member.lastName}`}
                     className="w-full h-64 object-cover rounded-xl"
                   />

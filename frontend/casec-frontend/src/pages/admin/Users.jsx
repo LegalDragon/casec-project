@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Edit, Trash2, Search, UserPlus, Shield, ShieldOff, CheckCircle, XCircle, Calendar } from 'lucide-react';
-import api from '../../services/api';
+import api, { getAssetUrl } from '../../services/api';
 
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);
@@ -140,7 +140,7 @@ export default function ManageUsers() {
                       <div className="h-10 w-10 flex-shrink-0">
                         {user.avatarUrl ? (
                           <img
-                            src={user.avatarUrl}
+                            src={getAssetUrl(user.avatarUrl)}
                             alt={`${user.firstName} ${user.lastName}`}
                             className="h-10 w-10 rounded-full object-cover border-2 border-gray-200"
                           />
@@ -226,7 +226,7 @@ export default function ManageUsers() {
               <div className="flex items-center space-x-4 mb-6">
                 {editingUser.avatarUrl ? (
                   <img
-                    src={editingUser.avatarUrl}
+                    src={getAssetUrl(editingUser.avatarUrl)}
                     alt={`${editingUser.firstName} ${editingUser.lastName}`}
                     className="w-16 h-16 rounded-full object-cover border-2 border-primary"
                   />

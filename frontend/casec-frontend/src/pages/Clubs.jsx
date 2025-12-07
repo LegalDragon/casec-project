@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Users, Check } from 'lucide-react';
-import { clubsAPI } from '../services/api';
+import { clubsAPI, getAssetUrl } from '../services/api';
 import { useAppStore } from '../store/useStore';
 
 export default function Clubs() {
@@ -59,7 +59,7 @@ export default function Clubs() {
             <div className="flex items-center space-x-3 mb-4">
               {club.avatarUrl ? (
                 <img
-                  src={club.avatarUrl}
+                  src={getAssetUrl(club.avatarUrl)}
                   alt={club.name}
                   className="w-16 h-16 rounded-lg object-cover border-2 border-gray-200"
                 />

@@ -4,7 +4,7 @@ import {
   ArrowLeft, Calendar, MapPin, Users, DollarSign, Building2, Star,
   Tag, Clock, Image, FileText, Download, ExternalLink, UserCheck
 } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
 import { useAuthStore } from '../store/useStore';
 
 export default function EventDetail() {
@@ -346,7 +346,7 @@ export default function EventDetail() {
               >
                 {registrant.avatarUrl ? (
                   <img
-                    src={registrant.avatarUrl}
+                    src={getAssetUrl(registrant.avatarUrl)}
                     alt={`${registrant.firstName} ${registrant.lastName}`}
                     className="w-10 h-10 rounded-full object-cover"
                   />

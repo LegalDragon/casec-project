@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Users, Briefcase, MapPin, Calendar, ExternalLink } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
 
 export default function Members() {
   const [members, setMembers] = useState([]);
@@ -134,7 +134,7 @@ export default function Members() {
               {/* Avatar */}
               {member.avatarUrl ? (
                 <img
-                  src={member.avatarUrl}
+                  src={getAssetUrl(member.avatarUrl)}
                   alt={`${member.firstName} ${member.lastName}`}
                   className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
                 />

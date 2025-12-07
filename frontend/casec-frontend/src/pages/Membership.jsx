@@ -3,7 +3,7 @@ import {
   CreditCard, Upload, Clock, CheckCircle, XCircle, AlertCircle,
   Calendar, DollarSign, Users, FileText, Trash2, Eye
 } from 'lucide-react';
-import { membershipPaymentsAPI, membershipTypesAPI } from '../services/api';
+import { membershipPaymentsAPI, membershipTypesAPI, getAssetUrl } from '../services/api';
 import { useAuthStore } from '../store/useStore';
 
 export default function Membership() {
@@ -205,7 +205,7 @@ export default function Membership() {
               {status.familyMembers.map((member) => (
                 <div key={member.userId} className="flex items-center bg-gray-50 rounded-lg px-3 py-2">
                   {member.avatarUrl ? (
-                    <img src={member.avatarUrl} alt={member.firstName} className="w-8 h-8 rounded-full mr-2" />
+                    <img src={getAssetUrl(member.avatarUrl)} alt={member.firstName} className="w-8 h-8 rounded-full mr-2" />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2 text-primary font-bold text-sm">
                       {member.firstName[0]}{member.lastName[0]}

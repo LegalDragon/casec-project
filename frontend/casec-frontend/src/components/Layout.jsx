@@ -3,6 +3,7 @@ import { LogOut, User, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../store/useStore';
 import { useState } from 'react';
 import LogoOrText from './LogoOrText';
+import { getAssetUrl } from '../services/api';
 
 export default function Layout() {
   const { user, logout } = useAuthStore();
@@ -91,7 +92,7 @@ export default function Layout() {
               <div className="flex items-center space-x-3">
                 {user?.avatarUrl ? (
                   <img
-                    src={user.avatarUrl}
+                    src={getAssetUrl(user.avatarUrl)}
                     alt={`${user.firstName} ${user.lastName}`}
                     className="w-10 h-10 rounded-full object-cover border-2 border-primary"
                   />

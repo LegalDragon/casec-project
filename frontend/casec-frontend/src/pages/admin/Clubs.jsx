@@ -3,7 +3,7 @@ import {
   Plus, Edit, Trash2, Search, Users, Shield, ShieldOff,
   Calendar, Mail, Image, X, UserPlus, CheckCircle, XCircle
 } from 'lucide-react';
-import { clubsAPI, usersAPI } from '../../services/api';
+import { clubsAPI, usersAPI, getAssetUrl } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 
 export default function AdminClubs() {
@@ -229,7 +229,7 @@ export default function AdminClubs() {
               <div className="flex items-center gap-3">
                 {club.avatarUrl ? (
                   <img
-                    src={club.avatarUrl}
+                    src={getAssetUrl(club.avatarUrl)}
                     alt={club.name}
                     className="w-12 h-12 rounded-full object-cover"
                   />
@@ -531,7 +531,7 @@ export default function AdminClubs() {
                       <div key={admin.userId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
                           {admin.avatarUrl ? (
-                            <img src={admin.avatarUrl} alt="" className="w-8 h-8 rounded-full" />
+                            <img src={getAssetUrl(admin.avatarUrl)} alt="" className="w-8 h-8 rounded-full" />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
                               <Shield className="w-4 h-4 text-purple-600" />
@@ -612,7 +612,7 @@ export default function AdminClubs() {
               <div className="text-center mb-4">
                 {uploadingAvatar.avatarUrl ? (
                   <img
-                    src={uploadingAvatar.avatarUrl}
+                    src={getAssetUrl(uploadingAvatar.avatarUrl)}
                     alt="Current avatar"
                     className="w-24 h-24 rounded-full object-cover mx-auto mb-2"
                   />

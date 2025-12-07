@@ -3,7 +3,7 @@ import {
   CreditCard, Clock, CheckCircle, XCircle, Eye, Users,
   Calendar, DollarSign, Search, Filter, ChevronDown, ChevronUp, X, UserPlus
 } from 'lucide-react';
-import { membershipPaymentsAPI } from '../../services/api';
+import { membershipPaymentsAPI, getAssetUrl } from '../../services/api';
 
 export default function AdminPayments() {
   const [payments, setPayments] = useState([]);
@@ -452,7 +452,7 @@ export default function AdminPayments() {
                                       className="mr-3"
                                     />
                                     {member.avatarUrl ? (
-                                      <img src={member.avatarUrl} alt="" className="w-8 h-8 rounded-full mr-2" />
+                                      <img src={getAssetUrl(member.avatarUrl)} alt="" className="w-8 h-8 rounded-full mr-2" />
                                     ) : (
                                       <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2 text-primary font-bold text-xs">
                                         {member.firstName[0]}{member.lastName[0]}
@@ -523,7 +523,7 @@ export default function AdminPayments() {
                                       className="w-full flex items-center p-3 hover:bg-gray-50 border-b last:border-b-0"
                                     >
                                       {user.avatarUrl ? (
-                                        <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full mr-3" />
+                                        <img src={getAssetUrl(user.avatarUrl)} alt="" className="w-8 h-8 rounded-full mr-3" />
                                       ) : (
                                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3 text-primary font-bold text-xs">
                                           {user.firstName[0]}{user.lastName[0]}

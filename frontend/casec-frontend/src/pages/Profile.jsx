@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Save, User, Camera, Upload, Linkedin, Twitter, MapPin, Phone, Briefcase, Heart, FileText } from 'lucide-react';
-import { usersAPI } from '../services/api';
+import { usersAPI, getAssetUrl } from '../services/api';
 import { useAuthStore } from '../store/useStore';
 import api from '../services/api';
 
@@ -116,7 +116,7 @@ export default function Profile() {
           <div className="relative group">
             {avatarUrl ? (
               <img
-                src={avatarUrl}
+                src={getAssetUrl(avatarUrl)}
                 alt={`${user?.firstName} ${user?.lastName}`}
                 className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
               />

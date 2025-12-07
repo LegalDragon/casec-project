@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Linkedin, Twitter, Award, Calendar, MapPin, Briefcase, Heart, Users } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
 
 export default function PublicProfile() {
   const { userId } = useParams();
@@ -70,7 +70,7 @@ export default function PublicProfile() {
             <div className="flex-shrink-0 text-center">
               {profile.avatarUrl ? (
                 <img
-                  src={profile.avatarUrl}
+                  src={getAssetUrl(profile.avatarUrl)}
                   alt={`${profile.firstName} ${profile.lastName}`}
                   className="w-48 h-48 rounded-2xl object-cover shadow-xl border-4 border-white"
                 />
@@ -156,7 +156,7 @@ export default function PublicProfile() {
                       >
                         {club.avatarUrl ? (
                           <img
-                            src={club.avatarUrl}
+                            src={getAssetUrl(club.avatarUrl)}
                             alt={club.name}
                             className="w-5 h-5 rounded-full object-cover"
                           />
