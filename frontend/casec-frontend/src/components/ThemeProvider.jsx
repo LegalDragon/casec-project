@@ -1,5 +1,5 @@
 import { useEffect, useState, createContext, useContext } from 'react';
-import { themeAPI } from '../services/api';
+import { themeAPI, getAssetUrl } from '../services/api';
 
 const ThemeContext = createContext();
 
@@ -70,7 +70,7 @@ export default function ThemeProvider({ children }) {
         favicon.rel = 'icon';
         document.head.appendChild(favicon);
       }
-      favicon.href = themeData.faviconUrl;
+      favicon.href = getAssetUrl(themeData.faviconUrl);
     }
 
     // Apply custom CSS if exists

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Palette, Upload, RotateCcw, Save, Eye, Sparkles } from 'lucide-react';
-import { themeAPI } from '../../services/api';
+import { themeAPI, getAssetUrl } from '../../services/api';
 
 export default function ThemeCustomization() {
   const [theme, setTheme] = useState(null);
@@ -190,7 +190,7 @@ export default function ThemeCustomization() {
             </label>
             <div className="flex items-center space-x-3">
               {theme.logoUrl && (
-                <img src={theme.logoUrl} alt="Logo" className="h-12 w-auto" />
+                <img src={getAssetUrl(theme.logoUrl)} alt="Logo" className="h-12 w-auto" />
               )}
               <input
                 type="file"
@@ -219,7 +219,7 @@ export default function ThemeCustomization() {
             </label>
             <div className="flex items-center space-x-3">
               {theme.faviconUrl && (
-                <img src={theme.faviconUrl} alt="Favicon" className="h-8 w-8" />
+                <img src={getAssetUrl(theme.faviconUrl)} alt="Favicon" className="h-8 w-8" />
               )}
               <input
                 type="file"

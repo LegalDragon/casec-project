@@ -1,5 +1,6 @@
 import { useTheme } from './ThemeProvider';
 import { Link } from 'react-router-dom';
+import { getAssetUrl } from '../services/api';
 
 export default function LogoOrText() {
   const { theme } = useTheme();
@@ -8,7 +9,7 @@ export default function LogoOrText() {
     return (
       <Link to="/dashboard" className="flex items-center">
         <img
-          src={theme.logoUrl}
+          src={getAssetUrl(theme.logoUrl)}
           alt={theme.organizationName || 'Logo'}
           className="h-14 w-auto max-w-[200px] object-contain"
         />
