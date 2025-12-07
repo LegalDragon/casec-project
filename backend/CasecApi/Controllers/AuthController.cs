@@ -273,15 +273,13 @@ public class AuthController : ControllerBase
             // Log activity
             await LogActivity(user.UserId, "PasswordResetRequested", "Password reset token generated");
 
-            // In production, you would send an email here with the reset link
-            // For now, we'll return the token in the response (for testing)
-            _logger.LogInformation("Password reset token generated for user {UserId}: {Token}", user.UserId, token);
+            // Email is sent automatically via database trigger (TR_PasswordResetTokens_SendEmail)
+            _logger.LogInformation("Password reset token generated for user {UserId}", user.UserId);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "If an account with that email exists, a password reset link has been sent.",
-                Data = new { token } // Remove this in production - only for testing
+                Message = "If an account with that email exists, a password reset link has been sent."
             });
         }
         catch (Exception ex)
