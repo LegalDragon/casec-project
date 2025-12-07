@@ -165,20 +165,21 @@ export default function EnhancedProfile() {
             <h3 className="text-xl font-bold text-gray-900 mb-4">Basic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">First Name *</label>
                 <input type="text" className="input w-full" value={formData.firstName || ''} onChange={(e) => setFormData({...formData, firstName: e.target.value})} />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name *</label>
                 <input type="text" className="input w-full" value={formData.lastName || ''} onChange={(e) => setFormData({...formData, lastName: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                <input type="email" className="input w-full bg-gray-100" value={user?.email || ''} disabled />
+                <p className="text-xs text-gray-500 mt-1">Contact admin to change email</p>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
                 <input type="tel" className="input w-full" value={formData.phoneNumber || ''} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Profession</label>
-                <input type="text" className="input w-full" value={formData.profession || ''} onChange={(e) => setFormData({...formData, profession: e.target.value})} />
               </div>
             </div>
           </div>
@@ -262,9 +263,15 @@ export default function EnhancedProfile() {
           <div>
             <h3 className="text-xl font-bold text-gray-900 mb-4">About You</h3>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Hobbies & Interests</label>
-                <input type="text" className="input w-full" placeholder="e.g., Tennis, Photography, Cooking" value={formData.hobbies || ''} onChange={(e) => setFormData({...formData, hobbies: e.target.value})} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Profession</label>
+                  <input type="text" className="input w-full" placeholder="e.g., Software Engineer" value={formData.profession || ''} onChange={(e) => setFormData({...formData, profession: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Hobbies & Interests</label>
+                  <input type="text" className="input w-full" placeholder="e.g., Tennis, Photography, Cooking" value={formData.hobbies || ''} onChange={(e) => setFormData({...formData, hobbies: e.target.value})} />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Bio</label>

@@ -710,3 +710,28 @@ public class FamilyMember
     [ForeignKey("UserId")]
     public virtual User? User { get; set; }
 }
+
+// PasswordResetToken Entity
+public class PasswordResetToken
+{
+    [Key]
+    public int TokenId { get; set; }
+
+    [Required]
+    public int UserId { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string Token { get; set; } = string.Empty;
+
+    [Required]
+    public DateTime ExpiresAt { get; set; }
+
+    public bool IsUsed { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("UserId")]
+    public virtual User? User { get; set; }
+}

@@ -36,6 +36,9 @@ public class CasecDbContext : DbContext
     // Asset entities
     public DbSet<Asset> Assets { get; set; }
 
+    // Auth entities
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -232,6 +235,20 @@ public class CasecDbContext : DbContext
             entity.HasIndex(e => e.UploadedBy);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Folder);
+        });
+
+        // PasswordResetToken entity configuration
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.HasKey(e => e.TokenId);
+            entity.Property(e => e.Token).IsRequired().HasMaxLength(100);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.Token).IsUnique();
         });
     }
 }
