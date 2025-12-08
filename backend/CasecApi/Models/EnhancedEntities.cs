@@ -103,8 +103,10 @@ public class User
     // Navigation properties
     [ForeignKey("MembershipTypeId")]
     public virtual MembershipType? MembershipType { get; set; }
-    
+
     public virtual FamilyGroup? FamilyGroup { get; set; }
+
+    public virtual ICollection<ClubMembership> ClubMemberships { get; set; } = new List<ClubMembership>();
 }
 
 // MembershipType Entity
