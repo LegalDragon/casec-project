@@ -344,28 +344,20 @@ public class UsersController : ControllerBase
                 });
             }
 
-            // Update basic info
+            // Update basic info (admin-editable fields only)
             if (!string.IsNullOrEmpty(request.FirstName))
                 user.FirstName = request.FirstName;
             if (!string.IsNullOrEmpty(request.LastName))
                 user.LastName = request.LastName;
-            user.ChineseName = request.ChineseName;
+            if (request.ChineseName != null)
+                user.ChineseName = request.ChineseName;
             if (!string.IsNullOrEmpty(request.Email))
                 user.Email = request.Email;
+            if (request.PhoneNumber != null)
+                user.PhoneNumber = request.PhoneNumber;
 
-            user.PhoneNumber = request.PhoneNumber;
-            user.Address = request.Address;
-            user.City = request.City;
-            user.State = request.State;
-            user.ZipCode = request.ZipCode;
-            user.Profession = request.Profession;
-            user.Hobbies = request.Hobbies;
-            user.Bio = request.Bio;
-            user.Gender = request.Gender;
-            user.DateOfBirth = request.DateOfBirth;
-            user.MaritalStatus = request.MaritalStatus;
-            user.LinkedInUrl = request.LinkedInUrl;
-            user.TwitterHandle = request.TwitterHandle;
+            // Note: Profile fields (address, city, profession, bio, etc.) are only
+            // editable by the user themselves through UpdateProfile endpoint
 
             // Update membership type
             if (request.MembershipTypeId.HasValue)
@@ -378,10 +370,12 @@ public class UsersController : ControllerBase
             // Update board member information
             if (request.IsBoardMember.HasValue)
                 user.IsBoardMember = request.IsBoardMember.Value;
-            
-            user.BoardTitle = request.BoardTitle;
-            user.BoardDisplayOrder = request.BoardDisplayOrder;
-            user.BoardBio = request.BoardBio;
+            if (request.BoardTitle != null)
+                user.BoardTitle = request.BoardTitle;
+            if (request.BoardDisplayOrder.HasValue)
+                user.BoardDisplayOrder = request.BoardDisplayOrder;
+            if (request.BoardBio != null)
+                user.BoardBio = request.BoardBio;
             
             // Update active status
             if (request.IsActive.HasValue)
