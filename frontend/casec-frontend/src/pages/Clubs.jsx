@@ -159,7 +159,7 @@ export default function Clubs() {
                     {members.map((member) => (
                       <Link
                         key={member.userId}
-                        to={`/members/${member.userId}`}
+                        to={`/member/${member.userId}`}
                         className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         {member.avatarUrl ? (
