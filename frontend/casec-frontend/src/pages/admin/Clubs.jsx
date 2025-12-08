@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, Edit, Trash2, Search, Users, Shield, ShieldOff,
-  Calendar, Mail, Image, X, UserPlus, CheckCircle, XCircle
+  Calendar, Mail, Image, X, UserPlus, CheckCircle, XCircle, ArrowUpDown
 } from 'lucide-react';
 import { clubsAPI, usersAPI, getAssetUrl } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
@@ -14,11 +14,13 @@ export default function AdminClubs() {
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name'); // name, members, date
 
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingClub, setEditingClub] = useState(null);
   const [managingMembers, setManagingMembers] = useState(null);
+  const [loadingMembers, setLoadingMembers] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(null);
 
   // Form data
@@ -173,10 +175,40 @@ export default function AdminClubs() {
     }
   };
 
-  const filteredClubs = clubs.filter(club =>
+  const handleManageAdmins = async (club) => {
+    setLoadingMembers(true);
+    setManagingMembers(club); // Show modal immediately with basic info
+    try {
+      // Fetch full club details including members
+      const response = await clubsAPI.getById(club.clubId);
+      setManagingMembers(response.data);
+    } catch (error) {
+      console.error('Error fetching club details:', error);
+      alert('Failed to load club members');
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  // Sort clubs
+  const sortClubs = (clubList) => {
+    return [...clubList].sort((a, b) => {
+      switch (sortBy) {
+        case 'members':
+          return (b.totalMembers || 0) - (a.totalMembers || 0);
+        case 'date':
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'name':
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+  };
+
+  const filteredClubs = sortClubs(clubs.filter(club =>
     club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (club.description && club.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  ));
 
   // Get club members who are not already admins of the selected club
   const getAvailableUsersForAdmin = (club) => {
@@ -209,16 +241,30 @@ export default function AdminClubs() {
         )}
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-        <input
-          type="text"
-          placeholder="Search clubs by name or description..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input pl-10 w-full"
-        />
+      {/* Search and Sort */}
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search clubs by name or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input pl-10 w-full"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="input w-40"
+          >
+            <option value="name">Name (A-Z)</option>
+            <option value="members">Most Members</option>
+            <option value="date">Newest First</option>
+          </select>
+        </div>
       </div>
 
       {/* Clubs Grid */}
@@ -312,7 +358,7 @@ export default function AdminClubs() {
               {isSystemAdmin && (
                 <>
                   <button
-                    onClick={() => setManagingMembers(club)}
+                    onClick={() => handleManageAdmins(club)}
                     className="btn btn-secondary btn-sm flex items-center gap-1"
                   >
                     <UserPlus className="w-3 h-3" />
@@ -565,7 +611,9 @@ export default function AdminClubs() {
                   Select a club member to promote to admin.
                 </p>
                 <div className="max-h-60 overflow-y-auto space-y-2">
-                  {getAvailableUsersForAdmin(managingMembers).length > 0 ? (
+                  {loadingMembers ? (
+                    <p className="text-gray-500 text-center py-4">Loading members...</p>
+                  ) : getAvailableUsersForAdmin(managingMembers).length > 0 ? (
                     getAvailableUsersForAdmin(managingMembers).map((member) => (
                       <div key={member.userId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
@@ -590,7 +638,7 @@ export default function AdminClubs() {
                     <p className="text-gray-500 text-center py-4">
                       No club members available to assign as admin.
                     </p>
-                  )}
+                  )
                 </div>
               </div>
 
