@@ -5,7 +5,7 @@ import {
   Upload, Image, FileText, Trash2, Download, Building2, Star, Tag, Clock,
   Eye, EyeOff, ArrowUp, ArrowDown, GripVertical
 } from 'lucide-react';
-import { eventsAPI, clubsAPI } from '../../services/api';
+import { eventsAPI, clubsAPI, getAssetUrl } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 import api from '../../services/api';
 
@@ -563,7 +563,7 @@ export default function EventDetail() {
               <div key={photo.fileId} className={`border rounded-lg overflow-hidden ${photo.status === 'Private' ? 'border-gray-300 bg-gray-50' : 'border-green-300 bg-green-50'}`}>
                 <div className="relative">
                   <img
-                    src={photo.url}
+                    src={getAssetUrl(photo.url)}
                     alt={photo.fileName}
                     className={`w-full h-40 object-cover ${photo.status === 'Private' ? 'opacity-60' : ''}`}
                   />
@@ -717,7 +717,7 @@ export default function EventDetail() {
                       {doc.status === 'Public' ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                     </button>
                     <a
-                      href={doc.url}
+                      href={getAssetUrl(doc.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-2 text-gray-600 hover:text-primary rounded hover:bg-blue-50"
