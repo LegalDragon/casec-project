@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, Calendar, MapPin, Users, DollarSign, Building2, Star,
-  Tag, Clock, Image, FileText, Download, ExternalLink, UserCheck
+  Tag, Clock, Image, FileText, Download, ExternalLink, UserCheck, UserX
 } from 'lucide-react';
 import api, { getAssetUrl } from '../services/api';
 import { useAuthStore } from '../store/useStore';
@@ -15,6 +15,7 @@ export default function EventDetail() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
+  const [unregistering, setUnregistering] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   const eventTypes = {
@@ -63,6 +64,26 @@ export default function EventDetail() {
       alert(error.message || 'Failed to register for event');
     } finally {
       setRegistering(false);
+    }
+  };
+
+  const handleUnregister = async () => {
+    if (!confirm('Are you sure you want to unregister from this event?')) {
+      return;
+    }
+
+    setUnregistering(true);
+    try {
+      const response = await api.post(`/events/${eventId}/unregister`);
+      if (response.success) {
+        alert('Successfully unregistered from event');
+        fetchEventDetail();
+      }
+    } catch (error) {
+      console.error('Error unregistering:', error);
+      alert(error.message || 'Failed to unregister from event');
+    } finally {
+      setUnregistering(false);
     }
   };
 
@@ -200,10 +221,27 @@ export default function EventDetail() {
               </button>
             )}
 
-            {event.isUserRegistered && (
+            {event.isUserRegistered && !isPastEvent && (
+              <div className="mb-3">
+                <div className="flex items-center justify-center gap-2 text-green-600 font-medium mb-2">
+                  <UserCheck className="w-5 h-5" />
+                  You're registered!
+                </div>
+                <button
+                  onClick={handleUnregister}
+                  disabled={unregistering}
+                  className="btn w-full bg-red-100 text-red-700 hover:bg-red-200 flex items-center justify-center gap-2"
+                >
+                  <UserX className="w-4 h-4" />
+                  {unregistering ? 'Unregistering...' : 'Unregister'}
+                </button>
+              </div>
+            )}
+
+            {event.isUserRegistered && isPastEvent && (
               <div className="flex items-center justify-center gap-2 text-green-600 font-medium mb-3">
                 <UserCheck className="w-5 h-5" />
-                You're registered!
+                You attended!
               </div>
             )}
 
