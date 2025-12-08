@@ -101,14 +101,14 @@ public class CasecDbContext : DbContext
         modelBuilder.Entity<ClubMembership>(entity =>
         {
             entity.HasKey(e => e.MembershipId);
-            
+
             entity.HasOne(e => e.Club)
                 .WithMany(c => c.Memberships)
                 .HasForeignKey(e => e.ClubId)
                 .OnDelete(DeleteBehavior.Cascade);
-            
+
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.ClubMemberships)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
