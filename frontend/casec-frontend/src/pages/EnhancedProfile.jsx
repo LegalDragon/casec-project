@@ -84,7 +84,12 @@ export default function EnhancedProfile() {
     setSuccess(false);
 
     try {
-      const response = await usersAPI.updateProfile(formData);
+      // Convert empty dateOfBirth to null for proper serialization
+      const profileData = {
+        ...formData,
+        dateOfBirth: formData.dateOfBirth || null,
+      };
+      const response = await usersAPI.updateProfile(profileData);
       if (response.success) {
         updateUser(formData);
         setSuccess(true);

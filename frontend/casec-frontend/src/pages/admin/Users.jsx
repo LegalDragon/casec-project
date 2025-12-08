@@ -62,6 +62,7 @@ export default function ManageUsers() {
     setFormData({
       firstName: user.firstName,
       lastName: user.lastName,
+      chineseName: user.chineseName || '',
       email: user.email,
       phoneNumber: user.phoneNumber || '',
       membershipTypeId: user.membershipTypeId,
@@ -336,6 +337,7 @@ export default function ManageUsers() {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
+                          {user.chineseName && <span className="text-primary">{user.chineseName} </span>}
                           {user.firstName} {user.lastName}
                         </div>
                         <div className="text-sm text-gray-500">
@@ -450,6 +452,19 @@ export default function ManageUsers() {
                       required
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    中文姓名 (Chinese Name)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.chineseName}
+                    onChange={(e) => setFormData({ ...formData, chineseName: e.target.value })}
+                    className="input"
+                    placeholder="例如：张三"
+                  />
                 </div>
 
                 <div>

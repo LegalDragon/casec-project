@@ -292,6 +292,7 @@ public class UsersController : ControllerBase
                     UserId = u.UserId,
                     FirstName = u.FirstName,
                     LastName = u.LastName,
+                    ChineseName = u.ChineseName,
                     Email = u.Email,
                     PhoneNumber = u.PhoneNumber,
                     AvatarUrl = u.AvatarUrl,
@@ -348,6 +349,7 @@ public class UsersController : ControllerBase
                 user.FirstName = request.FirstName;
             if (!string.IsNullOrEmpty(request.LastName))
                 user.LastName = request.LastName;
+            user.ChineseName = request.ChineseName;
             if (!string.IsNullOrEmpty(request.Email))
                 user.Email = request.Email;
 
