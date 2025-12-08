@@ -97,6 +97,7 @@ export const clubsAPI = {
   assignAdmin: (clubId, userId) => api.post(`/clubs/${clubId}/admins`, { userId }),
   removeAdmin: (clubId, userId) => api.delete(`/clubs/${clubId}/admins/${userId}`),
   getEvents: (id) => api.get(`/clubs/${id}/events`),
+  getMembers: (id) => api.get(`/clubs/${id}/members`),
 };
 
 // Events APIs

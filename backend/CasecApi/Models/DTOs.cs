@@ -355,6 +355,17 @@ public class ClubAdminDto
     public DateTime AssignedDate { get; set; }
 }
 
+public class ClubMemberDto
+{
+    public int UserId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
+    public DateTime JoinedDate { get; set; }
+    public bool IsAdmin { get; set; }
+}
+
 
 
 public class AssignClubAdminRequest

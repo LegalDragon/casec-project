@@ -879,4 +879,55 @@ public class ClubsController : ControllerBase
             });
         }
     }
+
+    // GET: api/Clubs/{id}/members
+    [AllowAnonymous]
+    [HttpGet("{id}/members")]
+    public async Task<ActionResult<ApiResponse<List<ClubMemberDto>>>> GetClubMembers(int id)
+    {
+        try
+        {
+            var club = await _context.Clubs.FindAsync(id);
+            if (club == null)
+            {
+                return NotFound(new ApiResponse<List<ClubMemberDto>>
+                {
+                    Success = false,
+                    Message = "Club not found"
+                });
+            }
+
+            var members = await _context.ClubMemberships
+                .Where(cm => cm.ClubId == id)
+                .Include(cm => cm.User)
+                .OrderBy(cm => cm.User!.FirstName)
+                .ThenBy(cm => cm.User!.LastName)
+                .Select(cm => new ClubMemberDto
+                {
+                    UserId = cm.User!.UserId,
+                    FirstName = cm.User.FirstName,
+                    LastName = cm.User.LastName,
+                    Email = cm.User.Email,
+                    AvatarUrl = cm.User.AvatarUrl,
+                    JoinedDate = cm.JoinedDate,
+                    IsAdmin = _context.ClubAdmins.Any(ca => ca.ClubId == id && ca.UserId == cm.UserId)
+                })
+                .ToListAsync();
+
+            return Ok(new ApiResponse<List<ClubMemberDto>>
+            {
+                Success = true,
+                Data = members
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching club members");
+            return StatusCode(500, new ApiResponse<List<ClubMemberDto>>
+            {
+                Success = false,
+                Message = "An error occurred while fetching club members"
+            });
+        }
+    }
 }
