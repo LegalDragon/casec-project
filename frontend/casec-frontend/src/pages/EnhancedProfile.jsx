@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, Upload, Camera, Calendar, Users } from 'lucide-react';
+import { Save, Upload, Camera, Calendar, Users, Loader } from 'lucide-react';
 import { usersAPI, getAssetUrl } from '../services/api';
 import { useAuthStore } from '../store/useStore';
 
@@ -11,8 +11,8 @@ export default function EnhancedProfile() {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -48,33 +48,32 @@ export default function EnhancedProfile() {
     }
   };
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    if (!file) return;
 
-  const handleAvatarUpload = async () => {
-    if (!avatarFile) return;
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
 
-    const formData = new FormData();
-    formData.append('file', avatarFile);
-
+    // Upload immediately
+    setUploadingAvatar(true);
     try {
-      const response = await usersAPI.uploadAvatar(formData);
+      const response = await usersAPI.uploadAvatar(file);
       if (response.success) {
         updateUser({ avatarUrl: response.data.avatarUrl });
-        setAvatarFile(null);
+        setAvatarPreview(response.data.avatarUrl);
         alert('Avatar updated successfully!');
       }
     } catch (err) {
       alert('Avatar upload failed: ' + (err.message || 'Please try again'));
+      // Revert preview on error
+      loadProfile();
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -84,10 +83,6 @@ export default function EnhancedProfile() {
     setSuccess(false);
 
     try {
-      if (avatarFile) {
-        await handleAvatarUpload();
-      }
-
       const response = await usersAPI.updateProfile(formData);
       if (response.success) {
         updateUser(formData);
@@ -114,19 +109,25 @@ export default function EnhancedProfile() {
           <div className="relative">
             {avatarPreview ? (
               <img
-                src={avatarFile ? avatarPreview : getAssetUrl(avatarPreview)}
+                src={avatarPreview.startsWith('data:') ? avatarPreview : getAssetUrl(avatarPreview)}
                 alt="Avatar"
-                className="w-32 h-32 rounded-full object-cover border-4 border-primary"
+                className={`w-32 h-32 rounded-full object-cover border-4 border-primary ${uploadingAvatar ? 'opacity-50' : ''}`}
               />
             ) : (
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-4xl font-bold border-4 border-primary">
+              <div className={`w-32 h-32 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-4xl font-bold border-4 border-primary ${uploadingAvatar ? 'opacity-50' : ''}`}>
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            )}
+            {uploadingAvatar && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader className="w-8 h-8 text-primary animate-spin" />
               </div>
             )}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 bg-accent text-white rounded-full p-3 hover:bg-accent-dark shadow-lg transition-all"
+              disabled={uploadingAvatar}
+              className="absolute bottom-0 right-0 bg-accent text-white rounded-full p-3 hover:bg-accent-dark shadow-lg transition-all disabled:opacity-50"
             >
               <Camera className="w-5 h-5" />
             </button>
@@ -142,15 +143,7 @@ export default function EnhancedProfile() {
             <h2 className="text-2xl font-bold text-gray-900">{user?.firstName} {user?.lastName}</h2>
             <p className="text-accent font-semibold">{user?.membershipTypeName}</p>
             <p className="text-gray-600 text-sm">{user?.email}</p>
-            {avatarFile && (
-              <button
-                onClick={handleAvatarUpload}
-                className="btn btn-accent text-sm mt-3 inline-flex items-center space-x-2"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Upload New Avatar</span>
-              </button>
-            )}
+            <p className="text-gray-500 text-xs mt-2">Click the camera icon to change your avatar</p>
           </div>
         </div>
 
