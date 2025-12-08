@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, DollarSign, Users, ExternalLink, Sparkles, Megaphone, Handshake, Building2, ImageIcon } from 'lucide-react';
-import { eventsAPI, clubsAPI } from '../services/api';
+import { eventsAPI, clubsAPI, getAssetUrl } from '../services/api';
 
 export default function EnhancedEvents() {
   const [events, setEvents] = useState([]);
@@ -272,7 +272,7 @@ export default function EnhancedEvents() {
                   <Link to={`/events/${event.eventId}`} className="block h-full">
                     {event.thumbnailUrl ? (
                       <img
-                        src={event.thumbnailUrl}
+                        src={getAssetUrl(event.thumbnailUrl)}
                         alt={event.title}
                         className="w-full h-full min-h-[280px] object-cover hover:opacity-90 transition-opacity"
                       />

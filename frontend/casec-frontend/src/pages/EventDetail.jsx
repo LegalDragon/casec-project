@@ -122,7 +122,7 @@ export default function EventDetail() {
       {event.thumbnailUrl && (
         <div className="rounded-xl overflow-hidden shadow-lg">
           <img
-            src={event.thumbnailUrl}
+            src={getAssetUrl(event.thumbnailUrl)}
             alt={event.title}
             className="w-full h-64 md:h-80 object-cover"
           />
@@ -246,7 +246,7 @@ export default function EventDetail() {
             <h3 className="font-semibold text-gray-900 mb-3">Partner Information</h3>
             <div className="flex items-center gap-4">
               {event.partnerLogo && (
-                <img src={event.partnerLogo} alt={event.partnerName} className="h-12 w-auto" />
+                <img src={getAssetUrl(event.partnerLogo)} alt={event.partnerName} className="h-12 w-auto" />
               )}
               <div>
                 <p className="font-medium text-gray-900">{event.partnerName}</p>
@@ -281,7 +281,7 @@ export default function EventDetail() {
                 onClick={() => setSelectedPhoto(photo)}
               >
                 <img
-                  src={photo.url}
+                  src={getAssetUrl(photo.url)}
                   alt={photo.caption || photo.fileName}
                   className="w-full h-32 object-cover rounded-lg transition-transform group-hover:scale-105"
                 />
@@ -317,7 +317,7 @@ export default function EventDetail() {
                   </div>
                 </div>
                 <a
-                  href={doc.url}
+                  href={getAssetUrl(doc.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 text-gray-600 hover:text-primary"
@@ -371,13 +371,12 @@ export default function EventDetail() {
 
       {/* Photo Modal */}
       {selectedPhoto && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4"
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedPhoto(null)}
         >
           <div className="relative max-w-4xl max-h-full">
             <img
-              src={selectedPhoto.url}
+              src={getAssetUrl(selectedPhoto.url)}
               alt={selectedPhoto.caption || selectedPhoto.fileName}
               className="max-w-full max-h-[80vh] object-contain rounded-lg"
             />

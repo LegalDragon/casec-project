@@ -286,7 +286,7 @@ export default function AdminPayments() {
                 <div className="flex items-center space-x-4">
                   {payment.userAvatarUrl ? (
                     <img
-                      src={payment.userAvatarUrl}
+                      src={getAssetUrl(payment.userAvatarUrl)}
                       alt={payment.userName}
                       className="w-12 h-12 rounded-full object-cover"
                     />

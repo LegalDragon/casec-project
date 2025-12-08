@@ -4,7 +4,7 @@ import {
   Plus, Edit, Trash2, Search, Calendar, MapPin, Users, Star,
   X, DollarSign, Clock, Tag, ExternalLink, Building2, Eye, ImageIcon, Upload
 } from 'lucide-react';
-import { eventsAPI, clubsAPI } from '../../services/api';
+import { eventsAPI, clubsAPI, getAssetUrl } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 
 export default function AdminEvents() {
@@ -590,7 +590,7 @@ export default function AdminEvents() {
                     <div className="flex items-start gap-4">
                       {editingEvent.thumbnailUrl ? (
                         <img
-                          src={editingEvent.thumbnailUrl}
+                          src={getAssetUrl(editingEvent.thumbnailUrl)}
                           alt="Event thumbnail"
                           className="w-32 h-24 object-cover rounded-lg border"
                         />
