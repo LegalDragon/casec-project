@@ -26,9 +26,10 @@ public class User
     public string Email { get; set; } = string.Empty;
 
     [Required]
+    [MaxLength(255)]
     public string PasswordHash { get; set; } = string.Empty;
 
-    [MaxLength(20)]
+    [MaxLength(30)]
     public string? PhoneNumber { get; set; }
 
     [MaxLength(255)]
@@ -46,9 +47,10 @@ public class User
     [MaxLength(100)]
     public string? Profession { get; set; }
 
-    [MaxLength(255)]
+    [MaxLength(500)]
     public string? Hobbies { get; set; }
 
+    [MaxLength(4000)]
     public string? Bio { get; set; }
 
     // Personal info
@@ -71,9 +73,10 @@ public class User
 
     public int? BoardDisplayOrder { get; set; }
 
+    [MaxLength(4000)]
     public string? BoardBio { get; set; }
 
-    [MaxLength(100)]
+    [MaxLength(255)]
     public string? LinkedInUrl { get; set; }
 
     [MaxLength(100)]
