@@ -81,4 +81,9 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(request).catch(() => caches.match(request))
   );
+
+  
+  self.skipWaiting();
+  self.clients.claim();
+  
 });
