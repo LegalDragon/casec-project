@@ -20,7 +20,7 @@ export default defineConfig({
     },
   },
   publicDir: "public",
-  envDir: "./src", // Look for .env files in src directory
+  // envDir defaults to project root where .env files are located
   server: {
     port: 3000,
     proxy: {
