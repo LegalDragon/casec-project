@@ -53,7 +53,10 @@ export default function Home() {
   };
 
   const EventCard = ({ event, isPast = false }) => (
-    <div className={`bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow ${isPast ? 'opacity-90' : ''}`}>
+    <Link
+      to={`/event/${event.eventId}`}
+      className={`block bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all hover:scale-[1.02] ${isPast ? 'opacity-90' : ''}`}
+    >
       {/* Thumbnail */}
       <div className="h-32 relative bg-gradient-to-br from-primary/20 to-accent/20">
         {event.thumbnailUrl ? (
@@ -106,7 +109,7 @@ export default function Home() {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 
   return (

@@ -68,6 +68,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/event/:eventId" element={<EventDetail />} />
 
         {/* Protected Routes */}
         <Route path="/" element={
