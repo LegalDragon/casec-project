@@ -145,22 +145,10 @@ public class UtilityController : ControllerBase
 
     private List<string> ExtractAllImages(string html, Uri baseUri)
     {
-        var images = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var images = new List<string>();
+        var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // First, add OG and Twitter images (these are typically the best quality)
-        var ogImage = ExtractMetaContent(html, "og:image");
-        if (!string.IsNullOrEmpty(ogImage))
-        {
-            images.Add(MakeAbsoluteUrl(ogImage, baseUri));
-        }
-
-        var twitterImage = ExtractMetaContent(html, "twitter:image") ?? ExtractMetaContent(html, "twitter:image:src");
-        if (!string.IsNullOrEmpty(twitterImage))
-        {
-            images.Add(MakeAbsoluteUrl(twitterImage, baseUri));
-        }
-
-        // Extract all img tags
+        // Extract <img> tags first - these usually have the best content images
         var imgPattern = @"<img[^>]*src=[""']([^""']+)[""'][^>]*>";
         var matches = Regex.Matches(html, imgPattern, RegexOptions.IgnoreCase);
 
@@ -175,7 +163,10 @@ public class UtilityController : ControllerBase
             }
 
             var absoluteUrl = MakeAbsoluteUrl(src, baseUri);
-            images.Add(absoluteUrl);
+            if (seenUrls.Add(absoluteUrl))
+            {
+                images.Add(absoluteUrl);
+            }
 
             // Limit to 12 images max
             if (images.Count >= 12)
@@ -184,22 +175,60 @@ public class UtilityController : ControllerBase
             }
         }
 
-        // Also check for srcset images (higher resolution alternatives)
-        var srcsetPattern = @"<img[^>]*srcset=[""']([^""']+)[""'][^>]*>";
-        var srcsetMatches = Regex.Matches(html, srcsetPattern, RegexOptions.IgnoreCase);
-
-        foreach (Match match in srcsetMatches)
+        // Then add OG and Twitter images (may be duplicates of img tags, will be filtered)
+        if (images.Count < 12)
         {
-            var srcset = match.Groups[1].Value;
-            // Parse srcset (format: "url 1x, url 2x" or "url 300w, url 600w")
-            var srcsetParts = srcset.Split(',');
-            foreach (var part in srcsetParts)
+            var ogImage = ExtractMetaContent(html, "og:image");
+            if (!string.IsNullOrEmpty(ogImage))
             {
-                var urlPart = part.Trim().Split(' ')[0];
-                if (!string.IsNullOrEmpty(urlPart) && !ShouldSkipImage(urlPart))
+                var absoluteUrl = MakeAbsoluteUrl(ogImage, baseUri);
+                if (seenUrls.Add(absoluteUrl))
                 {
-                    var absoluteUrl = MakeAbsoluteUrl(urlPart, baseUri);
                     images.Add(absoluteUrl);
+                }
+            }
+        }
+
+        if (images.Count < 12)
+        {
+            var twitterImage = ExtractMetaContent(html, "twitter:image") ?? ExtractMetaContent(html, "twitter:image:src");
+            if (!string.IsNullOrEmpty(twitterImage))
+            {
+                var absoluteUrl = MakeAbsoluteUrl(twitterImage, baseUri);
+                if (seenUrls.Add(absoluteUrl))
+                {
+                    images.Add(absoluteUrl);
+                }
+            }
+        }
+
+        // Check for srcset images (higher resolution alternatives)
+        if (images.Count < 12)
+        {
+            var srcsetPattern = @"<img[^>]*srcset=[""']([^""']+)[""'][^>]*>";
+            var srcsetMatches = Regex.Matches(html, srcsetPattern, RegexOptions.IgnoreCase);
+
+            foreach (Match match in srcsetMatches)
+            {
+                var srcset = match.Groups[1].Value;
+                // Parse srcset (format: "url 1x, url 2x" or "url 300w, url 600w")
+                var srcsetParts = srcset.Split(',');
+                foreach (var part in srcsetParts)
+                {
+                    var urlPart = part.Trim().Split(' ')[0];
+                    if (!string.IsNullOrEmpty(urlPart) && !ShouldSkipImage(urlPart))
+                    {
+                        var absoluteUrl = MakeAbsoluteUrl(urlPart, baseUri);
+                        if (seenUrls.Add(absoluteUrl))
+                        {
+                            images.Add(absoluteUrl);
+                        }
+                    }
+
+                    if (images.Count >= 12)
+                    {
+                        break;
+                    }
                 }
 
                 if (images.Count >= 12)
@@ -207,33 +236,34 @@ public class UtilityController : ControllerBase
                     break;
                 }
             }
-
-            if (images.Count >= 12)
-            {
-                break;
-            }
         }
 
-        // Also check for background images in style attributes
-        var bgPattern = @"background(?:-image)?:\s*url\([""']?([^""')]+)[""']?\)";
-        var bgMatches = Regex.Matches(html, bgPattern, RegexOptions.IgnoreCase);
-
-        foreach (Match match in bgMatches)
+        // Check for background images in style attributes
+        if (images.Count < 12)
         {
-            var src = match.Groups[1].Value;
-            if (!ShouldSkipImage(src))
-            {
-                var absoluteUrl = MakeAbsoluteUrl(src, baseUri);
-                images.Add(absoluteUrl);
-            }
+            var bgPattern = @"background(?:-image)?:\s*url\([""']?([^""')]+)[""']?\)";
+            var bgMatches = Regex.Matches(html, bgPattern, RegexOptions.IgnoreCase);
 
-            if (images.Count >= 12)
+            foreach (Match match in bgMatches)
             {
-                break;
+                var src = match.Groups[1].Value;
+                if (!ShouldSkipImage(src))
+                {
+                    var absoluteUrl = MakeAbsoluteUrl(src, baseUri);
+                    if (seenUrls.Add(absoluteUrl))
+                    {
+                        images.Add(absoluteUrl);
+                    }
+                }
+
+                if (images.Count >= 12)
+                {
+                    break;
+                }
             }
         }
 
-        return images.ToList();
+        return images;
     }
 
     private bool ShouldSkipImage(string src)
