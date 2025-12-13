@@ -232,6 +232,7 @@ public class EventDto
     public bool IsRegistrationRequired { get; set; }
     public bool IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public string? SourceUrl { get; set; }
     public int RegisteredCount { get; set; }
     public int TotalRegistrations { get; set; }
     public int SpotsRemaining { get; set; }
@@ -258,6 +259,7 @@ public class CreateEventRequest
     public bool IsRegistrationRequired { get; set; } = true;
     public bool IsFeatured { get; set; } = false;
     public string? ThumbnailUrl { get; set; }
+    public string? SourceUrl { get; set; }
 }
 
 public class UpdateEventRequest
@@ -279,6 +281,7 @@ public class UpdateEventRequest
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public string? SourceUrl { get; set; }
 }
 
 public class ThumbnailFromUrlRequest

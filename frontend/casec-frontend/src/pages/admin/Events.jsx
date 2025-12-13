@@ -53,6 +53,7 @@ export default function AdminEvents() {
   const [fetchingMetadata, setFetchingMetadata] = useState(false);
   const [thumbnailPreview, setThumbnailPreview] = useState('');
   const [savingThumbnail, setSavingThumbnail] = useState(false);
+  const [sourceUrl, setSourceUrl] = useState(''); // URL used to generate thumbnail
 
   const eventTypes = [
     { value: 'CasecEvent', label: 'CASEC Event', icon: '🎉' },
@@ -122,6 +123,7 @@ export default function AdminEvents() {
     setThumbnailUrl('');
     setFetchedMetadata(null);
     setThumbnailPreview('');
+    setSourceUrl('');
   };
 
   const handleFetchMetadata = async () => {
@@ -137,6 +139,8 @@ export default function AdminEvents() {
       const response = await utilityAPI.fetchUrlMetadata(thumbnailUrl);
       if (response.success && response.data) {
         setFetchedMetadata(response.data);
+        // Save the URL as source URL for the event
+        setSourceUrl(thumbnailUrl);
         // Don't auto-select - let user pick from the grid
       } else {
         alert(response.message || 'Failed to fetch metadata from URL');
@@ -183,6 +187,7 @@ export default function AdminEvents() {
         eventFee: parseFloat(formData.eventFee) || 0,
         maxCapacity: parseInt(formData.maxCapacity) || 100,
         thumbnailUrl: thumbnailPreview || null,
+        sourceUrl: sourceUrl || null,
       };
       await eventsAPI.create(data);
       alert('Event created successfully!');
@@ -215,10 +220,11 @@ export default function AdminEvents() {
       isRegistrationRequired: event.isRegistrationRequired ?? true,
       isFeatured: event.isFeatured || false,
     });
-    // Set existing thumbnail preview
+    // Set existing thumbnail preview and source URL
     setThumbnailUrl('');
     setFetchedMetadata(null);
     setThumbnailPreview(event.thumbnailUrl || '');
+    setSourceUrl(event.sourceUrl || '');
   };
 
   const handleUpdate = async (e) => {
@@ -229,6 +235,7 @@ export default function AdminEvents() {
         hostClubId: formData.hostClubId ? parseInt(formData.hostClubId) : null,
         eventFee: parseFloat(formData.eventFee) || 0,
         maxCapacity: parseInt(formData.maxCapacity) || 100,
+        sourceUrl: sourceUrl || null,
       };
       // Include external thumbnail URL if it's different from the current one
       if (thumbnailPreview && thumbnailPreview.startsWith('http') && thumbnailPreview !== editingEvent.thumbnailUrl) {
@@ -1101,6 +1108,18 @@ export default function AdminEvents() {
                   >
                     <ExternalLink className="w-4 h-4" />
                     Registration Link
+                  </a>
+                )}
+
+                {viewingEvent.sourceUrl && (
+                  <a
+                    href={viewingEvent.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-primary hover:underline"
+                  >
+                    <Link className="w-4 h-4" />
+                    Event Source
                   </a>
                 )}
 

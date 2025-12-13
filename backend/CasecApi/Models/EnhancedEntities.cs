@@ -401,6 +401,9 @@ public class Event
     [MaxLength(500)]
     public string? ThumbnailUrl { get; set; }
 
+    [MaxLength(1000)]
+    public string? SourceUrl { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties

@@ -106,6 +106,7 @@ public class EventsController : ControllerBase
                     IsRegistrationRequired = e.IsRegistrationRequired,
                     IsFeatured = e.IsFeatured,
                     ThumbnailUrl = e.ThumbnailUrl,
+                    SourceUrl = e.SourceUrl,
                     TotalRegistrations = _context.EventRegistrations.Count(er => er.EventId == e.EventId),
                     SpotsRemaining = e.MaxCapacity - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
                     IsUserRegistered = currentUserId > 0 &&
@@ -213,6 +214,7 @@ public class EventsController : ControllerBase
                     IsRegistrationRequired = e.IsRegistrationRequired,
                     IsFeatured = e.IsFeatured,
                     ThumbnailUrl = e.ThumbnailUrl,
+                    SourceUrl = e.SourceUrl,
                     TotalRegistrations = _context.EventRegistrations.Count(er => er.EventId == e.EventId),
                     SpotsRemaining = e.MaxCapacity - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
                     IsUserRegistered = currentUserId > 0 &&
@@ -343,7 +345,8 @@ public class EventsController : ControllerBase
                 MaxCapacity = request.MaxCapacity,
                 IsRegistrationRequired = request.IsRegistrationRequired,
                 IsFeatured = request.IsFeatured,
-                ThumbnailUrl = request.ThumbnailUrl
+                ThumbnailUrl = request.ThumbnailUrl,
+                SourceUrl = request.SourceUrl
             };
 
             _context.Events.Add(eventItem);
@@ -419,6 +422,8 @@ public class EventsController : ControllerBase
             eventItem.IsFeatured = request.IsFeatured ?? eventItem.IsFeatured;
             if (request.ThumbnailUrl != null)
                 eventItem.ThumbnailUrl = request.ThumbnailUrl;
+            if (request.SourceUrl != null)
+                eventItem.SourceUrl = request.SourceUrl;
 
             // Only system admins can change the host club
             if (request.HostClubId.HasValue && await IsSystemAdmin(currentUserId))
