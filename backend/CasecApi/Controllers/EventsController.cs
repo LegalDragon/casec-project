@@ -808,7 +808,7 @@ public class EventsController : ControllerBase
             }
 
             // Check if event requires registration
-            if (!eventItem.IsRegistrationRequired)
+            if (eventItem.IsRegistrationRequired != true)
             {
                 return BadRequest(new ApiResponse<object>
                 {
