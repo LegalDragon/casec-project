@@ -1276,6 +1276,8 @@ public class EventsController : ControllerBase
                 MaxCapacity = eventItem.MaxCapacity,
                 IsRegistrationRequired = eventItem.IsRegistrationRequired,
                 IsFeatured = eventItem.IsFeatured,
+                ThumbnailUrl = eventItem.ThumbnailUrl,
+                SourceUrl = eventItem.SourceUrl,
                 TotalRegistrations = totalRegistrations,
                 SpotsRemaining = (eventItem.MaxCapacity ?? 0) - totalRegistrations,
                 IsUserRegistered = currentUserId > 0 &&

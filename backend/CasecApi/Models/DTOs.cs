@@ -742,6 +742,7 @@ public class EventDetailDto
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public string? SourceUrl { get; set; }
     public int? TotalRegistrations { get; set; }
     public int? SpotsRemaining { get; set; }
     public bool? IsUserRegistered { get; set; }

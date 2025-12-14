@@ -278,6 +278,33 @@ export default function EventDetail() {
           </div>
         )}
 
+        {/* External Source Content */}
+        {event.sourceUrl && (
+          <div className="mt-6 pt-6 border-t">
+            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <ExternalLink className="w-5 h-5 text-primary" />
+              Event Source
+            </h3>
+            <a
+              href={event.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline text-sm mb-4 inline-block"
+            >
+              {event.sourceUrl}
+            </a>
+            <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+              <iframe
+                src={event.sourceUrl}
+                title="Event Source Content"
+                className="w-full h-[600px] border-0"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Partner Info */}
         {event.eventType === 'PartnerEvent' && event.partnerName && (
           <div className="mt-6 pt-6 border-t">
