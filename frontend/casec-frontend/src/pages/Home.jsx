@@ -334,11 +334,13 @@ export default function Home() {
           </div>
 
           {/* Inspirational Quote Block */}
-          <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-8 md:p-10 border border-white/20">
-            <blockquote className="text-2xl md:text-3xl font-display font-bold text-white leading-relaxed mb-4">
-              "{theme?.homeQuote || 'Building bridges across cultures, creating connections that last a lifetime.'}"
+          <div className="relative bg-white/25 backdrop-blur-md rounded-2xl p-8 md:p-12 border-2 border-white/40 shadow-2xl">
+            {/* Decorative quote mark */}
+            <div className="absolute -top-4 left-8 text-6xl text-white/30 font-serif leading-none">"</div>
+            <blockquote className="text-2xl md:text-3xl font-display font-bold text-white leading-relaxed mb-4 drop-shadow-lg">
+              {theme?.homeQuote || 'Building bridges across cultures, creating connections that last a lifetime.'}
             </blockquote>
-            <p className="text-white/80 text-lg">
+            <p className="text-white text-lg font-medium drop-shadow">
               {theme?.homeQuoteSubtext || 'Join our vibrant community celebrating heritage, fostering friendships, and making memories together.'}
             </p>
           </div>
