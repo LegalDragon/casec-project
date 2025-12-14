@@ -426,7 +426,7 @@ public class EventsController : ControllerBase
                 eventItem.SourceUrl = request.SourceUrl;
 
             // Only system admins can change the host club
-            if (request.HostClubId.HasValue && await IsSystemAdmin(currentUserId))
+            if (await IsSystemAdmin(currentUserId))
             {
                 eventItem.HostClubId = request.HostClubId;
             }
