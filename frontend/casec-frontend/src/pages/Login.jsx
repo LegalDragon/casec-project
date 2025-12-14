@@ -36,16 +36,18 @@ export default function Login() {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-2">
-          {theme?.logoUrl ? (
-            <img
-              src={getAssetUrl(theme.logoUrl)}
-              alt={theme.organizationName || 'Logo'}
-              className="h-96 w-auto max-w-[280px] object-contain mx-auto mb-1"
-            />
-          ) : null}
-           <h1 className="text-5xl font-display font-extrabold text-accent mb-2">
+          <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
+            {theme?.logoUrl ? (
+              <img
+                src={getAssetUrl(theme.logoUrl)}
+                alt={theme.organizationName || 'Logo'}
+                className="h-96 w-auto max-w-[280px] object-contain mx-auto mb-1"
+              />
+            ) : null}
+            <h1 className="text-5xl font-display font-extrabold text-accent mb-2">
               {theme?.organizationName || 'CASEC'}<span className="text-accent-light">.</span>
             </h1>
+          </Link>
           <p className="text-white/80 text-lg">Welcome back to your community</p>
         </div>
 

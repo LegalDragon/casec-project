@@ -94,17 +94,19 @@ export default function Register() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          {theme?.logoUrl ? (
-            <img
-              src={getAssetUrl(theme.logoUrl)}
-              alt={theme.organizationName || 'Logo'}
-              className="h-32 w-auto max-w-[250px] object-contain mx-auto mb-4"
-            />
-          ) : (
-            <h1 className="text-5xl font-display font-extrabold text-primary mb-2">
-              {theme?.organizationName || 'CASEC'}<span className="text-accent">.</span>
-            </h1>
-          )}
+          <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
+            {theme?.logoUrl ? (
+              <img
+                src={getAssetUrl(theme.logoUrl)}
+                alt={theme.organizationName || 'Logo'}
+                className="h-32 w-auto max-w-[250px] object-contain mx-auto mb-4"
+              />
+            ) : (
+              <h1 className="text-5xl font-display font-extrabold text-primary mb-2">
+                {theme?.organizationName || 'CASEC'}<span className="text-accent">.</span>
+              </h1>
+            )}
+          </Link>
           <p className="text-gray-600 text-lg">Join our vibrant community</p>
         </div>
 
