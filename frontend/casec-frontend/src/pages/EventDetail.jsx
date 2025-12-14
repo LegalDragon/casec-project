@@ -198,76 +198,81 @@ export default function EventDetail() {
             </div>
           </div>
 
-          {/* Registration Card */}
-          <div className="md:w-64 bg-gray-50 rounded-lg p-4">
-            <div className="text-center mb-4">
-              <p className="text-3xl font-bold text-primary">
-                {event.eventFee > 0 ? `$${event.eventFee}` : 'Free'}
-              </p>
-              {event.isRegistrationRequired && (
-                <p className="text-sm text-gray-500">
-                  {event.spotsRemaining} spots remaining
+          {/* Registration Card - only show for upcoming events */}
+          {!isPastEvent && (
+            <div className="md:w-64 bg-gray-50 rounded-lg p-4">
+              <div className="text-center mb-4">
+                <p className="text-3xl font-bold text-primary">
+                  {event.eventFee > 0 ? `$${event.eventFee}` : 'Free'}
                 </p>
-              )}
-            </div>
-
-            {canRegister && (
-              <button
-                onClick={handleRegister}
-                disabled={registering}
-                className="btn btn-primary w-full mb-3"
-              >
-                {registering ? 'Registering...' : 'Register Now'}
-              </button>
-            )}
-
-            {event.isUserRegistered && !isPastEvent && (
-              <div className="mb-3">
-                <div className="flex items-center justify-center gap-2 text-green-600 font-medium mb-2">
-                  <UserCheck className="w-5 h-5" />
-                  You're registered!
-                </div>
-                <button
-                  onClick={handleUnregister}
-                  disabled={unregistering}
-                  className="btn w-full bg-red-100 text-red-700 hover:bg-red-200 flex items-center justify-center gap-2"
-                >
-                  <UserX className="w-4 h-4" />
-                  {unregistering ? 'Unregistering...' : 'Unregister'}
-                </button>
+                {event.isRegistrationRequired && (
+                  <p className="text-sm text-gray-500">
+                    {event.spotsRemaining} spots remaining
+                  </p>
+                )}
               </div>
-            )}
 
-            {event.isUserRegistered && isPastEvent && (
-              <div className="flex items-center justify-center gap-2 text-green-600 font-medium mb-3">
+              {canRegister && (
+                <button
+                  onClick={handleRegister}
+                  disabled={registering}
+                  className="btn btn-primary w-full mb-3"
+                >
+                  {registering ? 'Registering...' : 'Register Now'}
+                </button>
+              )}
+
+              {event.isUserRegistered && (
+                <div className="mb-3">
+                  <div className="flex items-center justify-center gap-2 text-green-600 font-medium mb-2">
+                    <UserCheck className="w-5 h-5" />
+                    You're registered!
+                  </div>
+                  <button
+                    onClick={handleUnregister}
+                    disabled={unregistering}
+                    className="btn w-full bg-red-100 text-red-700 hover:bg-red-200 flex items-center justify-center gap-2"
+                  >
+                    <UserX className="w-4 h-4" />
+                    {unregistering ? 'Unregistering...' : 'Unregister'}
+                  </button>
+                </div>
+              )}
+
+              {event.registrationUrl && (
+                <a
+                  href={event.registrationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary w-full flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  External Registration
+                </a>
+              )}
+
+              <div className="mt-4 pt-4 border-t border-gray-200 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Capacity</span>
+                  <span className="font-medium">{event.maxCapacity || 'Unlimited'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Registered</span>
+                  <span className="font-medium">{event.totalRegistrations}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Past Event Attendance Badge */}
+          {isPastEvent && event.isUserRegistered && (
+            <div className="md:w-64 bg-green-50 rounded-lg p-4">
+              <div className="flex items-center justify-center gap-2 text-green-600 font-medium">
                 <UserCheck className="w-5 h-5" />
                 You attended!
               </div>
-            )}
-
-            {event.registrationUrl && (
-              <a
-                href={event.registrationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-secondary w-full flex items-center justify-center gap-2"
-              >
-                <ExternalLink className="w-4 h-4" />
-                External Registration
-              </a>
-            )}
-
-            <div className="mt-4 pt-4 border-t border-gray-200 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Capacity</span>
-                <span className="font-medium">{event.maxCapacity || 'Unlimited'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Registered</span>
-                <span className="font-medium">{event.totalRegistrations}</span>
-              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Description */}
