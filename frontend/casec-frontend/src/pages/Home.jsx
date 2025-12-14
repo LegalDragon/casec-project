@@ -176,11 +176,6 @@ export default function Home() {
             <Calendar className="w-12 h-12 text-primary/30" />
           </div>
         )}
-        {event.isFeatured && (
-          <span className="absolute top-2 left-2 px-2 py-0.5 bg-yellow-400 text-yellow-900 text-[10px] font-bold rounded-full">
-            Featured
-          </span>
-        )}
       </div>
 
       {/* Content on right */}
@@ -256,9 +251,6 @@ export default function Home() {
             <Calendar className="w-12 h-12 text-gray-400" />
           </div>
         )}
-        <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-700 text-white text-[10px] font-bold rounded-full">
-          Past Event
-        </span>
       </div>
 
       {/* Content on right */}
