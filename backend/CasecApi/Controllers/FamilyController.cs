@@ -10,7 +10,7 @@ using CasecApi.Models.DTOs;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Authorize]
 public class FamilyController : ControllerBase
 {

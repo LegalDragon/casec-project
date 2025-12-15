@@ -53,7 +53,68 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      "/api": {
+      // Backend API routes (no /api prefix)
+      "/auth": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/events": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/theme": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/clubs": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/users": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/membershiptypes": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/membershipdurations": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/membershippayments": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/asset": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/utility": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/family": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/payments": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/swagger": {
         target: "https://localhost:5001",
         changeOrigin: true,
         secure: false,

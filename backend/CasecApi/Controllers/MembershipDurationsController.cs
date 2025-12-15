@@ -8,7 +8,7 @@ using CasecApi.Models.DTOs;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class MembershipDurationsController : ControllerBase
 {
     private readonly CasecDbContext _context;

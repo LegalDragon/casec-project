@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 // Use runtime config (from public/config.js) first, then env var, then default
-let API_BASE_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || '/api';
+// Default is empty string since backend routes are at root level (no /api prefix)
+let API_BASE_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || '';
 
 // Normalize: remove trailing slash if present
 if (API_BASE_URL.endsWith('/')) {
@@ -15,11 +16,6 @@ export const getAssetUrl = (path) => {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  // If path starts with /api, replace with API_BASE_URL
-  // if (path.startsWith('/api/')) {
-  //   return `${API_BASE_URL}${path.substring(4)}`;
-  // }
-  
   // If path starts with /, prepend API_BASE_URL
   if (path.startsWith('/')) {
     return `${API_BASE_URL}${path}`;

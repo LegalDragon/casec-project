@@ -11,7 +11,7 @@ using CasecApi.Services;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Authorize]
 public class MembershipPaymentsController : ControllerBase
 {
@@ -348,9 +348,9 @@ public class MembershipPaymentsController : ControllerBase
             }
 
             // Delete old proof if exists
-            if (!string.IsNullOrEmpty(payment.ProofOfPaymentUrl) && payment.ProofOfPaymentUrl.StartsWith("/api/asset/"))
+            if (!string.IsNullOrEmpty(payment.ProofOfPaymentUrl) && payment.ProofOfPaymentUrl.StartsWith("/asset/"))
             {
-                var oldFileIdStr = payment.ProofOfPaymentUrl.Replace("/api/asset/", "");
+                var oldFileIdStr = payment.ProofOfPaymentUrl.Replace("/asset/", "");
                 if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
                     await _assetService.DeleteAssetAsync(oldFileId);
@@ -427,9 +427,9 @@ public class MembershipPaymentsController : ControllerBase
             }
 
             // Delete proof file if exists
-            if (!string.IsNullOrEmpty(payment.ProofOfPaymentUrl) && payment.ProofOfPaymentUrl.StartsWith("/api/asset/"))
+            if (!string.IsNullOrEmpty(payment.ProofOfPaymentUrl) && payment.ProofOfPaymentUrl.StartsWith("/asset/"))
             {
-                var fileIdStr = payment.ProofOfPaymentUrl.Replace("/api/asset/", "");
+                var fileIdStr = payment.ProofOfPaymentUrl.Replace("/asset/", "");
                 if (int.TryParse(fileIdStr, out var fileId))
                 {
                     await _assetService.DeleteAssetAsync(fileId);

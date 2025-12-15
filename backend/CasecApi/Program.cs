@@ -179,15 +179,15 @@ app.MapGet("/", () => new
     documentation = "/swagger",
     endpoints = new[]
     {
-        "/api/auth/register",
-        "/api/auth/login",
-        "/api/membershiptypes",
-        "/api/clubs",
-        "/api/events",
-        "/api/users/profile",
-        "/api/users/dashboard",
-        "/api/payments/process",
-        "/api/asset/{id}"
+        "/auth/register",
+        "/auth/login",
+        "/membershiptypes",
+        "/clubs",
+        "/events",
+        "/users/profile",
+        "/users/dashboard",
+        "/payments/process",
+        "/asset/{id}"
     }
 });
 

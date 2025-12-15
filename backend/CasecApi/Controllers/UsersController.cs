@@ -11,7 +11,7 @@ using CasecApi.Services;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Authorize]
 public class UsersController : ControllerBase
 {
@@ -225,10 +225,10 @@ public class UsersController : ControllerBase
                 });
             }
 
-            // Delete old avatar asset if exists (by parsing FileId from URL /api/asset/{id})
-            if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/api/asset/"))
+            // Delete old avatar asset if exists (by parsing FileId from URL /asset/{id})
+            if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/asset/"))
             {
-                var oldFileIdStr = user.AvatarUrl.Replace("/api/asset/", "");
+                var oldFileIdStr = user.AvatarUrl.Replace("/asset/", "");
                 if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
                     await _assetService.DeleteAssetAsync(oldFileId);
@@ -253,7 +253,7 @@ public class UsersController : ControllerBase
                 });
             }
 
-            // Update user avatar URL (now saves as /api/asset/{id})
+            // Update user avatar URL (now saves as /asset/{id})
             user.AvatarUrl = uploadResult.Url;
             user.UpdatedAt = DateTime.UtcNow;
 

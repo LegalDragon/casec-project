@@ -11,7 +11,7 @@ using CasecApi.Services;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class ThemeController : ControllerBase
 {
     private readonly CasecDbContext _context;
@@ -252,9 +252,9 @@ public class ThemeController : ControllerBase
                 .FirstOrDefaultAsync();
 
             // Delete old logo asset if exists
-            if (theme != null && !string.IsNullOrEmpty(theme.LogoUrl) && theme.LogoUrl.StartsWith("/api/asset/"))
+            if (theme != null && !string.IsNullOrEmpty(theme.LogoUrl) && theme.LogoUrl.StartsWith("/asset/"))
             {
-                var oldFileIdStr = theme.LogoUrl.Replace("/api/asset/", "");
+                var oldFileIdStr = theme.LogoUrl.Replace("/asset/", "");
                 if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
                     await _assetService.DeleteAssetAsync(oldFileId);
@@ -282,7 +282,7 @@ public class ThemeController : ControllerBase
             // Update theme if exists
             if (theme != null)
             {
-                theme.LogoUrl = uploadResult.Url; // Now saves as /api/asset/{id}
+                theme.LogoUrl = uploadResult.Url; // Now saves as /asset/{id}
                 theme.UpdatedBy = currentUserId;
                 theme.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
@@ -332,9 +332,9 @@ public class ThemeController : ControllerBase
                 .FirstOrDefaultAsync();
 
             // Delete old favicon asset if exists
-            if (theme != null && !string.IsNullOrEmpty(theme.FaviconUrl) && theme.FaviconUrl.StartsWith("/api/asset/"))
+            if (theme != null && !string.IsNullOrEmpty(theme.FaviconUrl) && theme.FaviconUrl.StartsWith("/asset/"))
             {
-                var oldFileIdStr = theme.FaviconUrl.Replace("/api/asset/", "");
+                var oldFileIdStr = theme.FaviconUrl.Replace("/asset/", "");
                 if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
                     await _assetService.DeleteAssetAsync(oldFileId);
@@ -362,7 +362,7 @@ public class ThemeController : ControllerBase
             // Update theme if exists
             if (theme != null)
             {
-                theme.FaviconUrl = uploadResult.Url; // Now saves as /api/asset/{id}
+                theme.FaviconUrl = uploadResult.Url; // Now saves as /asset/{id}
                 theme.UpdatedBy = currentUserId;
                 theme.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();

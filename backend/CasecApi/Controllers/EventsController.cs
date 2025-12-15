@@ -11,7 +11,7 @@ using CasecApi.Services;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Authorize]
 public class EventsController : ControllerBase
 {
@@ -486,9 +486,9 @@ public class EventsController : ControllerBase
             }
 
             // Delete old thumbnail asset if exists
-            if (!string.IsNullOrEmpty(eventItem.ThumbnailUrl) && eventItem.ThumbnailUrl.StartsWith("/api/asset/"))
+            if (!string.IsNullOrEmpty(eventItem.ThumbnailUrl) && eventItem.ThumbnailUrl.StartsWith("/asset/"))
             {
-                var oldFileIdStr = eventItem.ThumbnailUrl.Replace("/api/asset/", "");
+                var oldFileIdStr = eventItem.ThumbnailUrl.Replace("/asset/", "");
                 if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
                     await _assetService.DeleteAssetAsync(oldFileId);
@@ -668,9 +668,9 @@ public class EventsController : ControllerBase
             };
 
             // Delete old thumbnail asset if exists
-            if (!string.IsNullOrEmpty(eventItem.ThumbnailUrl) && eventItem.ThumbnailUrl.StartsWith("/api/asset/"))
+            if (!string.IsNullOrEmpty(eventItem.ThumbnailUrl) && eventItem.ThumbnailUrl.StartsWith("/asset/"))
             {
-                var oldFileIdStr = eventItem.ThumbnailUrl.Replace("/api/asset/", "");
+                var oldFileIdStr = eventItem.ThumbnailUrl.Replace("/asset/", "");
                 if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
                     await _assetService.DeleteAssetAsync(oldFileId);
@@ -1070,7 +1070,7 @@ public class EventsController : ControllerBase
                     FileName = a.OriginalFileName,
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
-                    Url = $"/api/asset/{a.FileId}",
+                    Url = $"/asset/{a.FileId}",
                     Status = a.Status,
                     SortOrder = a.SortOrder,
                     Caption = a.Caption,
@@ -1088,7 +1088,7 @@ public class EventsController : ControllerBase
                     FileName = a.OriginalFileName,
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
-                    Url = $"/api/asset/{a.FileId}",
+                    Url = $"/asset/{a.FileId}",
                     Status = a.Status,
                     SortOrder = a.SortOrder,
                     Caption = a.Caption,
@@ -1206,7 +1206,7 @@ public class EventsController : ControllerBase
                     FileName = a.OriginalFileName,
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
-                    Url = $"/api/asset/{a.FileId}",
+                    Url = $"/asset/{a.FileId}",
                     Status = a.Status,
                     SortOrder = a.SortOrder,
                     Caption = a.Caption,
@@ -1224,7 +1224,7 @@ public class EventsController : ControllerBase
                     FileName = a.OriginalFileName,
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
-                    Url = $"/api/asset/{a.FileId}",
+                    Url = $"/asset/{a.FileId}",
                     Status = a.Status,
                     SortOrder = a.SortOrder,
                     Caption = a.Caption,
@@ -1375,7 +1375,7 @@ public class EventsController : ControllerBase
                 FileName = asset.OriginalFileName,
                 ContentType = asset.ContentType,
                 FileSize = asset.FileSize,
-                Url = $"/api/asset/{asset.FileId}",
+                Url = $"/asset/{asset.FileId}",
                 Status = asset.Status,
                 SortOrder = asset.SortOrder,
                 Caption = asset.Caption,

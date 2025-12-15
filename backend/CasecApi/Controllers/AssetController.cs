@@ -8,7 +8,7 @@ using CasecApi.Services;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class AssetController : ControllerBase
 {
     private readonly CasecDbContext _context;
@@ -116,7 +116,7 @@ public class AssetController : ControllerBase
                 asset.ObjectType,
                 asset.ObjectId,
                 asset.CreatedAt,
-                Url = $"/api/asset/{asset.FileId}"
+                Url = $"/asset/{asset.FileId}"
             });
         }
         catch (Exception ex)

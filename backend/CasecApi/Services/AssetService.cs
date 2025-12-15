@@ -70,12 +70,12 @@ public class AssetService : IAssetService
             _logger.LogInformation("Asset created successfully: FileId={FileId}, FileName={FileName}",
                 asset.FileId, asset.FileName);
 
-            // Return the asset URL as /api/asset/{id}
+            // Return the asset URL as /asset/{id}
             return new AssetUploadResult
             {
                 Success = true,
                 FileId = asset.FileId,
-                Url = $"/api/asset/{asset.FileId}",
+                Url = $"/asset/{asset.FileId}",
                 FileSize = asset.FileSize,
                 ContentType = asset.ContentType,
                 OriginalFileName = asset.OriginalFileName

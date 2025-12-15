@@ -11,7 +11,7 @@ using CasecApi.Services;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class ClubsController : ControllerBase
 {
     private readonly CasecDbContext _context;
@@ -639,10 +639,10 @@ public class ClubsController : ControllerBase
                 return Forbid();
             }
 
-            // Delete old avatar asset if exists (by parsing FileId from URL /api/asset/{id})
-            if (!string.IsNullOrEmpty(club.AvatarUrl) && club.AvatarUrl.StartsWith("/api/asset/"))
+            // Delete old avatar asset if exists (by parsing FileId from URL /asset/{id})
+            if (!string.IsNullOrEmpty(club.AvatarUrl) && club.AvatarUrl.StartsWith("/asset/"))
             {
-                var oldFileIdStr = club.AvatarUrl.Replace("/api/asset/", "");
+                var oldFileIdStr = club.AvatarUrl.Replace("/asset/", "");
                 if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
                     await _assetService.DeleteAssetAsync(oldFileId);
@@ -667,7 +667,7 @@ public class ClubsController : ControllerBase
                 });
             }
 
-            club.AvatarUrl = uploadResult.Url; // Now saves as /api/asset/{id}
+            club.AvatarUrl = uploadResult.Url; // Now saves as /asset/{id}
             await _context.SaveChangesAsync();
 
             // Log activity
