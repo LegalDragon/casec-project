@@ -15,9 +15,16 @@ export default defineConfig({
         clientsClaim: true,
         // Don't cache index.html - always fetch fresh
         navigateFallback: null,
+        // Exclude config.js from precaching so it can be edited after deployment
+        globIgnores: ['**/config.js'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/.*\.(js|css)$/,
+            // Always fetch config.js from network (never cache)
+            urlPattern: /\/config\.js$/,
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: /\.(js|css)$/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'static-resources',
