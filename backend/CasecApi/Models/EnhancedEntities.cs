@@ -585,6 +585,9 @@ public class ThemeSettings
     [MaxLength(500)]
     public string? HomeQuoteSubtext { get; set; }
 
+    // Hero video URLs (JSON array of YouTube/TikTok URLs)
+    public string? HeroVideoUrls { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public int? UpdatedBy { get; set; }

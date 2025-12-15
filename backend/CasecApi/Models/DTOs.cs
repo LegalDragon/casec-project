@@ -525,6 +525,9 @@ public class ThemeSettingsDto
     public string? HomeQuote { get; set; }
     public string? HomeQuoteSubtext { get; set; }
 
+    // Hero video URLs (JSON array of YouTube/TikTok URLs)
+    public string? HeroVideoUrls { get; set; }
+
     public bool IsActive { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -575,6 +578,9 @@ public class UpdateThemeRequest
     // Home Page Quote
     public string? HomeQuote { get; set; }
     public string? HomeQuoteSubtext { get; set; }
+
+    // Hero video URLs (JSON array of YouTube/TikTok URLs)
+    public string? HeroVideoUrls { get; set; }
 }
 
 // Theme Preset DTO

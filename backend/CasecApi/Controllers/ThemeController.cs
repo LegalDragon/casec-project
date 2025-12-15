@@ -201,6 +201,10 @@ public class ThemeController : ControllerBase
             if (request.HomeQuoteSubtext != null)
                 theme.HomeQuoteSubtext = request.HomeQuoteSubtext;
 
+            // Hero video URLs
+            if (request.HeroVideoUrls != null)
+                theme.HeroVideoUrls = request.HeroVideoUrls;
+
             theme.UpdatedBy = currentUserId;
             theme.UpdatedAt = DateTime.UtcNow;
 
@@ -581,6 +585,7 @@ public class ThemeController : ControllerBase
             CustomCss = theme.CustomCss,
             HomeQuote = theme.HomeQuote,
             HomeQuoteSubtext = theme.HomeQuoteSubtext,
+            HeroVideoUrls = theme.HeroVideoUrls,
             UpdatedAt = theme.UpdatedAt
         };
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Clock, ChevronLeft, ChevronRight, DollarSign, Building2 } from 'lucide-react';
 import { eventsAPI, getAssetUrl } from '../services/api';
@@ -14,6 +14,60 @@ export default function Home() {
   const pastScrollRef = useRef(null);
   const [upcomingPaused, setUpcomingPaused] = useState(false);
   const [pastPaused, setPastPaused] = useState(false);
+
+  // Parse hero video URLs and select a random one
+  const heroVideoUrl = useMemo(() => {
+    if (!theme?.heroVideoUrls) return null;
+    try {
+      const videos = JSON.parse(theme.heroVideoUrls);
+      if (videos.length === 0) return null;
+      // Select random video
+      return videos[Math.floor(Math.random() * videos.length)];
+    } catch {
+      return null;
+    }
+  }, [theme?.heroVideoUrls]);
+
+  // Convert YouTube URL to embeddable format
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+
+    let videoId = null;
+
+    // Handle youtube.com/watch?v=VIDEO_ID
+    if (url.includes('youtube.com/watch')) {
+      const urlParams = new URLSearchParams(new URL(url).search);
+      videoId = urlParams.get('v');
+    }
+    // Handle youtu.be/VIDEO_ID
+    else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    }
+    // Handle youtube.com/embed/VIDEO_ID
+    else if (url.includes('youtube.com/embed/')) {
+      videoId = url.split('youtube.com/embed/')[1]?.split('?')[0];
+    }
+
+    if (!videoId) return null;
+
+    // Return embed URL with autoplay, mute, loop
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&modestbranding=1&playsinline=1&rel=0&enablejsapi=1`;
+  };
+
+  // Check if URL is YouTube
+  const isYouTubeUrl = (url) => {
+    return url?.includes('youtube.com') || url?.includes('youtu.be');
+  };
+
+  // Get the embed URL for the selected video
+  const videoEmbedUrl = useMemo(() => {
+    if (!heroVideoUrl) return null;
+    if (isYouTubeUrl(heroVideoUrl)) {
+      return getYouTubeEmbedUrl(heroVideoUrl);
+    }
+    // TikTok videos can't be easily embedded as background, skip for now
+    return null;
+  }, [heroVideoUrl]);
 
   // Custom smooth scroll with easing
   const smoothScrollTo = useCallback((element, targetPosition, duration = 800) => {
@@ -299,8 +353,28 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary via-primary-light to-accent flex flex-col">
       {/* Hero Section - Logo, Name, and CTAs Centered */}
-      <section className="px-6 py-12 md:py-16">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="px-6 py-12 md:py-16 relative overflow-hidden">
+        {/* Video Background */}
+        {videoEmbedUrl && (
+          <>
+            {/* Video iframe container */}
+            <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+              <iframe
+                src={videoEmbedUrl}
+                title="Hero Background Video"
+                className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 object-cover"
+                style={{ minWidth: '100%', minHeight: '100%' }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                frameBorder="0"
+              />
+            </div>
+            {/* Dark overlay for readability */}
+            <div className="absolute inset-0 bg-black/50" />
+          </>
+        )}
+
+        <div className="max-w-4xl mx-auto text-center relative z-10">
           {/* Large Logo with Name */}
           <div className="flex flex-col items-center justify-center mb-8">
             <div className="flex items-center justify-center gap-4">
