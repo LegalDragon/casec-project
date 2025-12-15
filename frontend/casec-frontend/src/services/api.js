@@ -1,7 +1,12 @@
 import axios from 'axios';
 
 // Use runtime config (from public/config.js) first, then env var, then default
-const API_BASE_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || '/api';
+let API_BASE_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || '/api';
+
+// Normalize: remove trailing slash if present
+if (API_BASE_URL.endsWith('/')) {
+  API_BASE_URL = API_BASE_URL.slice(0, -1);
+}
 
 // Helper function to get full asset URL (for avatars, images, etc.)
 export const getAssetUrl = (path) => {
