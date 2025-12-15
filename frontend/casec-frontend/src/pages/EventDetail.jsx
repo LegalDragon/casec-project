@@ -4,7 +4,7 @@ import {
   ArrowLeft, Calendar, MapPin, Users, DollarSign, Building2, Star,
   Tag, Clock, Image, FileText, Download, ExternalLink, UserCheck, UserX
 } from 'lucide-react';
-import api, { getAssetUrl } from '../services/api';
+import api, { getAssetUrl, eventTypesAPI } from '../services/api';
 import { useAuthStore } from '../store/useStore';
 
 export default function EventDetail() {
@@ -17,17 +17,47 @@ export default function EventDetail() {
   const [registering, setRegistering] = useState(false);
   const [unregistering, setUnregistering] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-
-  const eventTypes = {
-    'CasecEvent': { label: 'CASEC Event', icon: '🎉', color: 'bg-primary' },
-    'ClubEvent': { label: 'Club Event', icon: '👥', color: 'bg-blue-500' },
-    'PartnerEvent': { label: 'Partner Event', icon: '🤝', color: 'bg-purple-500' },
-    'Announcement': { label: 'Announcement', icon: '📢', color: 'bg-yellow-500' },
-  };
+  const [eventTypes, setEventTypes] = useState({});
 
   useEffect(() => {
     fetchEventDetail();
+    fetchEventTypes();
   }, [eventId]);
+
+  const fetchEventTypes = async () => {
+    try {
+      const response = await eventTypesAPI.getAll();
+      if (response.success && response.data) {
+        // Convert array to object format
+        const colorMap = {
+          'primary': 'bg-primary',
+          'accent': 'bg-accent',
+          'info': 'bg-blue-500',
+          'success': 'bg-green-500',
+          'warning': 'bg-yellow-500',
+          'error': 'bg-red-500',
+          'gray': 'bg-gray-500',
+        };
+        const typesObj = {};
+        response.data.forEach(et => {
+          typesObj[et.code] = {
+            label: et.displayName,
+            icon: et.icon || 'Calendar',
+            color: colorMap[et.color] || 'bg-primary',
+          };
+        });
+        setEventTypes(typesObj);
+      }
+    } catch (err) {
+      console.error('Failed to load event types:', err);
+      // Fallback defaults
+      setEventTypes({
+        'CasecEvent': { label: 'Community Event', icon: 'Calendar', color: 'bg-primary' },
+        'PartnerEvent': { label: 'Partner Event', icon: 'Handshake', color: 'bg-accent' },
+        'Announcement': { label: 'Announcement', icon: 'Megaphone', color: 'bg-yellow-500' },
+      });
+    }
+  };
 
   const fetchEventDetail = async () => {
     try {

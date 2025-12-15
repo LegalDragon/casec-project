@@ -64,6 +64,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      "/eventtypes": {
+        target: "https://localhost:5001",
+        changeOrigin: true,
+        secure: false,
+      },
       "/theme": {
         target: "https://localhost:5001",
         changeOrigin: true,

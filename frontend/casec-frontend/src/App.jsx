@@ -22,6 +22,7 @@ import AdminMembershipTypes from './pages/admin/MembershipTypes';
 import AdminClubs from './pages/admin/Clubs';
 import AdminEvents from './pages/admin/Events';
 import AdminEventDetail from './pages/admin/EventDetail';
+import AdminEventTypes from './pages/admin/EventTypes';
 import AdminTheme from './pages/admin/ThemeCustomization';
 import AdminPayments from './pages/admin/Payments';
 import Membership from './pages/Membership';
@@ -103,6 +104,9 @@ function App() {
           } />
           <Route path="admin/events/:eventId" element={
             <ClubAdminRoute><AdminEventDetail /></ClubAdminRoute>
+          } />
+          <Route path="admin/event-types" element={
+            <AdminRoute><AdminEventTypes /></AdminRoute>
           } />
           <Route path="admin/theme" element={
             <AdminRoute><AdminTheme /></AdminRoute>

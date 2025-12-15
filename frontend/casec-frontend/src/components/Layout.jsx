@@ -31,6 +31,7 @@ export default function Layout() {
     { path: '/admin/payments', label: 'Payments' },
     { path: '/admin/clubs', label: 'Manage Clubs' },
     { path: '/admin/events', label: 'Manage Events' },
+    { path: '/admin/event-types', label: 'Event Types' },
     { path: '/admin/theme', label: 'Theme' },
   ] : [];
 

@@ -466,7 +466,21 @@ public class EventRegistrationRequest
     public int NumberOfGuests { get; set; } = 0;
 }
 
-// Event Type Info DTO
+// Event Type DTO
+public class EventTypeDto
+{
+    public int EventTypeId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
+    public bool AllowsRegistration { get; set; } = true;
+    public bool IsActive { get; set; } = true;
+    public int DisplayOrder { get; set; }
+}
+
+// Event Type Info DTO (backwards compatible)
 public class EventTypeInfo
 {
     public string Type { get; set; } = string.Empty;
@@ -475,6 +489,30 @@ public class EventTypeInfo
     public string Icon { get; set; } = string.Empty;
     public string Color { get; set; } = string.Empty;
     public bool AllowsRegistration { get; set; } = true;
+}
+
+// Create/Update Event Type Request DTO
+public class CreateEventTypeRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
+    public bool AllowsRegistration { get; set; } = true;
+    public int DisplayOrder { get; set; }
+}
+
+public class UpdateEventTypeRequest
+{
+    public string? Code { get; set; }
+    public string? DisplayName { get; set; }
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
+    public bool? AllowsRegistration { get; set; }
+    public bool? IsActive { get; set; }
+    public int? DisplayOrder { get; set; }
 }
 
 // Theme Settings DTO

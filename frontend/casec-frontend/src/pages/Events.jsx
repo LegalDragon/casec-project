@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, DollarSign, Users, ExternalLink, Sparkles, Megaphone, Handshake, Building2, ImageIcon } from 'lucide-react';
-import { eventsAPI, clubsAPI, getAssetUrl } from '../services/api';
+import { eventsAPI, clubsAPI, eventTypesAPI, getAssetUrl } from '../services/api';
 
 export default function EnhancedEvents() {
   const [events, setEvents] = useState([]);
@@ -14,12 +14,25 @@ export default function EnhancedEvents() {
   const [dateTo, setDateTo] = useState('');
   const [categories, setCategories] = useState([]);
   const [clubs, setClubs] = useState([]);
+  const [eventTypes, setEventTypes] = useState([]);
 
   useEffect(() => {
     loadEvents();
     loadCategories();
     loadClubs();
+    loadEventTypes();
   }, []);
+
+  const loadEventTypes = async () => {
+    try {
+      const response = await eventTypesAPI.getAll();
+      if (response.success && response.data) {
+        setEventTypes(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to load event types:', err);
+    }
+  };
 
   useEffect(() => {
     filterEvents();
@@ -116,13 +129,33 @@ export default function EnhancedEvents() {
   };
 
   const getEventTypeInfo = (type) => {
-    const types = {
-      'CasecEvent': { icon: '🎉', color: 'bg-primary', textColor: 'text-primary', label: 'CASEC Event' },
-      'ClubEvent': { icon: '👥', color: 'bg-purple-600', textColor: 'text-purple-600', label: 'Club Event' },
-      'PartnerEvent': { icon: '🤝', color: 'bg-blue-600', textColor: 'text-blue-600', label: 'Partner Event' },
-      'Announcement': { icon: '📢', color: 'bg-amber-600', textColor: 'text-amber-600', label: 'Announcement' }
+    // Find the event type from API data
+    const foundType = eventTypes.find(et => et.code === type);
+    if (foundType) {
+      // Map API color to Tailwind classes
+      const colorMap = {
+        'primary': { color: 'bg-primary', textColor: 'text-primary' },
+        'accent': { color: 'bg-accent', textColor: 'text-accent' },
+        'info': { color: 'bg-blue-600', textColor: 'text-blue-600' },
+        'success': { color: 'bg-green-600', textColor: 'text-green-600' },
+        'warning': { color: 'bg-amber-600', textColor: 'text-amber-600' },
+        'error': { color: 'bg-red-600', textColor: 'text-red-600' },
+        'gray': { color: 'bg-gray-600', textColor: 'text-gray-600' },
+      };
+      const colors = colorMap[foundType.color] || colorMap['primary'];
+      return {
+        icon: foundType.icon || 'Calendar',
+        label: foundType.displayName,
+        ...colors
+      };
+    }
+    // Fallback defaults
+    const defaults = {
+      'CasecEvent': { icon: 'Calendar', color: 'bg-primary', textColor: 'text-primary', label: 'Community Event' },
+      'PartnerEvent': { icon: 'Handshake', color: 'bg-accent', textColor: 'text-accent', label: 'Partner Event' },
+      'Announcement': { icon: 'Megaphone', color: 'bg-amber-600', textColor: 'text-amber-600', label: 'Announcement' }
     };
-    return types[type] || types['CasecEvent'];
+    return defaults[type] || defaults['CasecEvent'];
   };
 
   const clearFilters = () => {

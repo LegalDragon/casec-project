@@ -4,7 +4,7 @@ import {
   Plus, Edit, Trash2, Search, Calendar, MapPin, Users, Star,
   X, DollarSign, Clock, Tag, ExternalLink, Building2, Eye, ImageIcon, Upload, Link, Loader2
 } from 'lucide-react';
-import { eventsAPI, clubsAPI, utilityAPI, getAssetUrl } from '../../services/api';
+import { eventsAPI, clubsAPI, utilityAPI, eventTypesAPI, getAssetUrl } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 
 export default function AdminEvents() {
@@ -55,12 +55,8 @@ export default function AdminEvents() {
   const [savingThumbnail, setSavingThumbnail] = useState(false);
   const [sourceUrl, setSourceUrl] = useState(''); // URL used to generate thumbnail
 
-  const eventTypes = [
-    { value: 'CasecEvent', label: 'CASEC Event', icon: '🎉' },
-    { value: 'ClubEvent', label: 'Club Event', icon: '👥' },
-    { value: 'PartnerEvent', label: 'Partner Event', icon: '🤝' },
-    { value: 'Announcement', label: 'Announcement', icon: '📢' },
-  ];
+  // Event types from API
+  const [eventTypes, setEventTypes] = useState([]);
 
   const eventScopes = [
     { value: 'AllMembers', label: 'All Members' },
@@ -71,7 +67,32 @@ export default function AdminEvents() {
   useEffect(() => {
     fetchEvents();
     fetchClubs();
+    fetchEventTypes();
   }, []);
+
+  const fetchEventTypes = async () => {
+    try {
+      const response = await eventTypesAPI.getAll();
+      if (response.success && response.data) {
+        // Map API response to format used by the component
+        setEventTypes(response.data.map(et => ({
+          value: et.code,
+          label: et.displayName,
+          icon: et.icon || 'Calendar',
+          color: et.color || 'primary',
+          allowsRegistration: et.allowsRegistration,
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch event types:', error);
+      // Fallback to default types if API fails
+      setEventTypes([
+        { value: 'CasecEvent', label: 'Community Event', icon: 'Calendar', color: 'primary', allowsRegistration: true },
+        { value: 'PartnerEvent', label: 'Partner Event', icon: 'Handshake', color: 'accent', allowsRegistration: true },
+        { value: 'Announcement', label: 'Announcement', icon: 'Megaphone', color: 'info', allowsRegistration: false },
+      ]);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -264,7 +285,10 @@ export default function AdminEvents() {
   };
 
   const getEventTypeInfo = (type) => {
-    return eventTypes.find(t => t.value === type) || eventTypes[0];
+    const found = eventTypes.find(t => t.value === type);
+    if (found) return found;
+    // Return first type or default if not found
+    return eventTypes[0] || { value: type, label: type, icon: 'Calendar', color: 'primary' };
   };
 
   const formatDate = (dateString) => {

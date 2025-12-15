@@ -137,6 +137,16 @@ export const eventsAPI = {
     api.post(`/events/${id}/thumbnail-from-url`, { imageUrl }),
 };
 
+// Event Types APIs
+export const eventTypesAPI = {
+  getAll: () => api.get("/eventtypes"),
+  getAllAdmin: () => api.get("/eventtypes/all"),
+  getById: (id) => api.get(`/eventtypes/${id}`),
+  create: (data) => api.post("/eventtypes", data),
+  update: (id, data) => api.put(`/eventtypes/${id}`, data),
+  delete: (id) => api.delete(`/eventtypes/${id}`),
+};
+
 // Users APIs
 export const usersAPI = {
   getAll: () => api.get("/users"),

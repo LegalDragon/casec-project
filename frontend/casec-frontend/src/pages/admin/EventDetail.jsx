@@ -5,7 +5,7 @@ import {
   Upload, Image, FileText, Trash2, Download, Building2, Star, Tag, Clock,
   Eye, EyeOff, ArrowUp, ArrowDown, GripVertical
 } from 'lucide-react';
-import { eventsAPI, clubsAPI, getAssetUrl } from '../../services/api';
+import { eventsAPI, clubsAPI, eventTypesAPI, getAssetUrl } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 import api from '../../services/api';
 
@@ -27,12 +27,8 @@ export default function EventDetail() {
   const photoInputRef = useRef(null);
   const docInputRef = useRef(null);
 
-  const eventTypes = [
-    { value: 'CasecEvent', label: 'CASEC Event', icon: '🎉' },
-    { value: 'ClubEvent', label: 'Club Event', icon: '👥' },
-    { value: 'PartnerEvent', label: 'Partner Event', icon: '🤝' },
-    { value: 'Announcement', label: 'Announcement', icon: '📢' },
-  ];
+  // Event types from API
+  const [eventTypes, setEventTypes] = useState([]);
 
   const eventScopes = [
     { value: 'AllMembers', label: 'All Members' },
@@ -44,7 +40,31 @@ export default function EventDetail() {
     fetchEvent();
     fetchClubs();
     fetchAssets();
+    fetchEventTypes();
   }, [eventId]);
+
+  const fetchEventTypes = async () => {
+    try {
+      const response = await eventTypesAPI.getAll();
+      if (response.success && response.data) {
+        setEventTypes(response.data.map(et => ({
+          value: et.code,
+          label: et.displayName,
+          icon: et.icon || 'Calendar',
+          color: et.color || 'primary',
+          allowsRegistration: et.allowsRegistration,
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch event types:', error);
+      // Fallback to default types if API fails
+      setEventTypes([
+        { value: 'CasecEvent', label: 'Community Event', icon: 'Calendar', color: 'primary', allowsRegistration: true },
+        { value: 'PartnerEvent', label: 'Partner Event', icon: 'Handshake', color: 'accent', allowsRegistration: true },
+        { value: 'Announcement', label: 'Announcement', icon: 'Megaphone', color: 'info', allowsRegistration: false },
+      ]);
+    }
+  };
 
   const fetchEvent = async () => {
     try {
@@ -231,7 +251,10 @@ export default function EventDetail() {
   };
 
   const getEventTypeInfo = (type) => {
-    return eventTypes.find(t => t.value === type) || eventTypes[0];
+    const found = eventTypes.find(t => t.value === type);
+    if (found) return found;
+    // Return first type or default if not found
+    return eventTypes[0] || { value: type, label: type, icon: 'Calendar', color: 'primary' };
   };
 
   if (loading) {

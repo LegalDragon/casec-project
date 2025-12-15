@@ -755,3 +755,37 @@ public class PasswordResetToken
     [ForeignKey("UserId")]
     public virtual User? User { get; set; }
 }
+
+// EventType Entity - Configurable event types managed by admin
+public class EventType
+{
+    [Key]
+    public int EventTypeId { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string Code { get; set; } = string.Empty; // e.g., "CasecEvent", "PartnerEvent"
+
+    [Required]
+    [MaxLength(100)]
+    public string DisplayName { get; set; } = string.Empty; // e.g., "CASEC Event"
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    [MaxLength(50)]
+    public string? Icon { get; set; } // Lucide icon name
+
+    [MaxLength(20)]
+    public string? Color { get; set; } // Tailwind color class or hex
+
+    public bool AllowsRegistration { get; set; } = true;
+
+    public bool IsActive { get; set; } = true;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}

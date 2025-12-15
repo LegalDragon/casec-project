@@ -24,6 +24,7 @@ public class CasecDbContext : DbContext
     // Event entities
     public DbSet<Event> Events { get; set; }
     public DbSet<EventRegistration> EventRegistrations { get; set; }
+    public DbSet<EventType> EventTypes { get; set; }
     
     // Family entities
     public DbSet<FamilyGroup> FamilyGroups { get; set; }
@@ -252,6 +253,15 @@ public class CasecDbContext : DbContext
 
             // Configure table to work with database trigger
             entity.ToTable(t => t.HasTrigger("TR_PasswordResetTokens_SendEmail"));
+        });
+
+        // EventType entity configuration
+        modelBuilder.Entity<EventType>(entity =>
+        {
+            entity.HasKey(e => e.EventTypeId);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(100);
+            entity.HasIndex(e => e.Code).IsUnique();
         });
     }
 }
