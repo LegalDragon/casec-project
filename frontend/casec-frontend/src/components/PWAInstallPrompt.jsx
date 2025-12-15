@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Download, X, Share } from 'lucide-react';
+import { useTheme } from './ThemeProvider';
 
 export default function PWAInstallPrompt() {
+  const { theme } = useTheme();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+
+  // Get app name from theme, fallback to config, then default
+  const appName = theme?.organizationName || window.APP_CONFIG?.APP_TITLE || 'Community Portal';
 
   useEffect(() => {
     // Check if already installed (standalone mode)
@@ -72,7 +77,7 @@ export default function PWAInstallPrompt() {
           <Download className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-gray-900">Install CASEC App</h3>
+          <h3 className="font-bold text-gray-900">Install {appName}</h3>
           <p className="text-sm text-gray-600 mt-1">
             {isIOS
               ? 'Add to your home screen for quick access'
