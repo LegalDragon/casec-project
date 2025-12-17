@@ -248,6 +248,25 @@ export const pollsAPI = {
   delete: (id) => api.delete(`/polls/${id}`),
 };
 
+// Surveys APIs
+export const surveysAPI = {
+  // Public endpoints
+  getActive: () => api.get("/surveys"),
+  getFeatured: () => api.get("/surveys/featured"),
+  getById: (id) => api.get(`/surveys/${id}`),
+  startSurvey: (id, data) => api.post(`/surveys/${id}/start`, data),
+  submitAnswer: (id, data) => api.post(`/surveys/${id}/answer`, data),
+  completeSurvey: (id) => api.post(`/surveys/${id}/complete`),
+  getMyResponse: (id) => api.get(`/surveys/${id}/my-response`),
+
+  // Admin endpoints
+  getAllAdmin: () => api.get("/surveys/admin/all"),
+  getResults: (id) => api.get(`/surveys/${id}/results`),
+  create: (data) => api.post("/surveys", data),
+  update: (id, data) => api.put(`/surveys/${id}`, data),
+  delete: (id) => api.delete(`/surveys/${id}`),
+};
+
 // Utility APIs
 export const utilityAPI = {
   fetchUrlMetadata: (url) => api.post("/utility/fetch-url-metadata", { url }),

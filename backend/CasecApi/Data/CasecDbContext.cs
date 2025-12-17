@@ -45,6 +45,12 @@ public class CasecDbContext : DbContext
     public DbSet<PollOption> PollOptions { get; set; }
     public DbSet<PollResponse> PollResponses { get; set; }
 
+    // Survey entities
+    public DbSet<Survey> Surveys { get; set; }
+    public DbSet<SurveyQuestion> SurveyQuestions { get; set; }
+    public DbSet<SurveyResponse> SurveyResponses { get; set; }
+    public DbSet<SurveyAnswer> SurveyAnswers { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -319,6 +325,86 @@ public class CasecDbContext : DbContext
             entity.HasIndex(e => e.PollId);
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.SessionId);
+        });
+
+        // Survey entity configuration
+        modelBuilder.Entity<Survey>(entity =>
+        {
+            entity.HasKey(e => e.SurveyId);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Visibility).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsFeatured);
+        });
+
+        // SurveyQuestion entity configuration
+        modelBuilder.Entity<SurveyQuestion>(entity =>
+        {
+            entity.HasKey(e => e.QuestionId);
+            entity.Property(e => e.QuestionText).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.QuestionType).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.Survey)
+                .WithMany(s => s.Questions)
+                .HasForeignKey(e => e.SurveyId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ConditionalOnQuestion)
+                .WithMany()
+                .HasForeignKey(e => e.ConditionalOnQuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.SurveyId);
+            entity.HasIndex(e => new { e.SurveyId, e.DisplayOrder });
+        });
+
+        // SurveyResponse entity configuration
+        modelBuilder.Entity<SurveyResponse>(entity =>
+        {
+            entity.HasKey(e => e.ResponseId);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.Survey)
+                .WithMany(s => s.Responses)
+                .HasForeignKey(e => e.SurveyId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.SurveyId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.SessionId);
+            entity.HasIndex(e => e.Status);
+        });
+
+        // SurveyAnswer entity configuration
+        modelBuilder.Entity<SurveyAnswer>(entity =>
+        {
+            entity.HasKey(e => e.AnswerId);
+
+            entity.HasOne(e => e.Response)
+                .WithMany(r => r.Answers)
+                .HasForeignKey(e => e.ResponseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.ResponseId);
+            entity.HasIndex(e => e.QuestionId);
+            entity.HasIndex(e => new { e.ResponseId, e.QuestionId }).IsUnique();
         });
     }
 }

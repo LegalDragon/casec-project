@@ -923,3 +923,237 @@ public class PollResponse
     [ForeignKey("UserId")]
     public virtual User? User { get; set; }
 }
+
+// Survey Entity - Multi-question surveys for collecting detailed feedback
+public class Survey
+{
+    [Key]
+    public int SurveyId { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string Title { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? Description { get; set; }
+
+    // Who can respond: Anyone, MembersOnly
+    [Required]
+    [MaxLength(50)]
+    public string Visibility { get; set; } = "Anyone";
+
+    // Allow anonymous responses from logged-in members
+    public bool AllowAnonymous { get; set; } = true;
+
+    // Show results to respondents after completing
+    public bool ShowResultsToRespondents { get; set; } = false;
+
+    // Allow editing responses after submission
+    public bool AllowEditResponse { get; set; } = false;
+
+    // Require all questions to be answered
+    public bool RequireAllQuestions { get; set; } = false;
+
+    // Show progress indicator
+    public bool ShowProgressBar { get; set; } = true;
+
+    // Randomize question order
+    public bool RandomizeQuestions { get; set; } = false;
+
+    // Limit one response per user/session
+    public bool OneResponsePerUser { get; set; } = true;
+
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
+
+    // Status: Draft, Active, Closed
+    [Required]
+    [MaxLength(50)]
+    public string Status { get; set; } = "Draft";
+
+    public bool IsFeatured { get; set; } = false;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    // Thank you message shown after completion
+    [MaxLength(1000)]
+    public string? ThankYouMessage { get; set; }
+
+    // Redirect URL after completion (optional)
+    [MaxLength(500)]
+    public string? RedirectUrl { get; set; }
+
+    public int? CreatedBy { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("CreatedBy")]
+    public virtual User? CreatedByUser { get; set; }
+
+    public virtual ICollection<SurveyQuestion> Questions { get; set; } = new List<SurveyQuestion>();
+    public virtual ICollection<SurveyResponse> Responses { get; set; } = new List<SurveyResponse>();
+}
+
+// SurveyQuestion Entity - Individual questions within a survey
+public class SurveyQuestion
+{
+    [Key]
+    public int QuestionId { get; set; }
+
+    [Required]
+    public int SurveyId { get; set; }
+
+    [Required]
+    [MaxLength(1000)]
+    public string QuestionText { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? HelpText { get; set; }
+
+    // Question type: SingleChoice, MultipleChoice, Rating, Text, TextArea, Number, Date, Email, Phone
+    [Required]
+    [MaxLength(50)]
+    public string QuestionType { get; set; } = "SingleChoice";
+
+    // Is this question required?
+    public bool IsRequired { get; set; } = false;
+
+    // Options for SingleChoice/MultipleChoice (stored as JSON array)
+    public string? Options { get; set; }
+
+    // Maximum selections for MultipleChoice
+    public int? MaxSelections { get; set; }
+
+    // For Rating type: min and max values
+    public int? RatingMin { get; set; } = 1;
+    public int? RatingMax { get; set; } = 5;
+
+    // For Rating type: labels
+    [MaxLength(100)]
+    public string? RatingMinLabel { get; set; }
+
+    [MaxLength(100)]
+    public string? RatingMaxLabel { get; set; }
+
+    // For Text/TextArea: character limits
+    public int? MinLength { get; set; }
+    public int? MaxLength { get; set; }
+
+    // For Number type: min/max values
+    public decimal? MinValue { get; set; }
+    public decimal? MaxValue { get; set; }
+
+    // Placeholder text for text inputs
+    [MaxLength(200)]
+    public string? Placeholder { get; set; }
+
+    // Display order within the survey
+    public int DisplayOrder { get; set; } = 0;
+
+    // Conditional display: show only if another question has specific answer
+    public int? ConditionalOnQuestionId { get; set; }
+    public string? ConditionalOnValues { get; set; } // JSON array of values that trigger display
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("SurveyId")]
+    public virtual Survey? Survey { get; set; }
+
+    [ForeignKey("ConditionalOnQuestionId")]
+    public virtual SurveyQuestion? ConditionalOnQuestion { get; set; }
+}
+
+// SurveyResponse Entity - A user's submission of a survey
+public class SurveyResponse
+{
+    [Key]
+    public int ResponseId { get; set; }
+
+    [Required]
+    public int SurveyId { get; set; }
+
+    // User who responded (null for anonymous visitors)
+    public int? UserId { get; set; }
+
+    // If user chose to be anonymous (only for logged-in users)
+    public bool IsAnonymous { get; set; } = false;
+
+    // For tracking anonymous/visitor responses
+    [MaxLength(100)]
+    public string? SessionId { get; set; }
+
+    [MaxLength(50)]
+    public string? IpAddress { get; set; }
+
+    // Status: InProgress, Completed
+    [Required]
+    [MaxLength(50)]
+    public string Status { get; set; } = "InProgress";
+
+    // Current question index (for tracking progress)
+    public int CurrentQuestionIndex { get; set; } = 0;
+
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? CompletedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("SurveyId")]
+    public virtual Survey? Survey { get; set; }
+
+    [ForeignKey("UserId")]
+    public virtual User? User { get; set; }
+
+    public virtual ICollection<SurveyAnswer> Answers { get; set; } = new List<SurveyAnswer>();
+}
+
+// SurveyAnswer Entity - Individual answers to questions within a response
+public class SurveyAnswer
+{
+    [Key]
+    public int AnswerId { get; set; }
+
+    [Required]
+    public int ResponseId { get; set; }
+
+    [Required]
+    public int QuestionId { get; set; }
+
+    // For SingleChoice - the selected option
+    [MaxLength(1000)]
+    public string? SelectedOption { get; set; }
+
+    // For MultipleChoice - selected options (JSON array)
+    public string? SelectedOptions { get; set; }
+
+    // For Rating type
+    public int? RatingValue { get; set; }
+
+    // For Text, TextArea, Email, Phone types
+    [MaxLength(4000)]
+    public string? TextValue { get; set; }
+
+    // For Number type
+    public decimal? NumberValue { get; set; }
+
+    // For Date type
+    public DateTime? DateValue { get; set; }
+
+    public DateTime AnsweredAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("ResponseId")]
+    public virtual SurveyResponse? Response { get; set; }
+
+    [ForeignKey("QuestionId")]
+    public virtual SurveyQuestion? Question { get; set; }
+}

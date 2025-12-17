@@ -26,6 +26,7 @@ import AdminEventTypes from './pages/admin/EventTypes';
 import AdminTheme from './pages/admin/ThemeCustomization';
 import AdminPayments from './pages/admin/Payments';
 import AdminPolls from './pages/admin/Polls';
+import AdminSurveys from './pages/admin/Surveys';
 import Membership from './pages/Membership';
 
 function ProtectedRoute({ children }) {
@@ -117,6 +118,9 @@ function App() {
           } />
           <Route path="admin/polls" element={
             <AdminRoute><AdminPolls /></AdminRoute>
+          } />
+          <Route path="admin/surveys" element={
+            <AdminRoute><AdminSurveys /></AdminRoute>
           } />
         </Route>
         </Routes>

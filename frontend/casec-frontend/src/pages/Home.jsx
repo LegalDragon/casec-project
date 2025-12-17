@@ -4,6 +4,7 @@ import { Calendar, MapPin, Clock, ChevronLeft, ChevronRight, DollarSign, Buildin
 import { eventsAPI, getAssetUrl } from '../services/api';
 import { useTheme } from '../components/ThemeProvider';
 import PollWidget from '../components/PollWidget';
+import SurveyWidget from '../components/SurveyWidget';
 
 export default function Home() {
   const { theme } = useTheme();
@@ -484,9 +485,10 @@ export default function Home() {
           )}
         </div>
 
-        {/* Featured Poll */}
-        <div className="max-w-7xl mx-auto px-6">
+        {/* Featured Poll & Survey */}
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-6">
           <PollWidget featured />
+          <SurveyWidget featured />
         </div>
 
         {/* Past Featured Events Carousel */}
