@@ -10,7 +10,7 @@ using System.Text.Json;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class SurveysController : ControllerBase
 {
     private readonly CasecDbContext _context;
