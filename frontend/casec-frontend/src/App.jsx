@@ -8,6 +8,7 @@ import Clubs from './pages/Clubs';
 import Events from './pages/Events';
 import EventDetail from './pages/EventDetail';
 import Profile from './pages/Profile';
+import EnhancedProfile from './pages/EnhancedProfile';
 import Payment from './pages/Payment';
 import Members from './pages/Members';
 import BoardOfDirectors from './pages/BoardOfDirectors';

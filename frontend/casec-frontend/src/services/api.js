@@ -109,14 +109,14 @@ export const themeAPI = {
   uploadLogo: (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/theme/upload-logo', formData, {
+    return api.post('/theme/logo', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
   uploadFavicon: (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/theme/upload-favicon', formData, {
+    return api.post('/theme/favicon', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },

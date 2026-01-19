@@ -18,7 +18,7 @@ export default function ThemeCustomization() {
 
   const loadTheme = async () => {
     try {
-      const response = await themeAPI.get();
+      const response = await themeAPI.getCurrent();
       if (response.success) {
         setTheme(response.data);
       }
