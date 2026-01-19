@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Users, Calendar, Award, TrendingUp, Search, UserCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, Calendar, Award, TrendingUp, Search, UserCheck, Settings } from 'lucide-react';
 import { usersAPI } from '../services/api';
 import { useAuthStore } from '../store/useStore';
 import { useTheme } from '../components/ThemeProvider';
@@ -141,6 +142,22 @@ export default function Dashboard() {
             View Board
           </a>
         </div>
+
+        {/* Admin Panel Card - Only visible to admins */}
+        {user?.isAdmin && (
+          <div className="card bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+            <div className="flex items-center space-x-3 mb-3">
+              <Settings className="w-6 h-6 text-amber-600" />
+              <h3 className="text-xl font-bold text-gray-900">Admin Panel</h3>
+            </div>
+            <p className="text-gray-600 mb-4 text-sm">
+              Manage users, payments, events, and customize the site.
+            </p>
+            <Link to="/admin" className="btn bg-amber-600 text-white hover:bg-amber-700 inline-block text-sm">
+              Open Admin
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Recent Activity */}

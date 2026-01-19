@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/useStore';
 import ThemeProvider from './components/ThemeProvider';
 import Layout from './components/Layout';
+import AdminLayout from './components/AdminLayout';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -17,6 +18,7 @@ import Payment from './pages/Payment';
 import Members from './pages/Members';
 import BoardOfDirectors from './pages/BoardOfDirectors';
 import PublicProfile from './pages/PublicProfile';
+import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsers from './pages/admin/Users';
 import AdminMembershipTypes from './pages/admin/MembershipTypes';
 import AdminClubs from './pages/admin/Clubs';
@@ -92,44 +94,25 @@ function App() {
           <Route path="member/:userId" element={<PublicProfile />} />
           <Route path="board-of-directors" element={<BoardOfDirectors />} />
           <Route path="board-profile/:userId" element={<PublicProfile />} />
+        </Route>
 
-          {/* Admin Routes */}
-          <Route path="admin/users" element={
-            <AdminRoute><AdminUsers /></AdminRoute>
-          } />
-          <Route path="admin/membership-types" element={
-            <AdminRoute><AdminMembershipTypes /></AdminRoute>
-          } />
-          <Route path="admin/clubs" element={
-            <ClubAdminRoute><AdminClubs /></ClubAdminRoute>
-          } />
-          <Route path="admin/events" element={
-            <ClubAdminRoute><AdminEvents /></ClubAdminRoute>
-          } />
-          <Route path="admin/events/:eventId" element={
-            <ClubAdminRoute><AdminEventDetail /></ClubAdminRoute>
-          } />
-          <Route path="admin/event-types" element={
-            <AdminRoute><AdminEventTypes /></AdminRoute>
-          } />
-          <Route path="admin/theme" element={
-            <AdminRoute><AdminTheme /></AdminRoute>
-          } />
-          <Route path="admin/payments" element={
-            <AdminRoute><AdminPayments /></AdminRoute>
-          } />
-          <Route path="admin/payment-methods" element={
-            <AdminRoute><AdminPaymentMethods /></AdminRoute>
-          } />
-          <Route path="admin/polls" element={
-            <AdminRoute><AdminPolls /></AdminRoute>
-          } />
-          <Route path="admin/surveys" element={
-            <AdminRoute><AdminSurveys /></AdminRoute>
-          } />
-          <Route path="admin/slideshows" element={
-            <AdminRoute><AdminSlideShows /></AdminRoute>
-          } />
+        {/* Admin Routes with AdminLayout */}
+        <Route path="/admin" element={
+          <AdminRoute><AdminLayout /></AdminRoute>
+        }>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="membership-types" element={<AdminMembershipTypes />} />
+          <Route path="clubs" element={<AdminClubs />} />
+          <Route path="events" element={<AdminEvents />} />
+          <Route path="events/:eventId" element={<AdminEventDetail />} />
+          <Route path="event-types" element={<AdminEventTypes />} />
+          <Route path="theme" element={<AdminTheme />} />
+          <Route path="payments" element={<AdminPayments />} />
+          <Route path="payment-methods" element={<AdminPaymentMethods />} />
+          <Route path="polls" element={<AdminPolls />} />
+          <Route path="surveys" element={<AdminSurveys />} />
+          <Route path="slideshows" element={<AdminSlideShows />} />
         </Route>
         </Routes>
       </Router>

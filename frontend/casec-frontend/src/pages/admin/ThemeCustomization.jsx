@@ -349,14 +349,20 @@ export default function ThemeCustomization() {
         {/* Add new video URL */}
         <div className="flex gap-3 mb-4">
           <input
-            type="url"
+            type="text"
             value={newVideoUrl}
             onChange={(e) => setNewVideoUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addVideoUrl()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addVideoUrl();
+              }
+            }}
             className="input flex-1"
             placeholder="Paste YouTube or TikTok URL..."
           />
           <button
+            type="button"
             onClick={addVideoUrl}
             className="btn btn-primary flex items-center gap-2"
           >

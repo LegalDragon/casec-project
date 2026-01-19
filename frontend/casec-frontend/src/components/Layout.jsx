@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LogOut, User, Menu, X } from 'lucide-react';
+import { LogOut, User, Menu, X, Settings } from 'lucide-react';
 import { useAuthStore } from '../store/useStore';
 import { useState } from 'react';
 import LogoOrText from './LogoOrText';
@@ -25,20 +25,6 @@ export default function Layout() {
     { path: '/profile', label: 'Profile' },
   ];
 
-  const adminLinks = user?.isAdmin ? [
-    { path: '/admin/users', label: 'Manage Users' },
-    { path: '/admin/membership-types', label: 'Membership Types' },
-    { path: '/admin/payments', label: 'Payments' },
-    { path: '/admin/payment-methods', label: 'Payment Methods' },
-    { path: '/admin/clubs', label: 'Manage Clubs' },
-    { path: '/admin/events', label: 'Manage Events' },
-    { path: '/admin/event-types', label: 'Event Types' },
-    { path: '/admin/polls', label: 'Polls' },
-    { path: '/admin/surveys', label: 'Surveys' },
-    { path: '/admin/slideshows', label: 'SlideShows' },
-    { path: '/admin/theme', label: 'Theme' },
-  ] : [];
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -51,44 +37,35 @@ export default function Layout() {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex flex-col items-end space-y-2">
-              {/* Main Navigation */}
-              <div className="flex space-x-8">
-                {navLinks.map((link) => (
-                  <NavLink
-                    key={link.path}
-                    to={link.path}
-                    className={({ isActive }) =>
-                      `font-semibold transition-colors relative group ${
-                        isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
-                      }`
-                    }
-                  >
-                    {link.label}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all group-hover:w-full" />
-                  </NavLink>
-                ))}
-              </div>
-              
-              {/* Admin Navigation - New Line */}
-              {adminLinks.length > 0 && (
-                <div className="flex space-x-6 pt-2 border-t border-gray-200">
-                  <span className="text-xs font-bold text-accent uppercase tracking-wider">Admin:</span>
-                  {adminLinks.map((link) => (
-                    <NavLink
-                      key={link.path}
-                      to={link.path}
-                      className={({ isActive }) =>
-                        `text-sm font-semibold transition-colors relative group ${
-                          isActive ? 'text-accent' : 'text-gray-600 hover:text-accent'
-                        }`
-                      }
-                    >
-                      {link.label}
-                      <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all group-hover:w-full" />
-                    </NavLink>
-                  ))}
-                </div>
+            <nav className="hidden md:flex items-center space-x-8">
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.path}
+                  to={link.path}
+                  className={({ isActive }) =>
+                    `font-semibold transition-colors relative group ${
+                      isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
+                    }`
+                  }
+                >
+                  {link.label}
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all group-hover:w-full" />
+                </NavLink>
+              ))}
+
+              {/* Admin Panel Link */}
+              {user?.isAdmin && (
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) =>
+                    `flex items-center space-x-1 font-semibold transition-colors ${
+                      isActive ? 'text-accent' : 'text-gray-600 hover:text-accent'
+                    }`
+                  }
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Admin</span>
+                </NavLink>
               )}
             </nav>
 
@@ -147,30 +124,25 @@ export default function Layout() {
                     {link.label}
                   </NavLink>
                 ))}
-                
-                {adminLinks.length > 0 && (
+
+                {user?.isAdmin && (
                   <>
                     <div className="border-t my-2" />
-                    <div className="px-4 py-1 text-xs font-bold text-accent uppercase tracking-wider">
-                      Admin Menu
-                    </div>
-                    {adminLinks.map((link) => (
-                      <NavLink
-                        key={link.path}
-                        to={link.path}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={({ isActive }) =>
-                          `px-4 py-2 rounded-lg font-semibold ${
-                            isActive ? 'bg-accent text-white' : 'text-gray-600 hover:bg-gray-100'
-                          }`
-                        }
-                      >
-                        {link.label}
-                      </NavLink>
-                    ))}
+                    <NavLink
+                      to="/admin"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        `px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 ${
+                          isActive ? 'bg-accent text-white' : 'text-gray-600 hover:bg-gray-100'
+                        }`
+                      }
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Admin Panel</span>
+                    </NavLink>
                   </>
                 )}
-                
+
                 <button
                   onClick={handleLogout}
                   className="btn btn-secondary flex items-center justify-center space-x-2 mt-4"
