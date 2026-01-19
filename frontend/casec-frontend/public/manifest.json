@@ -1,11 +1,12 @@
 {
-  "name": "Community Membership Portal",
-  "short_name": "Community",
-  "description": "Community membership management portal",
+  "id": "/casec-hua-lian/",
+  "name": "CASEC-华联",
+  "short_name": "CASEC",
+  "description": "Chinese American Social & Economic Council - 美国佛州华人华侨联合会",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
-  "theme_color": "#3b82f6",
+  "theme_color": "#1e3a5f",
   "icons": [
     {
       "src": "/favicon-16x16.png",
