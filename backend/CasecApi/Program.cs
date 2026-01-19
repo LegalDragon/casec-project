@@ -29,6 +29,9 @@ else
 // Add Asset Service (wraps file storage and saves to database)
 builder.Services.AddScoped<IAssetService, AssetService>();
 
+// Add HttpClient for URL metadata fetching
+builder.Services.AddHttpClient();
+
 // Add Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "DefaultSecretKeyForDevelopmentOnly123!";
 var key = Encoding.ASCII.GetBytes(jwtKey);
@@ -88,7 +91,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // Add Swagger with JWT support
@@ -135,17 +143,21 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+// Enable Swagger in all environments (can be disabled via config if needed)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CASEC API V1");
-        c.RoutePrefix = "swagger";
-    });
-}
+    // Use relative path so it works regardless of base path
+    c.SwaggerEndpoint("v1/swagger.json", "CASEC API V1");
+    c.RoutePrefix = "swagger";
+});
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection if explicitly enabled
+var useHttpsRedirection = builder.Configuration.GetValue<bool>("UseHttpsRedirection", false);
+if (useHttpsRedirection)
+{
+    app.UseHttpsRedirection();
+}
 
 // Use CORS - change to "Production" in production environment
 app.UseCors("AllowAll");
@@ -167,15 +179,15 @@ app.MapGet("/", () => new
     documentation = "/swagger",
     endpoints = new[]
     {
-        "/api/auth/register",
-        "/api/auth/login",
-        "/api/membershiptypes",
-        "/api/clubs",
-        "/api/events",
-        "/api/users/profile",
-        "/api/users/dashboard",
-        "/api/payments/process",
-        "/api/asset/{id}"
+        "/auth/register",
+        "/auth/login",
+        "/membershiptypes",
+        "/clubs",
+        "/events",
+        "/users/profile",
+        "/users/dashboard",
+        "/payments/process",
+        "/asset/{id}"
     }
 });
 

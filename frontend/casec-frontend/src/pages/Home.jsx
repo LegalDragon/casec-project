@@ -1,0 +1,565 @@
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { Calendar, MapPin, Clock, ChevronLeft, ChevronRight, DollarSign, Building2 } from 'lucide-react';
+import { eventsAPI, getAssetUrl } from '../services/api';
+import { useTheme } from '../components/ThemeProvider';
+import PollWidget from '../components/PollWidget';
+import SurveyWidget from '../components/SurveyWidget';
+
+export default function Home() {
+  const { theme } = useTheme();
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [pastFeaturedEvents, setPastFeaturedEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const upcomingScrollRef = useRef(null);
+  const pastScrollRef = useRef(null);
+  const [upcomingPaused, setUpcomingPaused] = useState(false);
+  const [pastPaused, setPastPaused] = useState(false);
+
+  // Parse hero video URLs and select a random one
+  const heroVideoUrl = useMemo(() => {
+    if (!theme?.heroVideoUrls) return null;
+    try {
+      const videos = JSON.parse(theme.heroVideoUrls);
+      if (videos.length === 0) return null;
+      // Select random video
+      return videos[Math.floor(Math.random() * videos.length)];
+    } catch {
+      return null;
+    }
+  }, [theme?.heroVideoUrls]);
+
+  // Convert YouTube URL to embeddable format
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+
+    let videoId = null;
+
+    // Handle youtube.com/watch?v=VIDEO_ID
+    if (url.includes('youtube.com/watch')) {
+      const urlParams = new URLSearchParams(new URL(url).search);
+      videoId = urlParams.get('v');
+    }
+    // Handle youtu.be/VIDEO_ID
+    else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    }
+    // Handle youtube.com/embed/VIDEO_ID
+    else if (url.includes('youtube.com/embed/')) {
+      videoId = url.split('youtube.com/embed/')[1]?.split('?')[0];
+    }
+
+    if (!videoId) return null;
+
+    // Return embed URL with autoplay, mute, loop
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&modestbranding=1&playsinline=1&rel=0&enablejsapi=1`;
+  };
+
+  // Check if URL is YouTube
+  const isYouTubeUrl = (url) => {
+    return url?.includes('youtube.com') || url?.includes('youtu.be');
+  };
+
+  // Get the embed URL for the selected video
+  const videoEmbedUrl = useMemo(() => {
+    if (!heroVideoUrl) return null;
+    if (isYouTubeUrl(heroVideoUrl)) {
+      return getYouTubeEmbedUrl(heroVideoUrl);
+    }
+    // TikTok videos can't be easily embedded as background, skip for now
+    return null;
+  }, [heroVideoUrl]);
+
+  // Custom smooth scroll with easing
+  const smoothScrollTo = useCallback((element, targetPosition, duration = 800) => {
+    if (!element) return;
+
+    const startPosition = element.scrollLeft;
+    const distance = targetPosition - startPosition;
+    let startTime = null;
+
+    // Easing function - ease-in-out cubic
+    const easeInOutCubic = (t) => {
+      return t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+
+    const animation = (currentTime) => {
+      if (startTime === null) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      const easedProgress = easeInOutCubic(progress);
+      element.scrollLeft = startPosition + (distance * easedProgress);
+
+      if (progress < 1) {
+        requestAnimationFrame(animation);
+      }
+    };
+
+    requestAnimationFrame(animation);
+  }, []);
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  // Auto-scroll for upcoming events - always animate even with 1 card
+  useEffect(() => {
+    if (upcomingEvents.length === 0 || upcomingPaused) return;
+
+    const container = upcomingScrollRef.current;
+    if (!container) return;
+
+    const scrollInterval = setInterval(() => {
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (maxScroll <= 0) return;
+
+      if (container.scrollLeft >= maxScroll - 10) {
+        smoothScrollTo(container, 0, 1000);
+      } else {
+        const newPosition = Math.min(container.scrollLeft + 440, maxScroll);
+        smoothScrollTo(container, newPosition, 800);
+      }
+    }, 5000);
+
+    return () => clearInterval(scrollInterval);
+  }, [upcomingEvents.length, upcomingPaused, smoothScrollTo]);
+
+  // Auto-scroll for past events
+  useEffect(() => {
+    if (pastFeaturedEvents.length === 0 || pastPaused) return;
+
+    const container = pastScrollRef.current;
+    if (!container) return;
+
+    const scrollInterval = setInterval(() => {
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (maxScroll <= 0) return;
+
+      if (container.scrollLeft >= maxScroll - 10) {
+        smoothScrollTo(container, 0, 1000);
+      } else {
+        const newPosition = Math.min(container.scrollLeft + 440, maxScroll);
+        smoothScrollTo(container, newPosition, 800);
+      }
+    }, 5000);
+
+    return () => clearInterval(scrollInterval);
+  }, [pastFeaturedEvents.length, pastPaused, smoothScrollTo]);
+
+  const fetchEvents = async () => {
+    try {
+      // Fetch upcoming events
+      const upcomingResponse = await eventsAPI.getAll({ upcoming: true });
+      const upcoming = (upcomingResponse.data || []).slice(0, 15);
+      setUpcomingEvents(upcoming);
+
+      // Fetch all events to filter past featured ones
+      const allResponse = await eventsAPI.getAll({ upcoming: false });
+      const now = new Date();
+      const pastFeatured = (allResponse.data || [])
+        .filter(e => e.isFeatured && new Date(e.eventDate) < now)
+        .slice(0, 15);
+      setPastFeaturedEvents(pastFeatured);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'TBD';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatFee = (fee) => {
+    if (!fee || fee === 0) return 'Free';
+    return `$${fee}`;
+  };
+
+  const scrollLeft = (ref, amount = 440) => {
+    const container = ref.current;
+    if (!container) return;
+    const newPosition = Math.max(container.scrollLeft - amount, 0);
+    smoothScrollTo(container, newPosition, 600);
+  };
+
+  const scrollRight = (ref, amount = 440) => {
+    const container = ref.current;
+    if (!container) return;
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    const newPosition = Math.min(container.scrollLeft + amount, maxScroll);
+    smoothScrollTo(container, newPosition, 600);
+  };
+
+  // Wide horizontal card for upcoming events
+  const UpcomingEventCard = ({ event }) => (
+    <Link
+      to={`/event/${event.eventId}`}
+      className="flex-shrink-0 w-[420px] bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all hover:scale-[1.02] flex"
+    >
+      {/* Thumbnail on left */}
+      <div className="w-40 h-full relative bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
+        {event.thumbnailUrl ? (
+          <img
+            src={event.thumbnailUrl.startsWith('/api') ? getAssetUrl(event.thumbnailUrl) : event.thumbnailUrl}
+            alt={event.title}
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Calendar className="w-12 h-12 text-primary/30" />
+          </div>
+        )}
+      </div>
+
+      {/* Content on right */}
+      <div className="flex-1 p-4 flex flex-col justify-between min-h-[160px]">
+        <div>
+          <h4 className="font-bold text-gray-900 mb-2 line-clamp-2 text-base leading-tight">
+            {event.title}
+          </h4>
+          {event.description && (
+            <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+              {event.description}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5 text-xs text-gray-600">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-primary" />
+              <span>{formatDate(event.eventDate)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-primary" />
+              <span>{formatTime(event.eventDate)}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {event.location && (
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                <span className="truncate">{event.location}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="w-3.5 h-3.5 text-primary" />
+              <span className="font-medium">{formatFee(event.eventFee)}</span>
+            </div>
+          </div>
+
+          {event.hostClubName && (
+            <div className="flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-primary" />
+              <span className="truncate">{event.hostClubName}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+
+  // Wide horizontal card for past events (similar to upcoming)
+  const PastEventCard = ({ event }) => (
+    <Link
+      to={`/event/${event.eventId}`}
+      className="flex-shrink-0 w-[420px] bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all hover:scale-[1.02] flex opacity-95"
+    >
+      {/* Thumbnail on left */}
+      <div className="w-40 h-full relative bg-gradient-to-br from-gray-200 to-gray-300 flex-shrink-0">
+        {event.thumbnailUrl ? (
+          <img
+            src={event.thumbnailUrl.startsWith('/api') ? getAssetUrl(event.thumbnailUrl) : event.thumbnailUrl}
+            alt={event.title}
+            className="w-full h-full object-cover grayscale-[30%]"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Calendar className="w-12 h-12 text-gray-400" />
+          </div>
+        )}
+      </div>
+
+      {/* Content on right */}
+      <div className="flex-1 p-4 flex flex-col justify-between min-h-[160px]">
+        <div>
+          <h4 className="font-bold text-gray-900 mb-2 line-clamp-2 text-base leading-tight">
+            {event.title}
+          </h4>
+          {event.description && (
+            <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+              {event.description}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5 text-xs text-gray-600">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-gray-500" />
+              <span>{formatDate(event.eventDate)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-gray-500" />
+              <span>{formatTime(event.eventDate)}</span>
+            </div>
+          </div>
+
+          {event.location && (
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+              <span className="truncate">{event.location}</span>
+            </div>
+          )}
+
+          {event.hostClubName && (
+            <div className="flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-gray-500" />
+              <span className="truncate">{event.hostClubName}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary via-primary-light to-accent flex flex-col">
+      {/* Hero Section - Logo, Name, and CTAs Centered */}
+      <section className="px-6 py-12 md:py-16 relative overflow-hidden">
+        {/* Video Background */}
+        {videoEmbedUrl && (
+          <>
+            {/* Video iframe container */}
+            <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+              <iframe
+                src={videoEmbedUrl}
+                title="Hero Background Video"
+                className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 object-cover"
+                style={{ minWidth: '100%', minHeight: '100%' }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                frameBorder="0"
+              />
+            </div>
+            {/* Dark overlay for readability */}
+            <div className="absolute inset-0 bg-black/50" />
+          </>
+        )}
+
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          {/* Large Logo with Name */}
+          <div className="flex flex-col items-center justify-center mb-8">
+            <div className="flex items-center justify-center gap-4">
+              {theme?.logoUrl ? (
+                <img
+                  src={getAssetUrl(theme.logoUrl)}
+                  alt={theme.organizationName || 'Logo'}
+                  className="h-32 md:h-48 w-auto object-contain"
+                />
+              ) : null}
+              <h1 className="text-4xl md:text-6xl font-display font-extrabold text-white">
+                {theme?.organizationName || 'CASEC'}<span className="text-accent-light">.</span>
+              </h1>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex items-center justify-center gap-4 mb-12">
+            <Link
+              to="/login"
+              className="px-8 py-3 text-white font-semibold text-lg border-2 border-white/50 rounded-xl hover:bg-white/10 transition-all"
+            >
+              Login
+            </Link>
+            <Link
+              to="/register"
+              className="px-8 py-3 bg-white text-primary font-bold text-lg rounded-xl hover:bg-accent hover:text-white transition-all shadow-xl"
+            >
+              Join Us
+            </Link>
+          </div>
+
+          {/* Inspirational Quote Block */}
+          <div className="relative bg-white/25 backdrop-blur-md rounded-2xl p-8 md:p-12 border-2 border-white/40 shadow-2xl">
+            {/* Decorative quote mark */}
+            <div className="absolute -top-4 left-8 text-6xl text-white/30 font-serif leading-none">"</div>
+            <blockquote className="text-2xl md:text-3xl font-display font-bold text-white leading-relaxed mb-4 drop-shadow-lg">
+              {theme?.homeQuote || 'Building bridges across cultures, creating connections that last a lifetime.'}
+            </blockquote>
+            <p className="text-white text-lg font-medium drop-shadow">
+              {theme?.homeQuoteSubtext || 'Join our vibrant community celebrating heritage, fostering friendships, and making memories together.'}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Events Section - Full Width Carousels */}
+      <section className="py-12 bg-black/20 backdrop-blur-sm flex-1 space-y-10">
+        {/* Upcoming Events Carousel */}
+        <div className="w-full">
+          <div className="max-w-7xl mx-auto px-6 mb-4">
+            <h3 className="text-xl md:text-2xl font-display font-bold text-white flex items-center gap-2">
+              <Calendar className="w-6 h-6" />
+              Upcoming Events
+            </h3>
+          </div>
+
+          {loading ? (
+            <div className="flex gap-4 px-6 overflow-hidden">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex-shrink-0 w-[420px] h-40 bg-white/20 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : upcomingEvents.length > 0 ? (
+            <div className="relative group">
+              {/* Left Arrow */}
+              <button
+                onClick={() => scrollLeft(upcomingScrollRef)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {/* Scrolling Container */}
+              <div
+                ref={upcomingScrollRef}
+                onMouseEnter={() => setUpcomingPaused(true)}
+                onMouseLeave={() => setUpcomingPaused(false)}
+                className="flex gap-4 px-6 overflow-x-auto scrollbar-hide pb-4"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {upcomingEvents.map((event) => (
+                  <UpcomingEventCard key={event.eventId} event={event} />
+                ))}
+              </div>
+
+              {/* Right Arrow */}
+              <button
+                onClick={() => scrollRight(upcomingScrollRef)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Gradient Edges */}
+              <div className="absolute left-0 top-0 bottom-4 w-12 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-black/20 to-transparent pointer-events-none" />
+            </div>
+          ) : (
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="bg-white/10 rounded-xl p-8 text-center">
+                <Calendar className="w-12 h-12 text-white/40 mx-auto mb-3" />
+                <p className="text-white/70">No upcoming events scheduled</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Featured Poll & Survey */}
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-6">
+          <PollWidget featured />
+          <SurveyWidget featured />
+        </div>
+
+        {/* Past Featured Events Carousel */}
+        <div className="w-full">
+          <div className="max-w-7xl mx-auto px-6 mb-4">
+            <h3 className="text-xl md:text-2xl font-display font-bold text-white flex items-center gap-2">
+              <Clock className="w-6 h-6" />
+              Past Featured Events
+            </h3>
+          </div>
+
+          {loading ? (
+            <div className="flex gap-4 px-6 overflow-hidden">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex-shrink-0 w-[420px] h-40 bg-white/20 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : pastFeaturedEvents.length > 0 ? (
+            <div className="relative group">
+              {/* Left Arrow */}
+              <button
+                onClick={() => scrollLeft(pastScrollRef)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {/* Scrolling Container */}
+              <div
+                ref={pastScrollRef}
+                onMouseEnter={() => setPastPaused(true)}
+                onMouseLeave={() => setPastPaused(false)}
+                className="flex gap-4 px-6 overflow-x-auto scrollbar-hide pb-4"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {pastFeaturedEvents.map((event) => (
+                  <PastEventCard key={event.eventId} event={event} />
+                ))}
+              </div>
+
+              {/* Right Arrow */}
+              <button
+                onClick={() => scrollRight(pastScrollRef)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center text-gray-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Gradient Edges */}
+              <div className="absolute left-0 top-0 bottom-4 w-12 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-black/20 to-transparent pointer-events-none" />
+            </div>
+          ) : (
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="bg-white/10 rounded-xl p-8 text-center">
+                <Clock className="w-12 h-12 text-white/40 mx-auto mb-3" />
+                <p className="text-white/70">No past featured events</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="px-6 py-6 bg-black/30">
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-white/60 text-sm">
+            © {new Date().getFullYear()} {theme?.organizationName || 'CASEC'}. All rights reserved.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}

@@ -2,6 +2,8 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LogOut, User, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../store/useStore';
 import { useState } from 'react';
+import LogoOrText from './LogoOrText';
+import { getAssetUrl } from '../services/api';
 
 export default function Layout() {
   const { user, logout } = useAuthStore();
@@ -10,7 +12,7 @@ export default function Layout() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const navLinks = [
@@ -19,15 +21,21 @@ export default function Layout() {
     { path: '/events', label: 'Events' },
     { path: '/members', label: 'Members' },
     { path: '/board-of-directors', label: 'Directors' },
+    { path: '/membership', label: 'Membership' },
     { path: '/profile', label: 'Profile' },
   ];
 
   const adminLinks = user?.isAdmin ? [
     { path: '/admin/users', label: 'Manage Users' },
     { path: '/admin/membership-types', label: 'Membership Types' },
+    { path: '/admin/payments', label: 'Payments' },
+    { path: '/admin/payment-methods', label: 'Payment Methods' },
     { path: '/admin/clubs', label: 'Manage Clubs' },
     { path: '/admin/events', label: 'Manage Events' },
-    { path: '/admin/theme', label: 'Theme Customization' },
+    { path: '/admin/event-types', label: 'Event Types' },
+    { path: '/admin/polls', label: 'Polls' },
+    { path: '/admin/surveys', label: 'Surveys' },
+    { path: '/admin/theme', label: 'Theme' },
   ] : [];
 
   return (
@@ -38,9 +46,7 @@ export default function Layout() {
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
             <div className="flex-shrink-0">
-              <h1 className="text-3xl font-display font-extrabold text-primary">
-                CASEC<span className="text-accent">.</span>
-              </h1>
+              <LogoOrText />
             </div>
 
             {/* Desktop Navigation */}
@@ -90,7 +96,7 @@ export default function Layout() {
               <div className="flex items-center space-x-3">
                 {user?.avatarUrl ? (
                   <img
-                    src={user.avatarUrl}
+                    src={getAssetUrl(user.avatarUrl)}
                     alt={`${user.firstName} ${user.lastName}`}
                     className="w-10 h-10 rounded-full object-cover border-2 border-primary"
                   />

@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Linkedin, Twitter, Award, Calendar, MapPin, Briefcase, Heart, Users } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
+import { useTheme } from '../components/ThemeProvider';
 
 export default function PublicProfile() {
+  const { theme } = useTheme();
+  const appName = theme?.organizationName || 'Community';
   const { userId } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
@@ -67,10 +70,10 @@ export default function PublicProfile() {
         <div className="card">
           <div className="flex flex-col md:flex-row gap-8">
             {/* Avatar and Social Links */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 text-center">
               {profile.avatarUrl ? (
                 <img
-                  src={profile.avatarUrl}
+                  src={getAssetUrl(profile.avatarUrl)}
                   alt={`${profile.firstName} ${profile.lastName}`}
                   className="w-48 h-48 rounded-2xl object-cover shadow-xl border-4 border-white"
                 />
@@ -79,19 +82,12 @@ export default function PublicProfile() {
                   {profile.firstName[0]}{profile.lastName[0]}
                 </div>
               )}
-  {profile.boardTitle && (
-                  <div className="flex items-center space-x-2 text-accent text-lg font-bold mt-2">
-                    <Award className="w-5 h-5" />
-                    <span>{profile.boardTitle}</span>
-                  </div>
-                )}
- {profile.profession && (
-                  <div className="flex items-center space-x-2 text-primary mt-1">
-                    <Briefcase className="w-4 h-4" />
-                    <span className="font-semibold">{profile.profession}</span>
-                  </div>
-                )}
-              
+
+              {/* Profession under avatar */}
+              {profile.profession && (
+                <p className="text-primary font-semibold text-lg mt-3">{profile.profession}</p>
+              )}
+
               {/* Social Links - under avatar */}
               {(profile.linkedInUrl || profile.twitterHandle) && (
                 <div className="flex justify-center space-x-3 mt-4">
@@ -126,8 +122,17 @@ export default function PublicProfile() {
               <div className="mb-6">
                 <h1 className="text-4xl font-display font-bold text-gray-900">
                   {profile.firstName} {profile.lastName}
+                  {profile.chineseName && (
+                    <span className="ml-3 text-3xl text-gray-600">({profile.chineseName})</span>
+                  )}
                 </h1>
-               
+                {profile.boardTitle && (
+                  <div className="flex items-center space-x-2 text-accent text-lg font-bold mt-2">
+                    <Award className="w-5 h-5" />
+                    <span>{profile.boardTitle}</span>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-4 mt-4">
                   {(profile.city || profile.state) && (
                     <div className="flex items-center space-x-2 text-gray-600">
@@ -157,7 +162,7 @@ export default function PublicProfile() {
                       >
                         {club.avatarUrl ? (
                           <img
-                            src={club.avatarUrl}
+                            src={getAssetUrl(club.avatarUrl)}
                             alt={club.name}
                             className="w-5 h-5 rounded-full object-cover"
                           />
@@ -202,7 +207,7 @@ export default function PublicProfile() {
               Board Leadership
             </h3>
             <p className="text-gray-700">
-              As {profile.boardTitle}, {profile.firstName} plays a vital role in guiding CASEC's
+              As {profile.boardTitle}, {profile.firstName} plays a vital role in guiding {appName}'s
               mission to build stronger community connections and foster meaningful relationships
               among our members.
             </p>

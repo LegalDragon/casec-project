@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, Edit, Trash2, Save, X, Users, DollarSign, Award,
-  Shield, Calendar, ChevronUp, ChevronDown, Check, XCircle
+  Shield, Calendar, ChevronUp, ChevronDown, Check, XCircle, Clock
 } from 'lucide-react';
-import api from '../../services/api';
+import api, { membershipDurationsAPI } from '../../services/api';
 
 export default function MembershipTypes() {
   const [membershipTypes, setMembershipTypes] = useState([]);
+  const [durations, setDurations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -23,9 +24,36 @@ export default function MembershipTypes() {
     isActive: true,
   });
 
+  // Duration management state
+  const [editingDurationId, setEditingDurationId] = useState(null);
+  const [showCreateDurationModal, setShowCreateDurationModal] = useState(false);
+  const [durationFormData, setDurationFormData] = useState({
+    name: '',
+    months: 12,
+    description: '',
+    displayOrder: 0,
+    isActive: true,
+  });
+
   useEffect(() => {
-    fetchMembershipTypes();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      const [typesRes, durationsRes] = await Promise.all([
+        api.get('/membershiptypes?includeInactive=true'),
+        membershipDurationsAPI.getAllAdmin()
+      ]);
+      if (typesRes.success) setMembershipTypes(typesRes.data);
+      if (durationsRes.success) setDurations(durationsRes.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      alert('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchMembershipTypes = async () => {
     try {
@@ -36,8 +64,17 @@ export default function MembershipTypes() {
     } catch (error) {
       console.error('Error fetching membership types:', error);
       alert('Failed to load membership types');
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchDurations = async () => {
+    try {
+      const response = await membershipDurationsAPI.getAllAdmin();
+      if (response.success) {
+        setDurations(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching durations:', error);
     }
   };
 
@@ -134,6 +171,81 @@ export default function MembershipTypes() {
   const cancelEdit = () => {
     setEditingId(null);
     resetForm();
+  };
+
+  // Duration CRUD functions
+  const handleCreateDuration = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await membershipDurationsAPI.create(durationFormData);
+      if (response.success) {
+        alert('Duration created successfully!');
+        setShowCreateDurationModal(false);
+        resetDurationForm();
+        fetchDurations();
+      }
+    } catch (error) {
+      console.error('Error creating duration:', error);
+      alert(error.message || 'Failed to create duration');
+    }
+  };
+
+  const handleUpdateDuration = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await membershipDurationsAPI.update(editingDurationId, durationFormData);
+      if (response.success) {
+        alert('Duration updated successfully!');
+        setEditingDurationId(null);
+        resetDurationForm();
+        fetchDurations();
+      }
+    } catch (error) {
+      console.error('Error updating duration:', error);
+      alert(error.message || 'Failed to update duration');
+    }
+  };
+
+  const handleDeleteDuration = async (id, name) => {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+      return;
+    }
+    try {
+      const response = await membershipDurationsAPI.delete(id);
+      if (response.success) {
+        alert(response.message || 'Duration deleted successfully!');
+        fetchDurations();
+      }
+    } catch (error) {
+      console.error('Error deleting duration:', error);
+      alert(error.message || 'Failed to delete duration');
+    }
+  };
+
+  const startEditDuration = (duration) => {
+    setEditingDurationId(duration.durationId);
+    setDurationFormData({
+      name: duration.name,
+      months: duration.months,
+      description: duration.description || '',
+      displayOrder: duration.displayOrder,
+      isActive: duration.isActive,
+    });
+  };
+
+  const resetDurationForm = () => {
+    setDurationFormData({
+      name: '',
+      months: 12,
+      description: '',
+      displayOrder: 0,
+      isActive: true,
+    });
+  };
+
+  const cancelEditDuration = () => {
+    setEditingDurationId(null);
+    resetDurationForm();
   };
 
   if (loading) {
@@ -379,6 +491,229 @@ export default function MembershipTypes() {
           >
             Create Membership Type
           </button>
+        </div>
+      )}
+
+      {/* Membership Durations Section */}
+      <div className="mt-12 pt-8 border-t">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Membership Durations</h2>
+            <p className="text-gray-600 mt-1">Configure available membership duration options (e.g., yearly periods)</p>
+          </div>
+          <button
+            onClick={() => setShowCreateDurationModal(true)}
+            className="btn btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Duration
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {durations.map((duration) => (
+            <div
+              key={duration.durationId}
+              className={`card ${!duration.isActive ? 'opacity-60 bg-gray-50' : ''}`}
+            >
+              {editingDurationId === duration.durationId ? (
+                /* Edit Duration Mode */
+                <form onSubmit={handleUpdateDuration} className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                    <input
+                      type="text"
+                      value={durationFormData.name}
+                      onChange={(e) => setDurationFormData({ ...durationFormData, name: e.target.value })}
+                      className="input w-full"
+                      required
+                      placeholder="e.g., 2025 Membership"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Months</label>
+                    <input
+                      type="number"
+                      value={durationFormData.months}
+                      onChange={(e) => setDurationFormData({ ...durationFormData, months: parseInt(e.target.value) || 12 })}
+                      className="input w-full"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={durationFormData.description}
+                      onChange={(e) => setDurationFormData({ ...durationFormData, description: e.target.value })}
+                      className="input w-full"
+                      placeholder="e.g., Jan 2025 - Dec 2025"
+                    />
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Order</label>
+                      <input
+                        type="number"
+                        value={durationFormData.displayOrder}
+                        onChange={(e) => setDurationFormData({ ...durationFormData, displayOrder: parseInt(e.target.value) || 0 })}
+                        className="input w-full"
+                      />
+                    </div>
+                    <div className="flex items-end pb-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={durationFormData.isActive}
+                          onChange={(e) => setDurationFormData({ ...durationFormData, isActive: e.target.checked })}
+                          className="rounded border-gray-300"
+                        />
+                        <span className="text-sm text-gray-700">Active</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button type="button" onClick={cancelEditDuration} className="btn btn-secondary text-sm">
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary text-sm">
+                      Save
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* View Duration Mode */
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Clock className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-gray-900">{duration.name}</h3>
+                          {!duration.isActive && (
+                            <span className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-xs font-medium">
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600">{duration.months} months</p>
+                      </div>
+                    </div>
+                  </div>
+                  {duration.description && (
+                    <p className="text-sm text-gray-500 mt-2">{duration.description}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t">
+                    <span className="text-xs text-gray-400">Order: {duration.displayOrder}</span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => startEditDuration(duration)}
+                        className="p-1.5 text-primary hover:bg-primary/10 rounded"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDuration(duration.durationId, duration.name)}
+                        className="p-1.5 text-red-600 hover:bg-red-100 rounded"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {durations.length === 0 && (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-gray-600 mb-1">No Durations Configured</h3>
+            <p className="text-gray-500 text-sm mb-3">Create durations for each membership year</p>
+            <button
+              onClick={() => setShowCreateDurationModal(true)}
+              className="btn btn-primary text-sm"
+            >
+              Add Duration
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Create Duration Modal */}
+      {showCreateDurationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Add Membership Duration</h2>
+              <form onSubmit={handleCreateDuration} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                  <input
+                    type="text"
+                    value={durationFormData.name}
+                    onChange={(e) => setDurationFormData({ ...durationFormData, name: e.target.value })}
+                    className="input w-full"
+                    required
+                    placeholder="e.g., 2025 Membership"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Name the duration period (e.g., year or season)</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Months) *</label>
+                  <input
+                    type="number"
+                    value={durationFormData.months}
+                    onChange={(e) => setDurationFormData({ ...durationFormData, months: parseInt(e.target.value) || 12 })}
+                    className="input w-full"
+                    min="1"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">How many months the membership lasts</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <input
+                    type="text"
+                    value={durationFormData.description}
+                    onChange={(e) => setDurationFormData({ ...durationFormData, description: e.target.value })}
+                    className="input w-full"
+                    placeholder="e.g., January 2025 - December 2025"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+                  <input
+                    type="number"
+                    value={durationFormData.displayOrder}
+                    onChange={(e) => setDurationFormData({ ...durationFormData, displayOrder: parseInt(e.target.value) || 0 })}
+                    className="input w-full"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateDurationModal(false);
+                      resetDurationForm();
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Create Duration
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
 

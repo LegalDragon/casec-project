@@ -12,6 +12,7 @@ public class CasecDbContext : DbContext
     // Core entities
     public DbSet<User> Users { get; set; }
     public DbSet<MembershipType> MembershipTypes { get; set; }
+    public DbSet<MembershipDuration> MembershipDurations { get; set; }
     public DbSet<MembershipPayment> MembershipPayments { get; set; }
     public DbSet<ActivityLog> ActivityLogs { get; set; }
     
@@ -23,6 +24,7 @@ public class CasecDbContext : DbContext
     // Event entities
     public DbSet<Event> Events { get; set; }
     public DbSet<EventRegistration> EventRegistrations { get; set; }
+    public DbSet<EventType> EventTypes { get; set; }
     
     // Family entities
     public DbSet<FamilyGroup> FamilyGroups { get; set; }
@@ -34,6 +36,23 @@ public class CasecDbContext : DbContext
 
     // Asset entities
     public DbSet<Asset> Assets { get; set; }
+
+    // Auth entities
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
+    // Poll entities
+    public DbSet<Poll> Polls { get; set; }
+    public DbSet<PollOption> PollOptions { get; set; }
+    public DbSet<PollResponse> PollResponses { get; set; }
+
+    // Survey entities
+    public DbSet<Survey> Surveys { get; set; }
+    public DbSet<SurveyQuestion> SurveyQuestions { get; set; }
+    public DbSet<SurveyResponse> SurveyResponses { get; set; }
+    public DbSet<SurveyAnswer> SurveyAnswers { get; set; }
+
+    // Payment configuration entities
+    public DbSet<PaymentMethod> PaymentMethods { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,14 +116,14 @@ public class CasecDbContext : DbContext
         modelBuilder.Entity<ClubMembership>(entity =>
         {
             entity.HasKey(e => e.MembershipId);
-            
+
             entity.HasOne(e => e.Club)
                 .WithMany(c => c.Memberships)
                 .HasForeignKey(e => e.ClubId)
                 .OnDelete(DeleteBehavior.Cascade);
-            
+
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.ClubMemberships)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -231,6 +250,174 @@ public class CasecDbContext : DbContext
             entity.HasIndex(e => e.UploadedBy);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Folder);
+        });
+
+        // PasswordResetToken entity configuration
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.HasKey(e => e.TokenId);
+            entity.Property(e => e.Token).IsRequired().HasMaxLength(100);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.Token).IsUnique();
+
+            // Configure table to work with database trigger
+            entity.ToTable(t => t.HasTrigger("TR_PasswordResetTokens_SendEmail"));
+        });
+
+        // EventType entity configuration
+        modelBuilder.Entity<EventType>(entity =>
+        {
+            entity.HasKey(e => e.EventTypeId);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(100);
+            entity.HasIndex(e => e.Code).IsUnique();
+        });
+
+        // Poll entity configuration
+        modelBuilder.Entity<Poll>(entity =>
+        {
+            entity.HasKey(e => e.PollId);
+            entity.Property(e => e.Question).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.PollType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Visibility).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsFeatured);
+        });
+
+        // PollOption entity configuration
+        modelBuilder.Entity<PollOption>(entity =>
+        {
+            entity.HasKey(e => e.OptionId);
+            entity.Property(e => e.OptionText).IsRequired().HasMaxLength(500);
+
+            entity.HasOne(e => e.Poll)
+                .WithMany(p => p.Options)
+                .HasForeignKey(e => e.PollId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.PollId);
+        });
+
+        // PollResponse entity configuration
+        modelBuilder.Entity<PollResponse>(entity =>
+        {
+            entity.HasKey(e => e.ResponseId);
+
+            entity.HasOne(e => e.Poll)
+                .WithMany(p => p.Responses)
+                .HasForeignKey(e => e.PollId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.PollId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.SessionId);
+        });
+
+        // Survey entity configuration
+        modelBuilder.Entity<Survey>(entity =>
+        {
+            entity.HasKey(e => e.SurveyId);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Visibility).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsFeatured);
+        });
+
+        // SurveyQuestion entity configuration
+        modelBuilder.Entity<SurveyQuestion>(entity =>
+        {
+            entity.HasKey(e => e.QuestionId);
+            entity.Property(e => e.QuestionText).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.QuestionType).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.Survey)
+                .WithMany(s => s.Questions)
+                .HasForeignKey(e => e.SurveyId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ConditionalOnQuestion)
+                .WithMany()
+                .HasForeignKey(e => e.ConditionalOnQuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.SurveyId);
+            entity.HasIndex(e => new { e.SurveyId, e.DisplayOrder });
+        });
+
+        // SurveyResponse entity configuration
+        modelBuilder.Entity<SurveyResponse>(entity =>
+        {
+            entity.HasKey(e => e.ResponseId);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.Survey)
+                .WithMany(s => s.Responses)
+                .HasForeignKey(e => e.SurveyId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.SurveyId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.SessionId);
+            entity.HasIndex(e => e.Status);
+        });
+
+        // SurveyAnswer entity configuration
+        modelBuilder.Entity<SurveyAnswer>(entity =>
+        {
+            entity.HasKey(e => e.AnswerId);
+
+            entity.HasOne(e => e.Response)
+                .WithMany(r => r.Answers)
+                .HasForeignKey(e => e.ResponseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.ResponseId);
+            entity.HasIndex(e => e.QuestionId);
+            entity.HasIndex(e => new { e.ResponseId, e.QuestionId }).IsUnique();
+        });
+
+        // PaymentMethod entity configuration
+        modelBuilder.Entity<PaymentMethod>(entity =>
+        {
+            entity.HasKey(e => e.PaymentMethodId);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.DisplayOrder);
         });
     }
 }

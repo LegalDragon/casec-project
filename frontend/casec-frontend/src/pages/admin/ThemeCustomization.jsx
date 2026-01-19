@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Palette, Upload, RotateCcw, Save, Eye, Sparkles } from 'lucide-react';
-import { themeAPI } from '../../services/api';
+import { Palette, Upload, RotateCcw, Save, Eye, Sparkles, Video, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { themeAPI, getAssetUrl } from '../../services/api';
 
 export default function ThemeCustomization() {
   const [theme, setTheme] = useState(null);
@@ -10,6 +10,59 @@ export default function ThemeCustomization() {
   const [logoFile, setLogoFile] = useState(null);
   const [faviconFile, setFaviconFile] = useState(null);
   const [previewMode, setPreviewMode] = useState(false);
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+
+  // Parse hero video URLs from JSON string
+  const getHeroVideos = () => {
+    if (!theme?.heroVideoUrls) return [];
+    try {
+      return JSON.parse(theme.heroVideoUrls);
+    } catch {
+      return [];
+    }
+  };
+
+  // Update hero videos in theme state
+  const setHeroVideos = (videos) => {
+    setTheme({ ...theme, heroVideoUrls: JSON.stringify(videos) });
+  };
+
+  // Add a new video URL
+  const addVideoUrl = () => {
+    if (!newVideoUrl.trim()) return;
+
+    // Validate URL format (YouTube or TikTok)
+    const isYouTube = newVideoUrl.includes('youtube.com') || newVideoUrl.includes('youtu.be');
+    const isTikTok = newVideoUrl.includes('tiktok.com');
+
+    if (!isYouTube && !isTikTok) {
+      alert('Please enter a valid YouTube or TikTok URL');
+      return;
+    }
+
+    const videos = getHeroVideos();
+    if (videos.includes(newVideoUrl.trim())) {
+      alert('This video URL is already added');
+      return;
+    }
+
+    setHeroVideos([...videos, newVideoUrl.trim()]);
+    setNewVideoUrl('');
+  };
+
+  // Remove a video URL
+  const removeVideoUrl = (index) => {
+    const videos = getHeroVideos();
+    videos.splice(index, 1);
+    setHeroVideos([...videos]);
+  };
+
+  // Get video type from URL
+  const getVideoType = (url) => {
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
+    if (url.includes('tiktok.com')) return 'TikTok';
+    return 'Video';
+  };
 
   useEffect(() => {
     loadTheme();
@@ -190,7 +243,7 @@ export default function ThemeCustomization() {
             </label>
             <div className="flex items-center space-x-3">
               {theme.logoUrl && (
-                <img src={theme.logoUrl} alt="Logo" className="h-12 w-auto" />
+                <img src={getAssetUrl(theme.logoUrl)} alt="Logo" className="h-12 w-auto" />
               )}
               <input
                 type="file"
@@ -219,7 +272,7 @@ export default function ThemeCustomization() {
             </label>
             <div className="flex items-center space-x-3">
               {theme.faviconUrl && (
-                <img src={theme.faviconUrl} alt="Favicon" className="h-8 w-8" />
+                <img src={getAssetUrl(theme.faviconUrl)} alt="Favicon" className="h-8 w-8" />
               )}
               <input
                 type="file"
@@ -241,6 +294,128 @@ export default function ThemeCustomization() {
             <p className="text-xs text-gray-500 mt-1">ICO, PNG, SVG (max 1MB)</p>
           </div>
         </div>
+      </div>
+
+      {/* Home Page Quote */}
+      <div className="card">
+        <h2 className="text-2xl font-bold mb-6 flex items-center space-x-2">
+          <Sparkles className="w-6 h-6 text-primary" />
+          <span>Home Page Quote</span>
+        </h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Inspirational Quote
+            </label>
+            <textarea
+              value={theme.homeQuote || ''}
+              onChange={(e) => setTheme({ ...theme, homeQuote: e.target.value })}
+              className="input w-full"
+              rows={3}
+              placeholder="Building bridges across cultures, creating connections that last a lifetime."
+            />
+            <p className="text-xs text-gray-500 mt-1">Main quote displayed on the home page (max 500 characters)</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Quote Subtext
+            </label>
+            <textarea
+              value={theme.homeQuoteSubtext || ''}
+              onChange={(e) => setTheme({ ...theme, homeQuoteSubtext: e.target.value })}
+              className="input w-full"
+              rows={2}
+              placeholder="Join our vibrant community celebrating heritage, fostering friendships, and making memories together."
+            />
+            <p className="text-xs text-gray-500 mt-1">Supporting text below the quote (max 500 characters)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero Background Videos */}
+      <div className="card">
+        <h2 className="text-2xl font-bold mb-6 flex items-center space-x-2">
+          <Video className="w-6 h-6 text-primary" />
+          <span>Hero Background Videos</span>
+        </h2>
+
+        <p className="text-gray-600 mb-4">
+          Add YouTube or TikTok video URLs to display as background videos on the home page hero section.
+          A random video will be selected each time the page loads.
+        </p>
+
+        {/* Add new video URL */}
+        <div className="flex gap-3 mb-4">
+          <input
+            type="url"
+            value={newVideoUrl}
+            onChange={(e) => setNewVideoUrl(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addVideoUrl()}
+            className="input flex-1"
+            placeholder="Paste YouTube or TikTok URL..."
+          />
+          <button
+            onClick={addVideoUrl}
+            className="btn btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Video
+          </button>
+        </div>
+
+        {/* List of videos */}
+        <div className="space-y-2">
+          {getHeroVideos().length === 0 ? (
+            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+              <Video className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-500">No hero videos added yet</p>
+              <p className="text-sm text-gray-400">Add YouTube or TikTok URLs above</p>
+            </div>
+          ) : (
+            getHeroVideos().map((url, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+              >
+                <div className="flex-shrink-0">
+                  <span className={`px-2 py-1 text-xs font-medium rounded ${
+                    getVideoType(url) === 'YouTube'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-black text-white'
+                  }`}>
+                    {getVideoType(url)}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 truncate">{url}</p>
+                </div>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-gray-500 hover:text-primary transition-colors"
+                  title="Open video"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+                <button
+                  onClick={() => removeVideoUrl(index)}
+                  className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+                  title="Remove video"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        <p className="text-xs text-gray-500 mt-4">
+          Tip: For best results, use videos that work well as muted background content.
+          Videos will play automatically, muted, and loop continuously.
+        </p>
       </div>
 
       {/* Color Presets */}

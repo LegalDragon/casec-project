@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, DollarSign, Users, ExternalLink, Sparkles, Megaphone, Handshake, Building2, Eye } from 'lucide-react';
-import { eventsAPI, clubsAPI } from '../services/api';
+import { Calendar, MapPin, DollarSign, Users, ExternalLink, Sparkles, Megaphone, Handshake, Building2, ImageIcon } from 'lucide-react';
+import { eventsAPI, clubsAPI, eventTypesAPI, getAssetUrl } from '../services/api';
+import { useTheme } from '../components/ThemeProvider';
 
 export default function EnhancedEvents() {
+  const { theme } = useTheme();
+  const appName = theme?.organizationName || 'Community';
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,12 +17,25 @@ export default function EnhancedEvents() {
   const [dateTo, setDateTo] = useState('');
   const [categories, setCategories] = useState([]);
   const [clubs, setClubs] = useState([]);
+  const [eventTypes, setEventTypes] = useState([]);
 
   useEffect(() => {
     loadEvents();
     loadCategories();
     loadClubs();
+    loadEventTypes();
   }, []);
+
+  const loadEventTypes = async () => {
+    try {
+      const response = await eventTypesAPI.getAll();
+      if (response.success && response.data) {
+        setEventTypes(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to load event types:', err);
+    }
+  };
 
   useEffect(() => {
     filterEvents();
@@ -116,13 +132,33 @@ export default function EnhancedEvents() {
   };
 
   const getEventTypeInfo = (type) => {
-    const types = {
-      'CasecEvent': { icon: '🎉', color: 'bg-primary', textColor: 'text-primary', label: 'CASEC Event' },
-      'ClubEvent': { icon: '👥', color: 'bg-purple-600', textColor: 'text-purple-600', label: 'Club Event' },
-      'PartnerEvent': { icon: '🤝', color: 'bg-blue-600', textColor: 'text-blue-600', label: 'Partner Event' },
-      'Announcement': { icon: '📢', color: 'bg-amber-600', textColor: 'text-amber-600', label: 'Announcement' }
+    // Find the event type from API data
+    const foundType = eventTypes.find(et => et.code === type);
+    if (foundType) {
+      // Map API color to Tailwind classes
+      const colorMap = {
+        'primary': { color: 'bg-primary', textColor: 'text-primary' },
+        'accent': { color: 'bg-accent', textColor: 'text-accent' },
+        'info': { color: 'bg-blue-600', textColor: 'text-blue-600' },
+        'success': { color: 'bg-green-600', textColor: 'text-green-600' },
+        'warning': { color: 'bg-amber-600', textColor: 'text-amber-600' },
+        'error': { color: 'bg-red-600', textColor: 'text-red-600' },
+        'gray': { color: 'bg-gray-600', textColor: 'text-gray-600' },
+      };
+      const colors = colorMap[foundType.color] || colorMap['primary'];
+      return {
+        icon: foundType.icon || 'Calendar',
+        label: foundType.displayName,
+        ...colors
+      };
+    }
+    // Fallback defaults
+    const defaults = {
+      'CasecEvent': { icon: 'Calendar', color: 'bg-primary', textColor: 'text-primary', label: 'Community Event' },
+      'PartnerEvent': { icon: 'Handshake', color: 'bg-accent', textColor: 'text-accent', label: 'Partner Event' },
+      'Announcement': { icon: 'Megaphone', color: 'bg-amber-600', textColor: 'text-amber-600', label: 'Announcement' }
     };
-    return types[type] || types['CasecEvent'];
+    return defaults[type] || defaults['CasecEvent'];
   };
 
   const clearFilters = () => {
@@ -142,7 +178,7 @@ export default function EnhancedEvents() {
       {/* Header */}
       <div>
         <h1 className="text-4xl font-display font-bold text-gray-900 mb-2">Community Events</h1>
-        <p className="text-gray-600 text-lg">Discover CASEC events, partner opportunities, and community announcements</p>
+        <p className="text-gray-600 text-lg">Discover {appName} events, partner opportunities, and community announcements</p>
       </div>
 
       {/* Filters */}
@@ -157,7 +193,7 @@ export default function EnhancedEvents() {
               className="input w-full"
             >
               <option value="all">All Types</option>
-              <option value="CasecEvent">🎉 CASEC Events</option>
+              <option value="CasecEvent">🎉 {appName} Events</option>
               <option value="ClubEvent">👥 Club Events</option>
               <option value="PartnerEvent">🤝 Partner Events</option>
               <option value="Announcement">📢 Announcements</option>
@@ -188,7 +224,7 @@ export default function EnhancedEvents() {
               className="input w-full"
             >
               <option value="all">All Clubs</option>
-              <option value="casec">CASEC Organization</option>
+              <option value="casec">{appName} Organization</option>
               {clubs.map(club => (
                 <option key={club.clubId} value={club.clubId}>{club.name}</option>
               ))}
@@ -235,7 +271,7 @@ export default function EnhancedEvents() {
             )}
             {selectedClub !== 'all' && (
               <span className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
-                {selectedClub === 'casec' ? 'CASEC' : clubs.find(c => c.clubId.toString() === selectedClub)?.name}
+                {selectedClub === 'casec' ? appName : clubs.find(c => c.clubId.toString() === selectedClub)?.name}
                 <button onClick={() => setSelectedClub('all')} className="ml-2">×</button>
               </span>
             )}
@@ -256,7 +292,7 @@ export default function EnhancedEvents() {
       </div>
 
       {/* Events Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {filteredEvents.map((event) => {
           const eventDate = new Date(event.eventDate);
           const typeInfo = getEventTypeInfo(event.eventType);
@@ -264,132 +300,141 @@ export default function EnhancedEvents() {
           return (
             <div
               key={event.eventId}
-              className={`card ${event.isFeatured ? 'ring-4 ring-accent shadow-2xl' : ''} border-l-4 ${typeInfo.color}`}
+              className={`rounded-xl ${event.isFeatured ? 'ring-4 ring-accent shadow-2xl' : 'shadow-lg'} overflow-hidden relative bg-gradient-to-r from-gray-800 via-gray-700 to-gray-600`}
             >
-              {/* Featured Badge */}
-              {event.isFeatured && (
-                <div className="absolute top-4 right-4 bg-accent text-white px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
-                  <Sparkles className="w-3 h-3" />
-                  <span>Featured</span>
+              <div className="flex flex-col sm:flex-row">
+                {/* Thumbnail - full width on mobile, fixed width on desktop */}
+                <div className="flex-shrink-0 w-full sm:w-40 md:w-48">
+                  <Link to={`/events/${event.eventId}`} className="block">
+                    {event.thumbnailUrl ? (
+                      <img
+                        src={getAssetUrl(event.thumbnailUrl)}
+                        alt={event.title}
+                        className="w-full h-48 sm:h-full sm:min-h-[280px] object-cover hover:opacity-90 transition-opacity"
+                      />
+                    ) : (
+                      <div className="w-full h-48 sm:h-full sm:min-h-[280px] bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
+                        <ImageIcon className="w-12 h-12 text-white/50" />
+                      </div>
+                    )}
+                  </Link>
                 </div>
-              )}
 
-              {/* Event Type Badge */}
-              <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-bold mb-4 ${typeInfo.color} text-white`}>
-                <span>{typeInfo.icon}</span>
-                <span>{typeInfo.label}</span>
-              </div>
+                {/* Content */}
+                <div className="flex-1 p-4 sm:p-5 flex flex-col">
+                  {/* Featured Badge */}
+                  {event.isFeatured && (
+                    <div className="absolute top-3 right-3 bg-accent text-white px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
+                      <Sparkles className="w-3 h-3" />
+                      <span>Featured</span>
+                    </div>
+                  )}
 
-              {/* Header with Date */}
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{event.title}</h3>
+                  {/* Title */}
+                  <Link
+                    to={`/events/${event.eventId}`}
+                    className="text-lg sm:text-xl font-display font-bold text-white hover:text-accent transition-colors leading-tight block mb-2"
+                    title="Click to view event details"
+                  >
+                    {event.title}
+                  </Link>
+
+                  {/* Event Type Badge and Date */}
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-bold ${typeInfo.color} text-white`}>
+                      <span>{typeInfo.icon}</span>
+                      <span>{typeInfo.label}</span>
+                    </div>
+                    <div className="text-center bg-white/20 rounded-lg px-2 py-1 flex-shrink-0">
+                      <div className="text-lg font-bold leading-none text-white">{eventDate.getDate()}</div>
+                      <div className="text-xs text-white/80">{eventDate.toLocaleDateString('default', { month: 'short' })}</div>
+                    </div>
+                  </div>
+
+                  {/* Category and Club badges */}
                   <div className="flex flex-wrap gap-2 mb-2">
                     {event.eventCategory && (
-                      <span className="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-semibold">
+                      <span className="inline-block px-2 py-1 bg-white/20 text-white rounded text-xs font-semibold">
                         {event.eventCategory}
                       </span>
                     )}
                     {event.hostClubName && (
-                      <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
+                      <span className="inline-flex items-center px-2 py-1 bg-white/20 text-white rounded text-xs font-semibold">
                         <Building2 className="w-3 h-3 mr-1" />
                         {event.hostClubName}
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-600 text-sm mt-2 line-clamp-2">{event.description}</p>
-                </div>
-                <div className="text-center bg-primary text-white rounded-lg p-3 ml-4 flex-shrink-0">
-                  <div className="text-2xl font-bold">{eventDate.getDate()}</div>
-                  <div className="text-xs">{eventDate.toLocaleDateString('default', { month: 'short' })}</div>
-                </div>
-              </div>
 
-              {/* Partner Info */}
-              {event.partnerName && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Handshake className="w-4 h-4 text-blue-600" />
-                    <span className="font-semibold text-blue-900">Partner Event</span>
-                  </div>
-                  <p className="text-sm text-blue-800">Hosted by {event.partnerName}</p>
-                  {event.partnerWebsite && (
-                    <a
-                      href={event.partnerWebsite}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline flex items-center space-x-1 mt-1"
-                    >
-                      <span>Visit website</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
-                </div>
-              )}
+                  {/* Description */}
+                  <p className="text-white/80 text-sm mb-3 line-clamp-2 flex-grow">{event.description}</p>
 
-              {/* Event Details */}
-              <div className="space-y-2 text-sm text-gray-600 mb-4">
-                {event.location && (
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>{event.location}</span>
-                  </div>
-                )}
-                <div className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>{eventDate.toLocaleString()}</span>
-                </div>
-                {event.isRegistrationRequired && (
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-4 h-4" />
-                    <span>{event.spotsRemaining} spots remaining</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Button */}
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="flex items-center gap-3">
-                  {event.eventType !== 'Announcement' && (
-                    <div className="text-2xl font-bold text-accent flex items-center">
-                      <DollarSign className="w-5 h-5" />
-                      {event.eventFee}
+                  {/* Partner Info */}
+                  {event.partnerName && (
+                    <div className="bg-white/10 rounded-lg p-2 mb-3">
+                      <div className="flex items-center space-x-2">
+                        <Handshake className="w-4 h-4 text-white" />
+                        <span className="text-sm text-white">Hosted by {event.partnerName}</span>
+                      </div>
                     </div>
                   )}
-                  <Link
-                    to={`/events/${event.eventId}`}
-                    className="text-primary hover:text-primary-dark flex items-center gap-1 text-sm font-medium"
-                  >
-                    <Eye className="w-4 h-4" />
-                    View Details
-                  </Link>
-                </div>
 
-                {/* Different buttons based on event type */}
-                {event.eventType === 'Announcement' ? (
-                  <div className="flex items-center space-x-2 text-amber-600">
-                    <Megaphone className="w-5 h-5" />
-                    <span className="font-semibold">Information Only</span>
+                  {/* Event Details */}
+                  <div className="space-y-1 text-sm text-white/80 mb-3">
+                    {event.location && (
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-white" />
+                        <span>{event.location}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-white" />
+                      <span>{eventDate.toLocaleString()}</span>
+                    </div>
+                    {event.isRegistrationRequired && (
+                      <div className="flex items-center space-x-2">
+                        <Users className="w-4 h-4 text-white" />
+                        <span>{event.spotsRemaining} spots remaining</span>
+                      </div>
+                    )}
                   </div>
-                ) : event.eventType === 'PartnerEvent' && event.registrationUrl ? (
-                  <button
-                    onClick={() => handleRegister(event.eventId, event.eventType, event.registrationUrl)}
-                    className="btn bg-blue-600 text-white hover:bg-blue-700 flex items-center space-x-2"
-                  >
-                    <span>Register on Partner Site</span>
-                    <ExternalLink className="w-4 h-4" />
-                  </button>
-                ) : event.isRegistrationRequired ? (
-                  <button
-                    onClick={() => handleRegister(event.eventId, event.eventType)}
-                    disabled={event.isUserRegistered || event.spotsRemaining === 0}
-                    className={`btn ${event.isUserRegistered ? 'btn-secondary' : 'btn-accent'}`}
-                  >
-                    {event.isUserRegistered ? '✓ Registered' : event.spotsRemaining === 0 ? 'Full' : 'Register'}
-                  </button>
-                ) : (
-                  <span className="text-green-600 font-semibold">No Registration Required</span>
-                )}
+
+                  {/* Action Button */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/20 mt-auto">
+                    {event.eventType !== 'Announcement' && (
+                      <div className="text-lg sm:text-xl font-bold text-accent flex items-center">
+                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                        {event.eventFee}
+                      </div>
+                    )}
+
+                    {/* Different buttons based on event type */}
+                    {event.eventType === 'Announcement' ? (
+                      <div className="flex items-center space-x-2 text-amber-400">
+                        <Megaphone className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="font-semibold text-xs sm:text-sm">Information Only</span>
+                      </div>
+                    ) : event.eventType === 'PartnerEvent' && event.registrationUrl ? (
+                      <button
+                        onClick={() => handleRegister(event.eventId, event.eventType, event.registrationUrl)}
+                        className="btn bg-blue-500 text-white hover:bg-blue-600 flex items-center space-x-2 text-xs sm:text-sm py-2"
+                      >
+                        <span>Partner Site</span>
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
+                    ) : event.isRegistrationRequired ? (
+                      <button
+                        onClick={() => handleRegister(event.eventId, event.eventType)}
+                        disabled={event.isUserRegistered || event.spotsRemaining === 0}
+                        className={`btn text-xs sm:text-sm py-2 ${event.isUserRegistered ? 'bg-green-500 text-white' : 'btn-accent'}`}
+                      >
+                        {event.isUserRegistered ? '✓ Registered' : event.spotsRemaining === 0 ? 'Full' : 'Register'}
+                      </button>
+                    ) : (
+                      <span className="text-green-400 font-semibold text-xs sm:text-sm">No Registration Required</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           );

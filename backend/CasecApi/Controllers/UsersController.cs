@@ -11,7 +11,7 @@ using CasecApi.Services;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Authorize]
 public class UsersController : ControllerBase
 {
@@ -59,6 +59,7 @@ public class UsersController : ControllerBase
                 UserId = user.UserId,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
+                ChineseName = user.ChineseName,
                 Email = user.Email,
                 PhoneNumber = user.PhoneNumber,
                 Address = user.Address,
@@ -68,6 +69,9 @@ public class UsersController : ControllerBase
                 Profession = user.Profession,
                 Hobbies = user.Hobbies,
                 Bio = user.Bio,
+                Gender = user.Gender,
+                DateOfBirth = user.DateOfBirth,
+                MaritalStatus = user.MaritalStatus,
                 AvatarUrl = user.AvatarUrl,
                 MembershipTypeId = user.MembershipTypeId,
                 MembershipTypeName = user.MembershipType?.Name,
@@ -97,8 +101,50 @@ public class UsersController : ControllerBase
         }
     }
 
+    // GET: api/Users (Admin only - list all users)
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<List<UserListDto>>>> GetAllUsers()
+    {
+        try
+        {
+            var users = await _context.Users
+                .Include(u => u.MembershipType)
+                .OrderBy(u => u.LastName)
+                .ThenBy(u => u.FirstName)
+                .Select(u => new UserListDto
+                {
+                    UserId = u.UserId,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Email = u.Email,
+                    AvatarUrl = u.AvatarUrl,
+                    MembershipTypeName = u.MembershipType != null ? u.MembershipType.Name : null,
+                    IsAdmin = u.IsAdmin,
+                    IsActive = u.IsActive,
+                    MemberSince = u.MemberSince
+                })
+                .ToListAsync();
+
+            return Ok(new ApiResponse<List<UserListDto>>
+            {
+                Success = true,
+                Data = users
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching all users");
+            return StatusCode(500, new ApiResponse<List<UserListDto>>
+            {
+                Success = false,
+                Message = "An error occurred while fetching users"
+            });
+        }
+    }
+
     // PUT: api/Users/profile
-    [HttpPost("profile")]
+    [HttpPut("profile")]
     public async Task<ActionResult<ApiResponse<UserProfileDto>>> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
         try
@@ -117,6 +163,7 @@ public class UsersController : ControllerBase
 
             user.FirstName = request.FirstName ?? user.FirstName;
             user.LastName = request.LastName ?? user.LastName;
+            user.ChineseName = request.ChineseName;
             user.PhoneNumber = request.PhoneNumber;
             user.Address = request.Address;
             user.City = request.City;
@@ -125,6 +172,9 @@ public class UsersController : ControllerBase
             user.Profession = request.Profession;
             user.Hobbies = request.Hobbies;
             user.Bio = request.Bio;
+            user.Gender = request.Gender;
+            user.DateOfBirth = request.DateOfBirth;
+            user.MaritalStatus = request.MaritalStatus;
             user.LinkedInUrl = request.LinkedInUrl;
             user.TwitterHandle = request.TwitterHandle;
             user.UpdatedAt = DateTime.UtcNow;
@@ -175,10 +225,10 @@ public class UsersController : ControllerBase
                 });
             }
 
-            // Delete old avatar asset if exists (by parsing FileId from URL /api/asset/{id})
-            if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/api/asset/"))
+            // Delete old avatar asset if exists (by parsing FileId from URL /asset/{id})
+            if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/asset/"))
             {
-                var oldFileIdStr = user.AvatarUrl.Replace("/api/asset/", "");
+                var oldFileIdStr = user.AvatarUrl.Replace("/asset/", "");
                 if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
                     await _assetService.DeleteAssetAsync(oldFileId);
@@ -203,7 +253,7 @@ public class UsersController : ControllerBase
                 });
             }
 
-            // Update user avatar URL (now saves as /api/asset/{id})
+            // Update user avatar URL (now saves as /asset/{id})
             user.AvatarUrl = uploadResult.Url;
             user.UpdatedAt = DateTime.UtcNow;
 
@@ -227,20 +277,22 @@ public class UsersController : ControllerBase
         }
     }
 
-    // GET: api/Users/all (Admin only)
+    // GET: api/Users/all (Admin only - detailed view)
     [Authorize(Roles = "Admin")]
     [HttpGet("all")]
-    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetAllUsers()
+    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetAllUsersDetailed()
     {
         try
         {
             var users = await _context.Users
                 .Include(u => u.MembershipType)
+                .Include(u => u.ClubMemberships)
                 .Select(u => new UserDto
                 {
                     UserId = u.UserId,
                     FirstName = u.FirstName,
                     LastName = u.LastName,
+                    ChineseName = u.ChineseName,
                     Email = u.Email,
                     PhoneNumber = u.PhoneNumber,
                     AvatarUrl = u.AvatarUrl,
@@ -251,7 +303,8 @@ public class UsersController : ControllerBase
                     BoardTitle = u.BoardTitle,
                     BoardDisplayOrder = u.BoardDisplayOrder,
                     MemberSince = u.MemberSince,
-                    IsActive = u.IsActive
+                    IsActive = u.IsActive,
+                    ClubIds = u.ClubMemberships.Select(cm => cm.ClubId).ToList()
                 })
                 .OrderBy(u => u.LastName)
                 .ToListAsync();
@@ -291,17 +344,20 @@ public class UsersController : ControllerBase
                 });
             }
 
-            // Update basic info
+            // Update basic info (admin-editable fields only)
             if (!string.IsNullOrEmpty(request.FirstName))
                 user.FirstName = request.FirstName;
             if (!string.IsNullOrEmpty(request.LastName))
                 user.LastName = request.LastName;
+            if (request.ChineseName != null)
+                user.ChineseName = request.ChineseName;
             if (!string.IsNullOrEmpty(request.Email))
                 user.Email = request.Email;
-            
-            user.PhoneNumber = request.PhoneNumber;
-            user.Profession = request.Profession;
-            user.Bio = request.Bio;
+            if (request.PhoneNumber != null)
+                user.PhoneNumber = request.PhoneNumber;
+
+            // Note: Profile fields (address, city, profession, bio, etc.) are only
+            // editable by the user themselves through UpdateProfile endpoint
 
             // Update membership type
             if (request.MembershipTypeId.HasValue)
@@ -314,10 +370,12 @@ public class UsersController : ControllerBase
             // Update board member information
             if (request.IsBoardMember.HasValue)
                 user.IsBoardMember = request.IsBoardMember.Value;
-            
-            user.BoardTitle = request.BoardTitle;
-            user.BoardDisplayOrder = request.BoardDisplayOrder;
-            user.BoardBio = request.BoardBio;
+            if (request.BoardTitle != null)
+                user.BoardTitle = request.BoardTitle;
+            if (request.BoardDisplayOrder.HasValue)
+                user.BoardDisplayOrder = request.BoardDisplayOrder;
+            if (request.BoardBio != null)
+                user.BoardBio = request.BoardBio;
             
             // Update active status
             if (request.IsActive.HasValue)
@@ -398,6 +456,7 @@ public class UsersController : ControllerBase
                     UserId = u.UserId,
                     FirstName = u.FirstName,
                     LastName = u.LastName,
+                    ChineseName = u.ChineseName,
                     AvatarUrl = u.AvatarUrl,
                     Profession = u.Profession,
                     Hobbies = u.Hobbies,
@@ -445,6 +504,7 @@ public class UsersController : ControllerBase
                     UserId = u.UserId,
                     FirstName = u.FirstName,
                     LastName = u.LastName,
+                    ChineseName = u.ChineseName,
                     AvatarUrl = u.AvatarUrl,
                     BoardTitle = u.BoardTitle,
                     BoardBio = u.BoardBio,
@@ -509,6 +569,7 @@ public class UsersController : ControllerBase
                 UserId = user.UserId,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
+                ChineseName = user.ChineseName,
                 AvatarUrl = user.AvatarUrl,
                 Profession = user.Profession,
                 Hobbies = user.Hobbies,

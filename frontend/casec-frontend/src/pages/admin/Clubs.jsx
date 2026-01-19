@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, Edit, Trash2, Search, Users, Shield, ShieldOff,
-  Calendar, Mail, Image, X, UserPlus, CheckCircle, XCircle
+  Calendar, Mail, Image, X, UserPlus, CheckCircle, XCircle, ArrowUpDown
 } from 'lucide-react';
-import { clubsAPI } from '../../services/api';
-import api from '../../services/api';
+import { clubsAPI, usersAPI, getAssetUrl } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 
 export default function AdminClubs() {
@@ -15,11 +14,13 @@ export default function AdminClubs() {
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name'); // name, members, date
 
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingClub, setEditingClub] = useState(null);
   const [managingMembers, setManagingMembers] = useState(null);
+  const [loadingMembers, setLoadingMembers] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(null);
 
   // Form data
@@ -59,7 +60,7 @@ export default function AdminClubs() {
 
   const fetchAllUsers = async () => {
     try {
-      const response = await api.get('/users');
+      const response = await usersAPI.getAll();
       setAllUsers(response.data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -174,15 +175,46 @@ export default function AdminClubs() {
     }
   };
 
-  const filteredClubs = clubs.filter(club =>
+  const handleManageAdmins = async (club) => {
+    setLoadingMembers(true);
+    setManagingMembers(club); // Show modal immediately with basic info
+    try {
+      // Fetch full club details including members
+      const response = await clubsAPI.getById(club.clubId);
+      setManagingMembers(response.data);
+    } catch (error) {
+      console.error('Error fetching club details:', error);
+      alert('Failed to load club members');
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  // Sort clubs
+  const sortClubs = (clubList) => {
+    return [...clubList].sort((a, b) => {
+      switch (sortBy) {
+        case 'members':
+          return (b.totalMembers || 0) - (a.totalMembers || 0);
+        case 'date':
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'name':
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+  };
+
+  const filteredClubs = sortClubs(clubs.filter(club =>
     club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (club.description && club.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  ));
 
-  // Get users who are not already admins of the selected club
+  // Get club members who are not already admins of the selected club
   const getAvailableUsersForAdmin = (club) => {
     const adminUserIds = club.admins?.map(a => a.userId) || [];
-    return allUsers.filter(u => !adminUserIds.includes(u.userId) && u.isActive);
+    // Only show club members who are not already admins
+    return (club.members || []).filter(m => !adminUserIds.includes(m.userId));
   };
 
   if (loading) {
@@ -209,16 +241,30 @@ export default function AdminClubs() {
         )}
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-        <input
-          type="text"
-          placeholder="Search clubs by name or description..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input pl-10 w-full"
-        />
+      {/* Search and Sort */}
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search clubs by name or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input pl-10 w-full"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="input w-40"
+          >
+            <option value="name">Name (A-Z)</option>
+            <option value="members">Most Members</option>
+            <option value="date">Newest First</option>
+          </select>
+        </div>
       </div>
 
       {/* Clubs Grid */}
@@ -230,7 +276,7 @@ export default function AdminClubs() {
               <div className="flex items-center gap-3">
                 {club.avatarUrl ? (
                   <img
-                    src={club.avatarUrl}
+                    src={getAssetUrl(club.avatarUrl)}
                     alt={club.name}
                     className="w-12 h-12 rounded-full object-cover"
                   />
@@ -312,7 +358,7 @@ export default function AdminClubs() {
               {isSystemAdmin && (
                 <>
                   <button
-                    onClick={() => setManagingMembers(club)}
+                    onClick={() => handleManageAdmins(club)}
                     className="btn btn-secondary btn-sm flex items-center gap-1"
                   >
                     <UserPlus className="w-3 h-3" />
@@ -532,7 +578,7 @@ export default function AdminClubs() {
                       <div key={admin.userId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
                           {admin.avatarUrl ? (
-                            <img src={admin.avatarUrl} alt="" className="w-8 h-8 rounded-full" />
+                            <img src={getAssetUrl(admin.avatarUrl)} alt="" className="w-8 h-8 rounded-full" />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
                               <Shield className="w-4 h-4 text-purple-600" />
@@ -562,29 +608,37 @@ export default function AdminClubs() {
               <div>
                 <h3 className="text-lg font-semibold mb-3">Add New Admin</h3>
                 <p className="text-sm text-gray-500 mb-3">
-                  Note: User must be a club member before they can be assigned as admin.
+                  Select a club member to promote to admin.
                 </p>
                 <div className="max-h-60 overflow-y-auto space-y-2">
-                  {getAvailableUsersForAdmin(managingMembers).map((u) => (
-                    <div key={u.userId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
-                          {u.firstName[0]}{u.lastName[0]}
+                  {loadingMembers ? (
+                    <p className="text-gray-500 text-center py-4">Loading members...</p>
+                  ) : getAvailableUsersForAdmin(managingMembers).length > 0 ? (
+                    getAvailableUsersForAdmin(managingMembers).map((member) => (
+                      <div key={member.userId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
+                            {member.firstName?.[0]}{member.lastName?.[0]}
+                          </div>
+                          <div>
+                            <p className="font-medium">{member.firstName} {member.lastName}</p>
+                            <p className="text-sm text-gray-500">{member.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{u.firstName} {u.lastName}</p>
-                          <p className="text-sm text-gray-500">{u.email}</p>
-                        </div>
+                        <button
+                          onClick={() => handleAssignAdmin(managingMembers.clubId, member.userId)}
+                          className="btn btn-sm btn-primary flex items-center gap-1"
+                        >
+                          <UserPlus className="w-3 h-3" />
+                          Assign
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleAssignAdmin(managingMembers.clubId, u.userId)}
-                        className="btn btn-sm btn-primary flex items-center gap-1"
-                      >
-                        <UserPlus className="w-3 h-3" />
-                        Assign
-                      </button>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">
+                      No club members available to assign as admin.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -613,7 +667,7 @@ export default function AdminClubs() {
               <div className="text-center mb-4">
                 {uploadingAvatar.avatarUrl ? (
                   <img
-                    src={uploadingAvatar.avatarUrl}
+                    src={getAssetUrl(uploadingAvatar.avatarUrl)}
                     alt="Current avatar"
                     className="w-24 h-24 rounded-full object-cover mx-auto mb-2"
                   />

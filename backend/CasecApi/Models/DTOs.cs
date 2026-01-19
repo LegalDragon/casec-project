@@ -15,6 +15,9 @@ public class RegisterRequest
     public string? Profession { get; set; }
     public string? Hobbies { get; set; }
     public string? Bio { get; set; }
+    public string? Gender { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? MaritalStatus { get; set; }
     public int MembershipTypeId { get; set; }
     public List<FamilyMemberDto>? FamilyMembers { get; set; }
 }
@@ -23,6 +26,17 @@ public class LoginRequest
 {
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+}
+
+public class ForgotPasswordRequest
+{
+    public string Email { get; set; } = string.Empty;
+}
+
+public class ResetPasswordRequest
+{
+    public string Token { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }
 
 public class LoginResponse
@@ -37,6 +51,7 @@ public class UserDto
     public int UserId { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string? ChineseName { get; set; }
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; }
@@ -46,6 +61,9 @@ public class UserDto
     public string? Profession { get; set; }
     public string? Hobbies { get; set; }
     public string? Bio { get; set; }
+    public string? Gender { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? MaritalStatus { get; set; }
     public string? AvatarUrl { get; set; }
     public int MembershipTypeId { get; set; }
     public string MembershipTypeName { get; set; } = string.Empty;
@@ -55,13 +73,28 @@ public class UserDto
     public int? BoardDisplayOrder { get; set; }
     public bool IsActive { get; set; }
     public DateTime MemberSince { get; set; }
+    public List<int> ClubIds { get; set; } = new();
     public List<FamilyMemberDto>? FamilyMembers { get; set; }
+}
+
+public class UserListDto
+{
+    public int UserId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
+    public string? MembershipTypeName { get; set; }
+    public bool IsAdmin { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime MemberSince { get; set; }
 }
 
 public class UpdateProfileRequest
 {
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
+    public string? ChineseName { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }
@@ -70,6 +103,9 @@ public class UpdateProfileRequest
     public string? Profession { get; set; }
     public string? Hobbies { get; set; }
     public string? Bio { get; set; }
+    public string? Gender { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? MaritalStatus { get; set; }
     public string? LinkedInUrl { get; set; }
     public string? TwitterHandle { get; set; }
 }
@@ -181,9 +217,9 @@ public class EventDto
     public string? Description { get; set; }
     public DateTime EventDate { get; set; }
     public string? Location { get; set; }
-    public string EventType { get; set; } = "CasecEvent";
+    public string? EventType { get; set; }
     public string? EventCategory { get; set; }
-    public string EventScope { get; set; } = "AllMembers";
+    public string? EventScope { get; set; }
     public int? HostClubId { get; set; }
     public string? HostClubName { get; set; }
     public string? HostClubAvatar { get; set; }
@@ -191,15 +227,17 @@ public class EventDto
     public string? PartnerLogo { get; set; }
     public string? PartnerWebsite { get; set; }
     public string? RegistrationUrl { get; set; }
-    public decimal EventFee { get; set; }
-    public int MaxCapacity { get; set; }
-    public bool IsRegistrationRequired { get; set; }
-    public bool IsFeatured { get; set; }
-    public int RegisteredCount { get; set; }
-    public int TotalRegistrations { get; set; }
-    public int SpotsRemaining { get; set; }
-    public bool IsUserRegistered { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public decimal? EventFee { get; set; }
+    public int? MaxCapacity { get; set; }
+    public bool? IsRegistrationRequired { get; set; }
+    public bool? IsFeatured { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? SourceUrl { get; set; }
+    public int? RegisteredCount { get; set; }
+    public int? TotalRegistrations { get; set; }
+    public int? SpotsRemaining { get; set; }
+    public bool? IsUserRegistered { get; set; }
+    public DateTime? CreatedAt { get; set; }
 }
 
 public class CreateEventRequest
@@ -208,18 +246,20 @@ public class CreateEventRequest
     public string? Description { get; set; }
     public DateTime EventDate { get; set; }
     public string? Location { get; set; }
-    public string EventType { get; set; } = "CasecEvent";
+    public string? EventType { get; set; }
     public string? EventCategory { get; set; }
-    public string EventScope { get; set; } = "AllMembers";
+    public string? EventScope { get; set; }
     public int? HostClubId { get; set; }
     public string? PartnerName { get; set; }
     public string? PartnerLogo { get; set; }
     public string? PartnerWebsite { get; set; }
     public string? RegistrationUrl { get; set; }
-    public decimal EventFee { get; set; } = 0;
-    public int MaxCapacity { get; set; } = 0;
-    public bool IsRegistrationRequired { get; set; } = true;
-    public bool IsFeatured { get; set; } = false;
+    public decimal? EventFee { get; set; }
+    public int? MaxCapacity { get; set; }
+    public bool? IsRegistrationRequired { get; set; }
+    public bool? IsFeatured { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? SourceUrl { get; set; }
 }
 
 public class UpdateEventRequest
@@ -240,6 +280,13 @@ public class UpdateEventRequest
     public int? MaxCapacity { get; set; }
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? SourceUrl { get; set; }
+}
+
+public class ThumbnailFromUrlRequest
+{
+    public string ImageUrl { get; set; } = string.Empty;
 }
 
 public class RegisterEventRequest
@@ -305,6 +352,7 @@ public class ClubDetailDto
     public bool IsActive { get; set; }
     public int TotalMembers { get; set; }
     public List<ClubAdminDto> Admins { get; set; } = new();
+    public List<ClubMemberDto> Members { get; set; } = new();
     public bool IsUserMember { get; set; }
     public bool IsUserAdmin { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -317,6 +365,17 @@ public class ClubAdminDto
     public string Email { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public DateTime AssignedDate { get; set; }
+}
+
+public class ClubMemberDto
+{
+    public int UserId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
+    public DateTime JoinedDate { get; set; }
+    public bool IsAdmin { get; set; }
 }
 
 
@@ -369,6 +428,7 @@ public class UserProfileDto
     public int UserId { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string? ChineseName { get; set; }
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; }
@@ -378,6 +438,9 @@ public class UserProfileDto
     public string? Profession { get; set; }
     public string? Hobbies { get; set; }
     public string? Bio { get; set; }
+    public string? Gender { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? MaritalStatus { get; set; }
     public string? AvatarUrl { get; set; }
     public int MembershipTypeId { get; set; }
     public string? MembershipTypeName { get; set; }
@@ -403,7 +466,21 @@ public class EventRegistrationRequest
     public int NumberOfGuests { get; set; } = 0;
 }
 
-// Event Type Info DTO
+// Event Type DTO
+public class EventTypeDto
+{
+    public int EventTypeId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
+    public bool AllowsRegistration { get; set; } = true;
+    public bool IsActive { get; set; } = true;
+    public int DisplayOrder { get; set; }
+}
+
+// Event Type Info DTO (backwards compatible)
 public class EventTypeInfo
 {
     public string Type { get; set; } = string.Empty;
@@ -412,6 +489,30 @@ public class EventTypeInfo
     public string Icon { get; set; } = string.Empty;
     public string Color { get; set; } = string.Empty;
     public bool AllowsRegistration { get; set; } = true;
+}
+
+// Create/Update Event Type Request DTO
+public class CreateEventTypeRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
+    public bool AllowsRegistration { get; set; } = true;
+    public int DisplayOrder { get; set; }
+}
+
+public class UpdateEventTypeRequest
+{
+    public string? Code { get; set; }
+    public string? DisplayName { get; set; }
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
+    public bool? AllowsRegistration { get; set; }
+    public bool? IsActive { get; set; }
+    public int? DisplayOrder { get; set; }
 }
 
 // Theme Settings DTO
@@ -457,7 +558,14 @@ public class ThemeSettingsDto
     
     // Custom CSS
     public string? CustomCss { get; set; }
-    
+
+    // Home Page Quote
+    public string? HomeQuote { get; set; }
+    public string? HomeQuoteSubtext { get; set; }
+
+    // Hero video URLs (JSON array of YouTube/TikTok URLs)
+    public string? HeroVideoUrls { get; set; }
+
     public bool IsActive { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -501,9 +609,16 @@ public class UpdateThemeRequest
     // Typography
     public string? FontFamily { get; set; }
     public string? HeadingFontFamily { get; set; }
-    
+
     // Custom CSS
     public string? CustomCss { get; set; }
+
+    // Home Page Quote
+    public string? HomeQuote { get; set; }
+    public string? HomeQuoteSubtext { get; set; }
+
+    // Hero video URLs (JSON array of YouTube/TikTok URLs)
+    public string? HeroVideoUrls { get; set; }
 }
 
 // Theme Preset DTO
@@ -533,6 +648,7 @@ public class AdminEditUserRequest
 {
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
+    public string? ChineseName { get; set; }
     public string? Email { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; }
@@ -542,6 +658,9 @@ public class AdminEditUserRequest
     public string? Profession { get; set; }
     public string? Hobbies { get; set; }
     public string? Bio { get; set; }
+    public string? Gender { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? MaritalStatus { get; set; }
     public int? MembershipTypeId { get; set; }
     public bool? IsAdmin { get; set; }
     public bool? IsBoardMember { get; set; }
@@ -560,6 +679,7 @@ public class BoardMemberDto
     public int UserId { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string? ChineseName { get; set; }
     public string Email { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public string? Profession { get; set; }
@@ -577,6 +697,7 @@ public class PublicProfileDto
     public int UserId { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string? ChineseName { get; set; }
     public string? AvatarUrl { get; set; }
     public string? Profession { get; set; }
     public string? Hobbies { get; set; }
@@ -650,9 +771,9 @@ public class EventDetailDto
     public string? Description { get; set; }
     public DateTime EventDate { get; set; }
     public string? Location { get; set; }
-    public string EventType { get; set; } = "CasecEvent";
+    public string? EventType { get; set; }
     public string? EventCategory { get; set; }
-    public string EventScope { get; set; } = "AllMembers";
+    public string? EventScope { get; set; }
     public int? HostClubId { get; set; }
     public string? HostClubName { get; set; }
     public string? HostClubAvatar { get; set; }
@@ -660,15 +781,179 @@ public class EventDetailDto
     public string? PartnerLogo { get; set; }
     public string? PartnerWebsite { get; set; }
     public string? RegistrationUrl { get; set; }
-    public decimal EventFee { get; set; }
-    public int MaxCapacity { get; set; }
-    public bool IsRegistrationRequired { get; set; }
-    public bool IsFeatured { get; set; }
-    public int TotalRegistrations { get; set; }
-    public int SpotsRemaining { get; set; }
-    public bool IsUserRegistered { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public decimal? EventFee { get; set; }
+    public int? MaxCapacity { get; set; }
+    public bool? IsRegistrationRequired { get; set; }
+    public bool? IsFeatured { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? SourceUrl { get; set; }
+    public int? TotalRegistrations { get; set; }
+    public int? SpotsRemaining { get; set; }
+    public bool? IsUserRegistered { get; set; }
+    public DateTime? CreatedAt { get; set; }
     public List<EventAssetDto> Photos { get; set; } = new();
     public List<EventAssetDto> Documents { get; set; } = new();
     public List<EventRegistrantDto> Registrants { get; set; } = new();
+}
+
+// ============ MEMBERSHIP PAYMENT DTOs ============
+
+// Membership Payment DTO
+public class MembershipPaymentDto
+{
+    public int PaymentId { get; set; }
+    public int UserId { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string? UserEmail { get; set; }
+    public string? UserAvatarUrl { get; set; }
+    public int MembershipTypeId { get; set; }
+    public string MembershipTypeName { get; set; } = string.Empty;
+    public int? DurationId { get; set; }
+    public string? DurationName { get; set; }
+    public int? DurationMonths { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime PaymentDate { get; set; }
+    public string PaymentMethod { get; set; } = "Zelle";
+    public string? TransactionId { get; set; }
+    public string Status { get; set; } = "Pending";
+    public string? ProofOfPaymentUrl { get; set; }
+    public string PaymentScope { get; set; } = "Self";
+    public int? ConfirmedBy { get; set; }
+    public string? ConfirmedByName { get; set; }
+    public DateTime? ConfirmedAt { get; set; }
+    public string? RejectionReason { get; set; }
+    public DateTime ValidFrom { get; set; }
+    public DateTime ValidUntil { get; set; }
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public List<int>? CoveredFamilyMemberIds { get; set; }
+    public List<FamilyMemberSummaryDto>? CoveredFamilyMembers { get; set; }
+    // For linked users - shows who paid for their membership
+    public bool IsCoveredByFamilyPayment { get; set; } = false;
+    public string? PaidByUserName { get; set; }
+    public int? PaidByUserId { get; set; }
+}
+
+// Family Member Summary DTO (for payment coverage display)
+public class FamilyMemberSummaryDto
+{
+    public int UserId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
+    public string? Email { get; set; }
+    public string? Relationship { get; set; }
+}
+
+// Membership Duration DTO
+public class MembershipDurationDto
+{
+    public int DurationId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Months { get; set; }
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+// Create/Update Duration Request DTO
+public class CreateDurationRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public int Months { get; set; }
+    public string? Description { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int DisplayOrder { get; set; } = 0;
+}
+
+// Submit Payment Request DTO
+public class SubmitPaymentRequest
+{
+    public int MembershipTypeId { get; set; }
+    public int DurationId { get; set; } // Required - selected duration
+    public decimal Amount { get; set; }
+    public string PaymentMethod { get; set; } = "Zelle";
+    public string? TransactionId { get; set; }
+    public DateTime PaymentDate { get; set; }
+    public string PaymentScope { get; set; } = "Self"; // Self or Family
+    public string? Notes { get; set; }
+}
+
+// Admin Confirm Payment Request DTO
+public class ConfirmPaymentRequest
+{
+    public bool Approve { get; set; }
+    public string? RejectionReason { get; set; }
+    public DateTime? ValidFrom { get; set; }
+    public DateTime? ValidUntil { get; set; }
+    public List<int>? FamilyMemberIds { get; set; } // User IDs to apply family membership to
+    public string? Notes { get; set; }
+}
+
+// Admin Update Linked Users Request DTO
+public class UpdateLinkedUsersRequest
+{
+    public List<int>? FamilyMemberIds { get; set; }
+}
+
+// User Membership Status DTO
+public class MembershipStatusDto
+{
+    public int UserId { get; set; }
+    public string MembershipTypeName { get; set; } = string.Empty;
+    public decimal MembershipPrice { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime? MembershipValidUntil { get; set; }
+    public bool IsExpired { get; set; }
+    public bool IsExpiringSoon { get; set; } // Within 30 days
+    public int DaysUntilExpiration { get; set; }
+    public MembershipPaymentDto? LatestPayment { get; set; }
+    public MembershipPaymentDto? PendingPayment { get; set; }
+    public List<MembershipPaymentDto> PaymentHistory { get; set; } = new();
+    public List<FamilyMemberSummaryDto> FamilyMembers { get; set; } = new();
+}
+
+// Payment Methods DTO
+public class PaymentMethodDto
+{
+    public int PaymentMethodId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Instructions { get; set; }
+    public string? Icon { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int DisplayOrder { get; set; }
+}
+
+// Create Payment Method Request DTO
+public class CreatePaymentMethodRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Instructions { get; set; }
+    public string? Icon { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int DisplayOrder { get; set; }
+}
+
+// Update Payment Method Request DTO
+public class UpdatePaymentMethodRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Instructions { get; set; }
+    public string? Icon { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int DisplayOrder { get; set; }
+}
+
+// URL Metadata DTO (for fetching Open Graph data from URLs)
+public class UrlMetadataDto
+{
+    public string Url { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? SiteName { get; set; }
+    public List<string> Images { get; set; } = new();
 }

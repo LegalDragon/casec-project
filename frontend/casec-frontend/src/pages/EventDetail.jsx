@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, Calendar, MapPin, Users, DollarSign, Building2, Star,
-  Tag, Clock, Image, FileText, Download, ExternalLink, UserCheck
+  Tag, Clock, Image, FileText, Download, ExternalLink, UserCheck, UserX
 } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl, eventTypesAPI } from '../services/api';
 import { useAuthStore } from '../store/useStore';
 
 export default function EventDetail() {
@@ -15,18 +15,49 @@ export default function EventDetail() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
+  const [unregistering, setUnregistering] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-
-  const eventTypes = {
-    'CasecEvent': { label: 'CASEC Event', icon: '🎉', color: 'bg-primary' },
-    'ClubEvent': { label: 'Club Event', icon: '👥', color: 'bg-blue-500' },
-    'PartnerEvent': { label: 'Partner Event', icon: '🤝', color: 'bg-purple-500' },
-    'Announcement': { label: 'Announcement', icon: '📢', color: 'bg-yellow-500' },
-  };
+  const [eventTypes, setEventTypes] = useState({});
 
   useEffect(() => {
     fetchEventDetail();
+    fetchEventTypes();
   }, [eventId]);
+
+  const fetchEventTypes = async () => {
+    try {
+      const response = await eventTypesAPI.getAll();
+      if (response.success && response.data) {
+        // Convert array to object format
+        const colorMap = {
+          'primary': 'bg-primary',
+          'accent': 'bg-accent',
+          'info': 'bg-blue-500',
+          'success': 'bg-green-500',
+          'warning': 'bg-yellow-500',
+          'error': 'bg-red-500',
+          'gray': 'bg-gray-500',
+        };
+        const typesObj = {};
+        response.data.forEach(et => {
+          typesObj[et.code] = {
+            label: et.displayName,
+            icon: et.icon || 'Calendar',
+            color: colorMap[et.color] || 'bg-primary',
+          };
+        });
+        setEventTypes(typesObj);
+      }
+    } catch (err) {
+      console.error('Failed to load event types:', err);
+      // Fallback defaults
+      setEventTypes({
+        'CasecEvent': { label: 'Community Event', icon: 'Calendar', color: 'bg-primary' },
+        'PartnerEvent': { label: 'Partner Event', icon: 'Handshake', color: 'bg-accent' },
+        'Announcement': { label: 'Announcement', icon: 'Megaphone', color: 'bg-yellow-500' },
+      });
+    }
+  };
 
   const fetchEventDetail = async () => {
     try {
@@ -63,6 +94,26 @@ export default function EventDetail() {
       alert(error.message || 'Failed to register for event');
     } finally {
       setRegistering(false);
+    }
+  };
+
+  const handleUnregister = async () => {
+    if (!confirm('Are you sure you want to unregister from this event?')) {
+      return;
+    }
+
+    setUnregistering(true);
+    try {
+      const response = await api.post(`/events/${eventId}/unregister`);
+      if (response.success) {
+        alert('Successfully unregistered from event');
+        fetchEventDetail();
+      }
+    } catch (error) {
+      console.error('Error unregistering:', error);
+      alert(error.message || 'Failed to unregister from event');
+    } finally {
+      setUnregistering(false);
     }
   };
 
@@ -118,6 +169,17 @@ export default function EventDetail() {
         Back to Events
       </button>
 
+      {/* Event Thumbnail Banner */}
+      {event.thumbnailUrl && (
+        <div className="rounded-xl overflow-hidden shadow-lg">
+          <img
+            src={getAssetUrl(event.thumbnailUrl)}
+            alt={event.title}
+            className="w-full h-64 md:h-80 object-cover"
+          />
+        </div>
+      )}
+
       {/* Event Hero */}
       <div className="card">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -166,59 +228,81 @@ export default function EventDetail() {
             </div>
           </div>
 
-          {/* Registration Card */}
-          <div className="md:w-64 bg-gray-50 rounded-lg p-4">
-            <div className="text-center mb-4">
-              <p className="text-3xl font-bold text-primary">
-                {event.eventFee > 0 ? `$${event.eventFee}` : 'Free'}
-              </p>
-              {event.isRegistrationRequired && (
-                <p className="text-sm text-gray-500">
-                  {event.spotsRemaining} spots remaining
+          {/* Registration Card - only show for upcoming events */}
+          {!isPastEvent && (
+            <div className="md:w-64 bg-gray-50 rounded-lg p-4">
+              <div className="text-center mb-4">
+                <p className="text-3xl font-bold text-primary">
+                  {event.eventFee > 0 ? `$${event.eventFee}` : 'Free'}
                 </p>
+                {event.isRegistrationRequired && (
+                  <p className="text-sm text-gray-500">
+                    {event.spotsRemaining} spots remaining
+                  </p>
+                )}
+              </div>
+
+              {canRegister && (
+                <button
+                  onClick={handleRegister}
+                  disabled={registering}
+                  className="btn btn-primary w-full mb-3"
+                >
+                  {registering ? 'Registering...' : 'Register Now'}
+                </button>
               )}
+
+              {event.isUserRegistered && (
+                <div className="mb-3">
+                  <div className="flex items-center justify-center gap-2 text-green-600 font-medium mb-2">
+                    <UserCheck className="w-5 h-5" />
+                    You're registered!
+                  </div>
+                  <button
+                    onClick={handleUnregister}
+                    disabled={unregistering}
+                    className="btn w-full bg-red-100 text-red-700 hover:bg-red-200 flex items-center justify-center gap-2"
+                  >
+                    <UserX className="w-4 h-4" />
+                    {unregistering ? 'Unregistering...' : 'Unregister'}
+                  </button>
+                </div>
+              )}
+
+              {event.registrationUrl && (
+                <a
+                  href={event.registrationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary w-full flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  External Registration
+                </a>
+              )}
+
+              <div className="mt-4 pt-4 border-t border-gray-200 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Capacity</span>
+                  <span className="font-medium">{event.maxCapacity || 'Unlimited'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Registered</span>
+                  <span className="font-medium">{event.totalRegistrations}</span>
+                </div>
+              </div>
             </div>
+          )}
 
-            {canRegister && (
-              <button
-                onClick={handleRegister}
-                disabled={registering}
-                className="btn btn-primary w-full mb-3"
-              >
-                {registering ? 'Registering...' : 'Register Now'}
-              </button>
-            )}
-
-            {event.isUserRegistered && (
-              <div className="flex items-center justify-center gap-2 text-green-600 font-medium mb-3">
+          {/* Past Event Attendance Badge */}
+          {isPastEvent && event.isUserRegistered && (
+            <div className="md:w-64 bg-green-50 rounded-lg p-4">
+              <div className="flex items-center justify-center gap-2 text-green-600 font-medium">
                 <UserCheck className="w-5 h-5" />
-                You're registered!
-              </div>
-            )}
-
-            {event.registrationUrl && (
-              <a
-                href={event.registrationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-secondary w-full flex items-center justify-center gap-2"
-              >
-                <ExternalLink className="w-4 h-4" />
-                External Registration
-              </a>
-            )}
-
-            <div className="mt-4 pt-4 border-t border-gray-200 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Capacity</span>
-                <span className="font-medium">{event.maxCapacity || 'Unlimited'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Registered</span>
-                <span className="font-medium">{event.totalRegistrations}</span>
+                You attended!
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Description */}
@@ -229,13 +313,42 @@ export default function EventDetail() {
           </div>
         )}
 
+        {/* External Source Link */}
+        {event.sourceUrl && (
+          <div className="mt-6 pt-6 border-t">
+            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <ExternalLink className="w-5 h-5 text-primary" />
+              Event Source
+            </h3>
+            <a
+              href={event.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-4 p-4 bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/20 rounded-xl hover:from-primary/10 hover:to-accent/10 hover:border-primary/30 transition-all group"
+            >
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <ExternalLink className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 group-hover:text-primary transition-colors">
+                  View Original Event Details
+                </p>
+                <p className="text-sm text-gray-500 truncate">
+                  {event.sourceUrl}
+                </p>
+              </div>
+              <ExternalLink className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors flex-shrink-0" />
+            </a>
+          </div>
+        )}
+
         {/* Partner Info */}
         {event.eventType === 'PartnerEvent' && event.partnerName && (
           <div className="mt-6 pt-6 border-t">
             <h3 className="font-semibold text-gray-900 mb-3">Partner Information</h3>
             <div className="flex items-center gap-4">
               {event.partnerLogo && (
-                <img src={event.partnerLogo} alt={event.partnerName} className="h-12 w-auto" />
+                <img src={getAssetUrl(event.partnerLogo)} alt={event.partnerName} className="h-12 w-auto" />
               )}
               <div>
                 <p className="font-medium text-gray-900">{event.partnerName}</p>
@@ -270,7 +383,7 @@ export default function EventDetail() {
                 onClick={() => setSelectedPhoto(photo)}
               >
                 <img
-                  src={photo.url}
+                  src={getAssetUrl(photo.url)}
                   alt={photo.caption || photo.fileName}
                   className="w-full h-32 object-cover rounded-lg transition-transform group-hover:scale-105"
                 />
@@ -306,7 +419,7 @@ export default function EventDetail() {
                   </div>
                 </div>
                 <a
-                  href={doc.url}
+                  href={getAssetUrl(doc.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 text-gray-600 hover:text-primary"
@@ -335,7 +448,7 @@ export default function EventDetail() {
               >
                 {registrant.avatarUrl ? (
                   <img
-                    src={registrant.avatarUrl}
+                    src={getAssetUrl(registrant.avatarUrl)}
                     alt={`${registrant.firstName} ${registrant.lastName}`}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -360,13 +473,12 @@ export default function EventDetail() {
 
       {/* Photo Modal */}
       {selectedPhoto && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4"
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedPhoto(null)}
         >
           <div className="relative max-w-4xl max-h-full">
             <img
-              src={selectedPhoto.url}
+              src={getAssetUrl(selectedPhoto.url)}
               alt={selectedPhoto.caption || selectedPhoto.fileName}
               className="max-w-full max-h-[80vh] object-contain rounded-lg"
             />

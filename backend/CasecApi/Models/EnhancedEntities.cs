@@ -17,15 +17,19 @@ public class User
     [MaxLength(100)]
     public string LastName { get; set; } = string.Empty;
 
+    [MaxLength(100)]
+    public string? ChineseName { get; set; }
+
     [Required]
     [EmailAddress]
     [MaxLength(255)]
     public string Email { get; set; } = string.Empty;
 
     [Required]
+    [MaxLength(255)]
     public string PasswordHash { get; set; } = string.Empty;
 
-    [MaxLength(20)]
+    [MaxLength(30)]
     public string? PhoneNumber { get; set; }
 
     [MaxLength(255)]
@@ -43,10 +47,20 @@ public class User
     [MaxLength(100)]
     public string? Profession { get; set; }
 
-    [MaxLength(255)]
+    [MaxLength(500)]
     public string? Hobbies { get; set; }
 
+    [MaxLength(4000)]
     public string? Bio { get; set; }
+
+    // Personal info
+    [MaxLength(20)]
+    public string? Gender { get; set; }
+
+    public DateTime? DateOfBirth { get; set; }
+
+    [MaxLength(30)]
+    public string? MaritalStatus { get; set; }
 
     [MaxLength(500)]
     public string? AvatarUrl { get; set; }
@@ -59,9 +73,10 @@ public class User
 
     public int? BoardDisplayOrder { get; set; }
 
+    [MaxLength(4000)]
     public string? BoardBio { get; set; }
 
-    [MaxLength(100)]
+    [MaxLength(255)]
     public string? LinkedInUrl { get; set; }
 
     [MaxLength(100)]
@@ -80,6 +95,9 @@ public class User
 
     public DateTime MemberSince { get; set; } = DateTime.UtcNow;
 
+    // Membership validity tracking
+    public DateTime? MembershipValidUntil { get; set; }
+
     public DateTime? LastLoginAt { get; set; }
 
     public bool IsActive { get; set; } = true;
@@ -91,8 +109,10 @@ public class User
     // Navigation properties
     [ForeignKey("MembershipTypeId")]
     public virtual MembershipType? MembershipType { get; set; }
-    
+
     public virtual FamilyGroup? FamilyGroup { get; set; }
+
+    public virtual ICollection<ClubMembership> ClubMemberships { get; set; } = new List<ClubMembership>();
 }
 
 // MembershipType Entity
@@ -137,7 +157,31 @@ public class MembershipType
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
-// MembershipPayment Entity
+// MembershipDuration Entity - Defines available membership duration options
+public class MembershipDuration
+{
+    [Key]
+    public int DurationId { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty; // e.g., "1 Year", "2 Years"
+
+    [Required]
+    public int Months { get; set; } // Duration in months
+
+    public string? Description { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// MembershipPayment Entity - Enhanced for payment tracking workflow
 public class MembershipPayment
 {
     [Key]
@@ -149,6 +193,9 @@ public class MembershipPayment
     [Required]
     public int MembershipTypeId { get; set; }
 
+    // Duration selected for this payment
+    public int? DurationId { get; set; }
+
     [Required]
     [Column(TypeName = "decimal(10, 2)")]
     public decimal Amount { get; set; }
@@ -157,18 +204,45 @@ public class MembershipPayment
     public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
 
     [MaxLength(50)]
-    public string? PaymentMethod { get; set; }
+    public string PaymentMethod { get; set; } = "Zelle";
 
     [MaxLength(100)]
     public string? TransactionId { get; set; }
 
+    // Payment status: Pending, Confirmed, Rejected
+    [Required]
+    [MaxLength(50)]
+    public string Status { get; set; } = "Pending";
+
+    // URL to uploaded proof of payment (image or PDF)
+    [MaxLength(500)]
+    public string? ProofOfPaymentUrl { get; set; }
+
+    // For family memberships - tracks if this payment is for self only or includes family
+    [MaxLength(50)]
+    public string PaymentScope { get; set; } = "Self"; // Self, Family
+
+    // Admin who confirmed the payment
+    public int? ConfirmedBy { get; set; }
+
+    public DateTime? ConfirmedAt { get; set; }
+
+    // If rejected, reason for rejection
+    public string? RejectionReason { get; set; }
+
+    // Membership validity period
     public DateTime ValidFrom { get; set; }
 
     public DateTime ValidUntil { get; set; }
 
+    // For annual renewal tracking
+    public int? RenewalOfPaymentId { get; set; }
+
     public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
     [ForeignKey("UserId")]
@@ -176,6 +250,18 @@ public class MembershipPayment
 
     [ForeignKey("MembershipTypeId")]
     public virtual MembershipType? MembershipType { get; set; }
+
+    [ForeignKey("DurationId")]
+    public virtual MembershipDuration? Duration { get; set; }
+
+    [ForeignKey("ConfirmedBy")]
+    public virtual User? ConfirmedByUser { get; set; }
+
+    [ForeignKey("RenewalOfPaymentId")]
+    public virtual MembershipPayment? RenewalOfPayment { get; set; }
+
+    // Family members covered by this payment (stored as JSON array of user IDs)
+    public string? CoveredFamilyMemberIds { get; set; }
 }
 
 // Club Entity
@@ -281,13 +367,13 @@ public class Event
     public string? Location { get; set; }
 
     [MaxLength(50)]
-    public string EventType { get; set; } = "CasecEvent";
+    public string? EventType { get; set; } = "CasecEvent";
 
     [MaxLength(100)]
     public string? EventCategory { get; set; }
 
     [MaxLength(50)]
-    public string EventScope { get; set; } = "AllMembers";
+    public string? EventScope { get; set; } = "AllMembers";
 
     public int? HostClubId { get; set; }
 
@@ -304,15 +390,21 @@ public class Event
     public string? RegistrationUrl { get; set; }
 
     [Column(TypeName = "decimal(10, 2)")]
-    public decimal EventFee { get; set; } = 0;
+    public decimal? EventFee { get; set; } = 0;
 
-    public int MaxCapacity { get; set; } = 0;
+    public int? MaxCapacity { get; set; } = 0;
 
-    public bool IsRegistrationRequired { get; set; } = true;
+    public bool? IsRegistrationRequired { get; set; } = true;
 
-    public bool IsFeatured { get; set; } = false;
+    public bool? IsFeatured { get; set; } = false;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [MaxLength(500)]
+    public string? ThumbnailUrl { get; set; }
+
+    [MaxLength(1000)]
+    public string? SourceUrl { get; set; }
+
+    public DateTime? CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
     [ForeignKey("HostClubId")]
@@ -487,6 +579,15 @@ public class ThemeSettings
 
     public string? CustomCss { get; set; }
 
+    [MaxLength(500)]
+    public string? HomeQuote { get; set; }
+
+    [MaxLength(500)]
+    public string? HomeQuoteSubtext { get; set; }
+
+    // Hero video URLs (JSON array of YouTube/TikTok URLs)
+    public string? HeroVideoUrls { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public int? UpdatedBy { get; set; }
@@ -628,4 +729,460 @@ public class FamilyMember
     // Navigation properties
     [ForeignKey("UserId")]
     public virtual User? User { get; set; }
+}
+
+// PasswordResetToken Entity
+public class PasswordResetToken
+{
+    [Key]
+    public int TokenId { get; set; }
+
+    [Required]
+    public int UserId { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string Token { get; set; } = string.Empty;
+
+    [Required]
+    public DateTime ExpiresAt { get; set; }
+
+    public bool IsUsed { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("UserId")]
+    public virtual User? User { get; set; }
+}
+
+// EventType Entity - Configurable event types managed by admin
+public class EventType
+{
+    [Key]
+    public int EventTypeId { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string Code { get; set; } = string.Empty; // e.g., "CasecEvent", "PartnerEvent"
+
+    [Required]
+    [MaxLength(100)]
+    public string DisplayName { get; set; } = string.Empty; // e.g., "CASEC Event"
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    [MaxLength(50)]
+    public string? Icon { get; set; } // Lucide icon name
+
+    [MaxLength(20)]
+    public string? Color { get; set; } // Tailwind color class or hex
+
+    public bool AllowsRegistration { get; set; } = true;
+
+    public bool IsActive { get; set; } = true;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// Poll Entity - For collecting feedback from visitors and members
+public class Poll
+{
+    [Key]
+    public int PollId { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string Question { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? Description { get; set; }
+
+    // Poll type: SingleChoice, MultipleChoice, Rating, Text
+    [Required]
+    [MaxLength(50)]
+    public string PollType { get; set; } = "SingleChoice";
+
+    // Who can respond: Anyone, MembersOnly
+    [Required]
+    [MaxLength(50)]
+    public string Visibility { get; set; } = "Anyone";
+
+    // Allow anonymous responses from logged-in members
+    public bool AllowAnonymous { get; set; } = true;
+
+    // Show results to voters after they vote
+    public bool ShowResultsToVoters { get; set; } = true;
+
+    // Allow changing vote
+    public bool AllowChangeVote { get; set; } = false;
+
+    // Maximum selections for MultipleChoice
+    public int? MaxSelections { get; set; }
+
+    // For Rating type: min and max values
+    public int? RatingMin { get; set; } = 1;
+    public int? RatingMax { get; set; } = 5;
+
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
+
+    // Status: Draft, Active, Closed
+    [Required]
+    [MaxLength(50)]
+    public string Status { get; set; } = "Draft";
+
+    public bool IsFeatured { get; set; } = false;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public int? CreatedBy { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("CreatedBy")]
+    public virtual User? CreatedByUser { get; set; }
+
+    public virtual ICollection<PollOption> Options { get; set; } = new List<PollOption>();
+    public virtual ICollection<PollResponse> Responses { get; set; } = new List<PollResponse>();
+}
+
+// PollOption Entity - Options for polls
+public class PollOption
+{
+    [Key]
+    public int OptionId { get; set; }
+
+    [Required]
+    public int PollId { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string OptionText { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? ImageUrl { get; set; }
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("PollId")]
+    public virtual Poll? Poll { get; set; }
+}
+
+// PollResponse Entity - Responses/votes for polls
+public class PollResponse
+{
+    [Key]
+    public int ResponseId { get; set; }
+
+    [Required]
+    public int PollId { get; set; }
+
+    // For SingleChoice/MultipleChoice - the selected option(s)
+    // Stored as comma-separated option IDs for multiple choice
+    public string? SelectedOptionIds { get; set; }
+
+    // For Rating type
+    public int? RatingValue { get; set; }
+
+    // For Text type
+    [MaxLength(4000)]
+    public string? TextResponse { get; set; }
+
+    // User who responded (null for anonymous visitors)
+    public int? UserId { get; set; }
+
+    // If user chose to be anonymous (only for logged-in users)
+    public bool IsAnonymous { get; set; } = false;
+
+    // For tracking anonymous/visitor responses
+    [MaxLength(100)]
+    public string? SessionId { get; set; }
+
+    [MaxLength(50)]
+    public string? IpAddress { get; set; }
+
+    public DateTime RespondedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("PollId")]
+    public virtual Poll? Poll { get; set; }
+
+    [ForeignKey("UserId")]
+    public virtual User? User { get; set; }
+}
+
+// Survey Entity - Multi-question surveys for collecting detailed feedback
+public class Survey
+{
+    [Key]
+    public int SurveyId { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string Title { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? Description { get; set; }
+
+    // Who can respond: Anyone, MembersOnly
+    [Required]
+    [MaxLength(50)]
+    public string Visibility { get; set; } = "Anyone";
+
+    // Allow anonymous responses from logged-in members
+    public bool AllowAnonymous { get; set; } = true;
+
+    // Show results to respondents after completing
+    public bool ShowResultsToRespondents { get; set; } = false;
+
+    // Allow editing responses after submission
+    public bool AllowEditResponse { get; set; } = false;
+
+    // Require all questions to be answered
+    public bool RequireAllQuestions { get; set; } = false;
+
+    // Show progress indicator
+    public bool ShowProgressBar { get; set; } = true;
+
+    // Randomize question order
+    public bool RandomizeQuestions { get; set; } = false;
+
+    // Limit one response per user/session
+    public bool OneResponsePerUser { get; set; } = true;
+
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
+
+    // Status: Draft, Active, Closed
+    [Required]
+    [MaxLength(50)]
+    public string Status { get; set; } = "Draft";
+
+    public bool IsFeatured { get; set; } = false;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    // Thank you message shown after completion
+    [MaxLength(1000)]
+    public string? ThankYouMessage { get; set; }
+
+    // Redirect URL after completion (optional)
+    [MaxLength(500)]
+    public string? RedirectUrl { get; set; }
+
+    public int? CreatedBy { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("CreatedBy")]
+    public virtual User? CreatedByUser { get; set; }
+
+    public virtual ICollection<SurveyQuestion> Questions { get; set; } = new List<SurveyQuestion>();
+    public virtual ICollection<SurveyResponse> Responses { get; set; } = new List<SurveyResponse>();
+}
+
+// SurveyQuestion Entity - Individual questions within a survey
+public class SurveyQuestion
+{
+    [Key]
+    public int QuestionId { get; set; }
+
+    [Required]
+    public int SurveyId { get; set; }
+
+    [Required]
+    [MaxLength(1000)]
+    public string QuestionText { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? HelpText { get; set; }
+
+    // Question type: SingleChoice, MultipleChoice, Rating, Text, TextArea, Number, Date, Email, Phone
+    [Required]
+    [MaxLength(50)]
+    public string QuestionType { get; set; } = "SingleChoice";
+
+    // Is this question required?
+    public bool IsRequired { get; set; } = false;
+
+    // Options for SingleChoice/MultipleChoice (stored as JSON array)
+    public string? Options { get; set; }
+
+    // Maximum selections for MultipleChoice
+    public int? MaxSelections { get; set; }
+
+    // For Rating type: min and max values
+    public int? RatingMin { get; set; } = 1;
+    public int? RatingMax { get; set; } = 5;
+
+    // For Rating type: labels
+    [MaxLength(100)]
+    public string? RatingMinLabel { get; set; }
+
+    [MaxLength(100)]
+    public string? RatingMaxLabel { get; set; }
+
+    // For Text/TextArea: character limits
+    public int? MinLength { get; set; }
+    public int? MaxLength { get; set; }
+
+    // For Number type: min/max values
+    public decimal? MinValue { get; set; }
+    public decimal? MaxValue { get; set; }
+
+    // Placeholder text for text inputs
+    [MaxLength(200)]
+    public string? Placeholder { get; set; }
+
+    // Display order within the survey
+    public int DisplayOrder { get; set; } = 0;
+
+    // Conditional display: show only if another question has specific answer
+    public int? ConditionalOnQuestionId { get; set; }
+    public string? ConditionalOnValues { get; set; } // JSON array of values that trigger display
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("SurveyId")]
+    public virtual Survey? Survey { get; set; }
+
+    [ForeignKey("ConditionalOnQuestionId")]
+    public virtual SurveyQuestion? ConditionalOnQuestion { get; set; }
+}
+
+// SurveyResponse Entity - A user's submission of a survey
+public class SurveyResponse
+{
+    [Key]
+    public int ResponseId { get; set; }
+
+    [Required]
+    public int SurveyId { get; set; }
+
+    // User who responded (null for anonymous visitors)
+    public int? UserId { get; set; }
+
+    // If user chose to be anonymous (only for logged-in users)
+    public bool IsAnonymous { get; set; } = false;
+
+    // For tracking anonymous/visitor responses
+    [MaxLength(100)]
+    public string? SessionId { get; set; }
+
+    [MaxLength(50)]
+    public string? IpAddress { get; set; }
+
+    // Status: InProgress, Completed
+    [Required]
+    [MaxLength(50)]
+    public string Status { get; set; } = "InProgress";
+
+    // Current question index (for tracking progress)
+    public int CurrentQuestionIndex { get; set; } = 0;
+
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? CompletedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("SurveyId")]
+    public virtual Survey? Survey { get; set; }
+
+    [ForeignKey("UserId")]
+    public virtual User? User { get; set; }
+
+    public virtual ICollection<SurveyAnswer> Answers { get; set; } = new List<SurveyAnswer>();
+}
+
+// PaymentMethod Entity - Configurable payment methods for membership payments
+public class PaymentMethod
+{
+    [Key]
+    public int PaymentMethodId { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string Code { get; set; } = string.Empty; // e.g., "Zelle", "Check", "Cash"
+
+    [Required]
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty; // Display name
+
+    [MaxLength(2000)]
+    public string? Instructions { get; set; } // Payment instructions shown to users
+
+    [MaxLength(50)]
+    public string? Icon { get; set; } // Lucide icon name
+
+    public bool IsActive { get; set; } = true;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// SurveyAnswer Entity - Individual answers to questions within a response
+public class SurveyAnswer
+{
+    [Key]
+    public int AnswerId { get; set; }
+
+    [Required]
+    public int ResponseId { get; set; }
+
+    [Required]
+    public int QuestionId { get; set; }
+
+    // For SingleChoice - the selected option
+    [MaxLength(1000)]
+    public string? SelectedOption { get; set; }
+
+    // For MultipleChoice - selected options (JSON array)
+    public string? SelectedOptions { get; set; }
+
+    // For Rating type
+    public int? RatingValue { get; set; }
+
+    // For Text, TextArea, Email, Phone types
+    [MaxLength(4000)]
+    public string? TextValue { get; set; }
+
+    // For Number type
+    public decimal? NumberValue { get; set; }
+
+    // For Date type
+    public DateTime? DateValue { get; set; }
+
+    public DateTime AnsweredAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("ResponseId")]
+    public virtual SurveyResponse? Response { get; set; }
+
+    [ForeignKey("QuestionId")]
+    public virtual SurveyQuestion? Question { get; set; }
 }

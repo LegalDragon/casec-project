@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Users, Briefcase, MapPin, Calendar, ExternalLink } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
+import { useTheme } from '../components/ThemeProvider';
 
 export default function Members() {
+  const { theme } = useTheme();
+  const appName = theme?.organizationName || 'Community';
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,6 +43,7 @@ export default function Members() {
   const filteredMembers = members.filter(member => {
     const matchesSearch = searchTerm === '' ||
       `${member.firstName} ${member.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.chineseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.profession?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.hobbies?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -47,6 +51,23 @@ export default function Members() {
     const matchesCity = cityFilter === '' || member.city === cityFilter;
 
     return matchesSearch && matchesProfession && matchesCity;
+  });
+
+  // Sort members: board members first (by boardSortOrder), then regular members alphabetically
+  const sortedMembers = [...filteredMembers].sort((a, b) => {
+    // Board members come first
+    if (a.isBoardMember && !b.isBoardMember) return -1;
+    if (!a.isBoardMember && b.isBoardMember) return 1;
+
+    // Both are board members - sort by boardSortOrder
+    if (a.isBoardMember && b.isBoardMember) {
+      return (a.boardSortOrder || 999) - (b.boardSortOrder || 999);
+    }
+
+    // Both are regular members - sort alphabetically by name
+    const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+    const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+    return nameA.localeCompare(nameB);
   });
 
   if (loading) {
@@ -62,7 +83,7 @@ export default function Members() {
       {/* Header */}
       <div>
         <h1 className="text-4xl font-display font-bold text-gray-900 mb-2">Member Directory</h1>
-        <p className="text-gray-600 text-lg">Connect with fellow CASEC members</p>
+        <p className="text-gray-600 text-lg">Connect with fellow {appName} members</p>
       </div>
 
       {/* Search and Filters */}
@@ -106,7 +127,7 @@ export default function Members() {
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-          <span>Showing {filteredMembers.length} of {members.length} members</span>
+          <span>Showing {sortedMembers.length} of {members.length} members</span>
           {(searchTerm || professionFilter || cityFilter) && (
             <button
               onClick={() => {
@@ -124,7 +145,7 @@ export default function Members() {
 
       {/* Members Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMembers.map((member) => (
+        {sortedMembers.map((member) => (
           <div
             key={member.userId}
             className="card hover:shadow-xl transition-all duration-300 group cursor-pointer"
@@ -134,7 +155,7 @@ export default function Members() {
               {/* Avatar */}
               {member.avatarUrl ? (
                 <img
-                  src={member.avatarUrl}
+                  src={getAssetUrl(member.avatarUrl)}
                   alt={`${member.firstName} ${member.lastName}`}
                   className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
                 />
@@ -147,6 +168,7 @@ export default function Members() {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors truncate">
+                  {member.chineseName && <span className="text-primary">{member.chineseName} </span>}
                   {member.firstName} {member.lastName}
                 </h3>
                 {member.isBoardMember && member.boardTitle && (
@@ -189,7 +211,7 @@ export default function Members() {
       </div>
 
       {/* Empty State */}
-      {filteredMembers.length === 0 && (
+      {sortedMembers.length === 0 && (
         <div className="card text-center py-12">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-gray-600 mb-2">No Members Found</h3>

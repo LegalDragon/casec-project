@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, Check } from 'lucide-react';
-import { authAPI, membershipTypesAPI } from '../services/api';
+import { authAPI, membershipTypesAPI, getAssetUrl } from '../services/api';
 import { useAuthStore } from '../store/useStore';
+import { useTheme } from '../components/ThemeProvider';
+
+const GENDER_OPTIONS = ['Male', 'Female', 'Other', 'Prefer not to say'];
+const MARITAL_STATUS_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed', 'Prefer not to say'];
 
 export default function Register() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [membershipTypes, setMembershipTypes] = useState([]);
   const [selectedType, setSelectedType] = useState(null);
@@ -25,6 +30,9 @@ export default function Register() {
     profession: '',
     hobbies: '',
     bio: '',
+    gender: '',
+    dateOfBirth: '',
+    maritalStatus: '',
   });
 
   useEffect(() => {
@@ -62,6 +70,7 @@ export default function Register() {
       const { confirmPassword, ...registrationData } = formData;
       const response = await authAPI.register({
         ...registrationData,
+        dateOfBirth: registrationData.dateOfBirth || null,
         membershipTypeId: selectedType,
       });
 
@@ -85,9 +94,19 @@ export default function Register() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-display font-extrabold text-primary mb-2">
-            CASEC<span className="text-accent">.</span>
-          </h1>
+          <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
+            {theme?.logoUrl ? (
+              <img
+                src={getAssetUrl(theme.logoUrl)}
+                alt={theme.organizationName || 'Logo'}
+                className="h-32 w-auto max-w-[250px] object-contain mx-auto mb-4"
+              />
+            ) : (
+              <h1 className="text-5xl font-display font-extrabold text-primary mb-2">
+                {theme?.organizationName || 'CASEC'}<span className="text-accent">.</span>
+              </h1>
+            )}
+          </Link>
           <p className="text-gray-600 text-lg">Join our vibrant community</p>
         </div>
 
@@ -268,6 +287,56 @@ export default function Register() {
                   value={formData.zipCode}
                   onChange={handleChange}
                 />
+              </div>
+            </div>
+
+            {/* Personal Information */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Gender
+                </label>
+                <select
+                  name="gender"
+                  className="input w-full"
+                  value={formData.gender}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Gender</option>
+                  {GENDER_OPTIONS.map(option => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  className="input w-full"
+                  value={formData.dateOfBirth}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Marital Status
+                </label>
+                <select
+                  name="maritalStatus"
+                  className="input w-full"
+                  value={formData.maritalStatus}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Status</option>
+                  {MARITAL_STATUS_OPTIONS.map(option => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

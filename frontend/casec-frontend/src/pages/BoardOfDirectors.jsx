@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Award, Linkedin, Twitter, ExternalLink } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
+import { useTheme } from '../components/ThemeProvider';
 
 export default function BoardOfDirectors() {
+  const { theme } = useTheme();
+  const appName = theme?.organizationName || 'Community';
   const [boardMembers, setBoardMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -50,7 +53,7 @@ export default function BoardOfDirectors() {
               Board of Directors
             </h1>
             <p className="text-xl text-white/90 max-w-3xl mx-auto">
-              Meet the dedicated leaders guiding CASEC's mission to build stronger community connections
+              Meet the dedicated leaders guiding {appName}'s mission to build stronger community connections
               and foster meaningful relationships among our members.
             </p>
           </div>
@@ -69,7 +72,7 @@ export default function BoardOfDirectors() {
               <div className="relative mb-6">
                 {member.avatarUrl ? (
                   <img
-                    src={member.avatarUrl}
+                    src={getAssetUrl(member.avatarUrl)}
                     alt={`${member.firstName} ${member.lastName}`}
                     className="w-full h-64 object-cover rounded-xl"
                   />
@@ -87,6 +90,7 @@ export default function BoardOfDirectors() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-2xl font-display font-bold text-gray-900">
+                    {member.chineseName && <span className="text-primary">{member.chineseName} </span>}
                     {member.firstName} {member.lastName}
                   </h3>
                   {member.profession && (
@@ -155,7 +159,7 @@ export default function BoardOfDirectors() {
             Join Our Community
           </h2>
           <p className="text-xl text-white/90 mb-8">
-            Become a member of CASEC and enjoy exclusive benefits, networking opportunities,
+            Become a member of {appName} and enjoy exclusive benefits, networking opportunities,
             and access to community events.
           </p>
           <a

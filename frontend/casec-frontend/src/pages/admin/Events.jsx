@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Edit, Trash2, Search, Calendar, MapPin, Users, Star,
-  X, DollarSign, Clock, Tag, ExternalLink, Building2, Eye
+  X, DollarSign, Clock, Tag, ExternalLink, Building2, Eye, ImageIcon, Upload, Link, Loader2
 } from 'lucide-react';
-import { eventsAPI, clubsAPI } from '../../services/api';
+import { eventsAPI, clubsAPI, utilityAPI, eventTypesAPI, getAssetUrl } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
+import { useTheme } from '../../components/ThemeProvider';
 
 export default function AdminEvents() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { theme } = useTheme();
+  const appName = theme?.organizationName || 'Organization';
   const isSystemAdmin = user?.isAdmin;
 
   const [events, setEvents] = useState([]);
@@ -47,12 +50,16 @@ export default function AdminEvents() {
     isFeatured: false,
   });
 
-  const eventTypes = [
-    { value: 'CasecEvent', label: 'CASEC Event', icon: '🎉' },
-    { value: 'ClubEvent', label: 'Club Event', icon: '👥' },
-    { value: 'PartnerEvent', label: 'Partner Event', icon: '🤝' },
-    { value: 'Announcement', label: 'Announcement', icon: '📢' },
-  ];
+  // URL thumbnail fetching states
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [fetchedMetadata, setFetchedMetadata] = useState(null);
+  const [fetchingMetadata, setFetchingMetadata] = useState(false);
+  const [thumbnailPreview, setThumbnailPreview] = useState('');
+  const [savingThumbnail, setSavingThumbnail] = useState(false);
+  const [sourceUrl, setSourceUrl] = useState(''); // URL used to generate thumbnail
+
+  // Event types from API
+  const [eventTypes, setEventTypes] = useState([]);
 
   const eventScopes = [
     { value: 'AllMembers', label: 'All Members' },
@@ -63,11 +70,36 @@ export default function AdminEvents() {
   useEffect(() => {
     fetchEvents();
     fetchClubs();
+    fetchEventTypes();
   }, []);
+
+  const fetchEventTypes = async () => {
+    try {
+      const response = await eventTypesAPI.getAll();
+      if (response.success && response.data) {
+        // Map API response to format used by the component
+        setEventTypes(response.data.map(et => ({
+          value: et.code,
+          label: et.displayName,
+          icon: et.icon || 'Calendar',
+          color: et.color || 'primary',
+          allowsRegistration: et.allowsRegistration,
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch event types:', error);
+      // Fallback to default types if API fails
+      setEventTypes([
+        { value: 'CasecEvent', label: 'Community Event', icon: 'Calendar', color: 'primary', allowsRegistration: true },
+        { value: 'PartnerEvent', label: 'Partner Event', icon: 'Handshake', color: 'accent', allowsRegistration: true },
+        { value: 'Announcement', label: 'Announcement', icon: 'Megaphone', color: 'info', allowsRegistration: false },
+      ]);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
-      const response = await eventsAPI.getAll();
+      const response = await eventsAPI.getAllAdmin();
       setEvents(response.data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -111,6 +143,61 @@ export default function AdminEvents() {
       isRegistrationRequired: true,
       isFeatured: false,
     });
+    // Reset thumbnail states
+    setThumbnailUrl('');
+    setFetchedMetadata(null);
+    setThumbnailPreview('');
+    setSourceUrl('');
+  };
+
+  const handleFetchMetadata = async () => {
+    if (!thumbnailUrl.trim()) {
+      alert('Please enter a URL first');
+      return;
+    }
+
+    setFetchingMetadata(true);
+    setFetchedMetadata(null);
+
+    try {
+      const response = await utilityAPI.fetchUrlMetadata(thumbnailUrl);
+      if (response.success && response.data) {
+        setFetchedMetadata(response.data);
+        // Save the URL as source URL for the event
+        setSourceUrl(thumbnailUrl);
+        // Don't auto-select - let user pick from the grid
+      } else {
+        alert(response.message || 'Failed to fetch metadata from URL');
+      }
+    } catch (error) {
+      console.error('Error fetching URL metadata:', error);
+      alert(error.message || 'Failed to fetch metadata from URL');
+    } finally {
+      setFetchingMetadata(false);
+    }
+  };
+
+  // Save selected thumbnail image locally (only works for existing events)
+  const handleSaveThumbnailLocally = async () => {
+    if (!editingEvent || !thumbnailPreview || !thumbnailPreview.startsWith('http')) {
+      return;
+    }
+
+    setSavingThumbnail(true);
+    try {
+      const response = await eventsAPI.saveThumbnailFromUrl(editingEvent.eventId, thumbnailPreview);
+      if (response.success) {
+        setEditingEvent({ ...editingEvent, thumbnailUrl: response.data.url });
+        setThumbnailPreview(response.data.url);
+      } else {
+        alert(response.message || 'Failed to save thumbnail');
+      }
+    } catch (error) {
+      console.error('Error saving thumbnail:', error);
+      alert(error.message || 'Failed to save thumbnail');
+    } finally {
+      setSavingThumbnail(false);
+    }
   };
 
   const handleCreate = async (e) => {
@@ -121,6 +208,8 @@ export default function AdminEvents() {
         hostClubId: formData.hostClubId ? parseInt(formData.hostClubId) : null,
         eventFee: parseFloat(formData.eventFee) || 0,
         maxCapacity: parseInt(formData.maxCapacity) || 100,
+        thumbnailUrl: thumbnailPreview || null,
+        sourceUrl: sourceUrl || null,
       };
       await eventsAPI.create(data);
       alert('Event created successfully!');
@@ -153,6 +242,11 @@ export default function AdminEvents() {
       isRegistrationRequired: event.isRegistrationRequired ?? true,
       isFeatured: event.isFeatured || false,
     });
+    // Set existing thumbnail preview and source URL
+    setThumbnailUrl('');
+    setFetchedMetadata(null);
+    setThumbnailPreview(event.thumbnailUrl || '');
+    setSourceUrl(event.sourceUrl || '');
   };
 
   const handleUpdate = async (e) => {
@@ -163,7 +257,12 @@ export default function AdminEvents() {
         hostClubId: formData.hostClubId ? parseInt(formData.hostClubId) : null,
         eventFee: parseFloat(formData.eventFee) || 0,
         maxCapacity: parseInt(formData.maxCapacity) || 100,
+        sourceUrl: sourceUrl || null,
       };
+      // Include external thumbnail URL if it's different from the current one
+      if (thumbnailPreview && thumbnailPreview.startsWith('http') && thumbnailPreview !== editingEvent.thumbnailUrl) {
+        data.thumbnailUrl = thumbnailPreview;
+      }
       await eventsAPI.update(editingEvent.eventId, data);
       alert('Event updated successfully!');
       setEditingEvent(null);
@@ -189,7 +288,10 @@ export default function AdminEvents() {
   };
 
   const getEventTypeInfo = (type) => {
-    return eventTypes.find(t => t.value === type) || eventTypes[0];
+    const found = eventTypes.find(t => t.value === type);
+    if (found) return found;
+    // Return first type or default if not found
+    return eventTypes[0] || { value: type, label: type, icon: 'Calendar', color: 'primary' };
   };
 
   const formatDate = (dateString) => {
@@ -284,7 +386,7 @@ export default function AdminEvents() {
             className="input w-full"
           >
             <option value="all">All Clubs</option>
-            <option value="casec">CASEC (No Club)</option>
+            <option value="casec">{appName} (No Club)</option>
             {clubs.map(club => (
               <option key={club.clubId} value={club.clubId}>{club.name}</option>
             ))}
@@ -558,7 +660,7 @@ export default function AdminEvents() {
                       onChange={(e) => setFormData({ ...formData, hostClubId: e.target.value })}
                       className="input"
                     >
-                      <option value="">No host club (CASEC Event)</option>
+                      <option value="">No host club ({appName} Event)</option>
                       {clubs.map(club => (
                         <option key={club.clubId} value={club.clubId}>{club.name}</option>
                       ))}
@@ -578,6 +680,240 @@ export default function AdminEvents() {
                     rows={3}
                     placeholder="Event description..."
                   />
+                </div>
+
+                {/* Event Thumbnail Section */}
+                <div className="border-t pt-4">
+                  <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4" />
+                    Event Thumbnail
+                  </h3>
+
+                  {/* URL Fetch Section */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Generate from URL
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Paste a URL to automatically fetch its thumbnail image (e.g., event page, news article)
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                          type="url"
+                          value={thumbnailUrl}
+                          onChange={(e) => setThumbnailUrl(e.target.value)}
+                          className="input pl-10 w-full"
+                          placeholder="https://example.com/event-page"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleFetchMetadata}
+                        disabled={fetchingMetadata || !thumbnailUrl.trim()}
+                        className="btn btn-secondary flex items-center gap-2 whitespace-nowrap"
+                      >
+                        {fetchingMetadata ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Fetching...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="w-4 h-4" />
+                            Fetch
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Fetched Metadata Preview */}
+                  {fetchedMetadata && (
+                    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      {/* Page Info */}
+                      <div className="mb-3">
+                        {fetchedMetadata.title && (
+                          <p className="font-medium text-sm text-gray-900">{fetchedMetadata.title}</p>
+                        )}
+                        {fetchedMetadata.description && (
+                          <p className="text-xs text-gray-600 line-clamp-2 mt-1">{fetchedMetadata.description}</p>
+                        )}
+                        {fetchedMetadata.siteName && (
+                          <p className="text-xs text-blue-600 mt-1">{fetchedMetadata.siteName}</p>
+                        )}
+                      </div>
+
+                      {/* Image Grid - Pick from available images */}
+                      {fetchedMetadata.images && fetchedMetadata.images.length > 0 ? (
+                        <div>
+                          <p className="text-xs font-medium text-gray-700 mb-2">
+                            Select a thumbnail ({fetchedMetadata.images.length} images found):
+                          </p>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                            {fetchedMetadata.images.map((imageUrl, index) => (
+                              <button
+                                key={index}
+                                type="button"
+                                onClick={() => setThumbnailPreview(imageUrl)}
+                                className={`relative aspect-video rounded border-2 overflow-hidden transition-all ${
+                                  thumbnailPreview === imageUrl
+                                    ? 'border-primary ring-2 ring-primary/30'
+                                    : 'border-gray-200 hover:border-gray-400'
+                                }`}
+                              >
+                                <img
+                                  src={imageUrl}
+                                  alt={`Option ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                  crossOrigin="anonymous"
+                                  onError={(e) => {
+                                    e.target.parentElement.style.display = 'none';
+                                  }}
+                                />
+                                {thumbnailPreview === imageUrl && (
+                                  <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                    <div className="bg-primary text-white rounded-full p-1">
+                                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Click an image to select it as the event thumbnail
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-amber-600">No images found on this page</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Direct Image URL Input */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Or paste image URL directly
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={thumbnailPreview.startsWith('http') ? thumbnailPreview : ''}
+                        onChange={(e) => setThumbnailPreview(e.target.value)}
+                        className="input flex-1"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                      {editingEvent && thumbnailPreview && thumbnailPreview.startsWith('http') && (
+                        <button
+                          type="button"
+                          onClick={handleSaveThumbnailLocally}
+                          disabled={savingThumbnail}
+                          className="btn btn-primary flex items-center gap-2 whitespace-nowrap"
+                        >
+                          {savingThumbnail ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              Save Locally
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Paste an image URL directly, or select from images above
+                    </p>
+                  </div>
+
+                  {/* Current Thumbnail Preview */}
+                  <div className="flex items-start gap-4">
+                    {thumbnailPreview ? (
+                      <div className="relative">
+                        <img
+                          src={thumbnailPreview.startsWith('/api') ? getAssetUrl(thumbnailPreview) : thumbnailPreview}
+                          alt="Event thumbnail"
+                          className="w-32 h-24 object-cover rounded-lg border"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                          onError={(e) => {
+                            e.target.src = '';
+                            e.target.parentElement.innerHTML = '<div class="w-32 h-24 bg-red-50 rounded-lg border border-red-200 flex items-center justify-center text-xs text-red-500 text-center p-2">Image failed to load</div>';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setThumbnailPreview('')}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          title="Remove thumbnail"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        {thumbnailPreview.startsWith('http') && (
+                          <span className="absolute -bottom-1 left-0 right-0 text-center">
+                            <span className="bg-amber-100 text-amber-800 text-[10px] px-1 rounded">
+                              External
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-32 h-24 bg-gray-100 rounded-lg border flex items-center justify-center">
+                        <ImageIcon className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      {/* File Upload - For editing existing events */}
+                      {editingEvent && (
+                        <label className="block mb-2">
+                          <span className="btn btn-secondary btn-sm cursor-pointer inline-flex items-center gap-2">
+                            <Upload className="w-4 h-4" />
+                            Upload Image
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  const response = await eventsAPI.uploadThumbnail(editingEvent.eventId, file);
+                                  if (response.success) {
+                                    setEditingEvent({ ...editingEvent, thumbnailUrl: response.data.url });
+                                    setThumbnailPreview(response.data.url);
+                                  }
+                                } catch (error) {
+                                  alert('Failed to upload thumbnail: ' + (error.message || 'Unknown error'));
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        {editingEvent
+                          ? 'Upload an image, paste URL, or fetch from a page above.'
+                          : 'Use the URL fetch above or paste an image URL. You can save images locally after creating the event.'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Recommended size: 800x400px
+                      </p>
+                      {editingEvent && thumbnailPreview && thumbnailPreview.startsWith('http') && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          Click "Save Locally" to download and store this image on the server.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Registration & Capacity */}
@@ -795,6 +1131,18 @@ export default function AdminEvents() {
                   >
                     <ExternalLink className="w-4 h-4" />
                     Registration Link
+                  </a>
+                )}
+
+                {viewingEvent.sourceUrl && (
+                  <a
+                    href={viewingEvent.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-primary hover:underline"
+                  >
+                    <Link className="w-4 h-4" />
+                    Event Source
                   </a>
                 )}
 

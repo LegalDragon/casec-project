@@ -11,7 +11,7 @@ using CasecApi.Services;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Authorize]
 public class EventsController : ControllerBase
 {
@@ -105,8 +105,10 @@ public class EventsController : ControllerBase
                     MaxCapacity = e.MaxCapacity,
                     IsRegistrationRequired = e.IsRegistrationRequired,
                     IsFeatured = e.IsFeatured,
+                    ThumbnailUrl = e.ThumbnailUrl,
+                    SourceUrl = e.SourceUrl,
                     TotalRegistrations = _context.EventRegistrations.Count(er => er.EventId == e.EventId),
-                    SpotsRemaining = e.MaxCapacity - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
+                    SpotsRemaining = (e.MaxCapacity ?? 0) - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
                     IsUserRegistered = currentUserId > 0 &&
                         _context.EventRegistrations.Any(er => er.EventId == e.EventId && er.UserId == currentUserId),
                     CreatedAt = e.CreatedAt
@@ -211,9 +213,11 @@ public class EventsController : ControllerBase
                     MaxCapacity = e.MaxCapacity,
                     IsRegistrationRequired = e.IsRegistrationRequired,
                     IsFeatured = e.IsFeatured,
+                    ThumbnailUrl = e.ThumbnailUrl,
+                    SourceUrl = e.SourceUrl,
                     TotalRegistrations = _context.EventRegistrations.Count(er => er.EventId == e.EventId),
-                    SpotsRemaining = e.MaxCapacity - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
-                    IsUserRegistered = currentUserId > 0 && 
+                    SpotsRemaining = (e.MaxCapacity ?? 0) - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
+                    IsUserRegistered = currentUserId > 0 &&
                         _context.EventRegistrations.Any(er => er.EventId == e.EventId && er.UserId == currentUserId),
                     CreatedAt = e.CreatedAt
                 })
@@ -272,9 +276,10 @@ public class EventsController : ControllerBase
                 MaxCapacity = eventItem.MaxCapacity,
                 IsRegistrationRequired = eventItem.IsRegistrationRequired,
                 IsFeatured = eventItem.IsFeatured,
+                ThumbnailUrl = eventItem.ThumbnailUrl,
                 TotalRegistrations = await _context.EventRegistrations.CountAsync(er => er.EventId == id),
-                SpotsRemaining = eventItem.MaxCapacity - await _context.EventRegistrations.CountAsync(er => er.EventId == id),
-                IsUserRegistered = currentUserId > 0 && 
+                SpotsRemaining = (eventItem.MaxCapacity ?? 0) - await _context.EventRegistrations.CountAsync(er => er.EventId == id),
+                IsUserRegistered = currentUserId > 0 &&
                     await _context.EventRegistrations.AnyAsync(er => er.EventId == id && er.UserId == currentUserId),
                 CreatedAt = eventItem.CreatedAt
             };
@@ -336,10 +341,12 @@ public class EventsController : ControllerBase
                 PartnerLogo = request.PartnerLogo,
                 PartnerWebsite = request.PartnerWebsite,
                 RegistrationUrl = request.RegistrationUrl,
-                EventFee = request.EventFee,
-                MaxCapacity = request.MaxCapacity,
-                IsRegistrationRequired = request.IsRegistrationRequired,
-                IsFeatured = request.IsFeatured
+                EventFee = request.EventFee ?? 0,
+                MaxCapacity = request.MaxCapacity ?? 0,
+                IsRegistrationRequired = request.IsRegistrationRequired ?? true,
+                IsFeatured = request.IsFeatured ?? false,
+                ThumbnailUrl = request.ThumbnailUrl,
+                SourceUrl = request.SourceUrl
             };
 
             _context.Events.Add(eventItem);
@@ -413,9 +420,13 @@ public class EventsController : ControllerBase
             eventItem.MaxCapacity = request.MaxCapacity ?? eventItem.MaxCapacity;
             eventItem.IsRegistrationRequired = request.IsRegistrationRequired ?? eventItem.IsRegistrationRequired;
             eventItem.IsFeatured = request.IsFeatured ?? eventItem.IsFeatured;
+            if (request.ThumbnailUrl != null)
+                eventItem.ThumbnailUrl = request.ThumbnailUrl;
+            if (request.SourceUrl != null)
+                eventItem.SourceUrl = request.SourceUrl;
 
             // Only system admins can change the host club
-            if (request.HostClubId.HasValue && await IsSystemAdmin(currentUserId))
+            if (await IsSystemAdmin(currentUserId))
             {
                 eventItem.HostClubId = request.HostClubId;
             }
@@ -445,6 +456,273 @@ public class EventsController : ControllerBase
             {
                 Success = false,
                 Message = "An error occurred while updating event"
+            });
+        }
+    }
+
+    // POST: api/Events/{id}/thumbnail (Admin or Club Admin)
+    [Authorize]
+    [HttpPost("{id}/thumbnail")]
+    public async Task<ActionResult<ApiResponse<UploadResponse>>> UploadThumbnail(int id, IFormFile file)
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+            var eventItem = await _context.Events.FindAsync(id);
+
+            if (eventItem == null)
+            {
+                return NotFound(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = "Event not found"
+                });
+            }
+
+            // Check permissions
+            if (!await CanManageEvent(currentUserId, eventItem))
+            {
+                return Forbid();
+            }
+
+            // Delete old thumbnail asset if exists
+            if (!string.IsNullOrEmpty(eventItem.ThumbnailUrl) && eventItem.ThumbnailUrl.StartsWith("/asset/"))
+            {
+                var oldFileIdStr = eventItem.ThumbnailUrl.Replace("/asset/", "");
+                if (int.TryParse(oldFileIdStr, out var oldFileId))
+                {
+                    await _assetService.DeleteAssetAsync(oldFileId);
+                }
+            }
+
+            // Upload new thumbnail using asset service
+            var uploadResult = await _assetService.UploadAssetAsync(
+                file,
+                "events",
+                objectType: "Event",
+                objectId: eventItem.EventId,
+                uploadedBy: currentUserId
+            );
+
+            if (!uploadResult.Success)
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = uploadResult.Error ?? "Failed to upload file"
+                });
+            }
+
+            // Update event thumbnail URL
+            eventItem.ThumbnailUrl = uploadResult.Url;
+            await _context.SaveChangesAsync();
+
+            // Log activity
+            var log = new ActivityLog
+            {
+                UserId = currentUserId,
+                ActivityType = "EventThumbnailUpdated",
+                Description = $"Updated thumbnail for event: {eventItem.Title}"
+            };
+            _context.ActivityLogs.Add(log);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<UploadResponse>
+            {
+                Success = true,
+                Message = "Thumbnail uploaded successfully",
+                Data = new UploadResponse { Url = uploadResult.Url }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading event thumbnail");
+            return StatusCode(500, new ApiResponse<UploadResponse>
+            {
+                Success = false,
+                Message = "An error occurred while uploading thumbnail"
+            });
+        }
+    }
+
+    // POST: api/Events/{id}/thumbnail-from-url (Admin or Club Admin)
+    // Downloads an image from URL and saves it locally as an asset
+    [Authorize]
+    [HttpPost("{id}/thumbnail-from-url")]
+    public async Task<ActionResult<ApiResponse<UploadResponse>>> UploadThumbnailFromUrl(int id, [FromBody] ThumbnailFromUrlRequest request)
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+            var eventItem = await _context.Events.FindAsync(id);
+
+            if (eventItem == null)
+            {
+                return NotFound(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = "Event not found"
+                });
+            }
+
+            // Check permissions
+            if (!await CanManageEvent(currentUserId, eventItem))
+            {
+                return Forbid();
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ImageUrl))
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = "Image URL is required"
+                });
+            }
+
+            // Validate URL format
+            if (!Uri.TryCreate(request.ImageUrl, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != "http" && uri.Scheme != "https"))
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = "Invalid URL format"
+                });
+            }
+
+            // Download the image
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(30);
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            httpClient.DefaultRequestHeaders.Add("Accept", "image/webp,image/apng,image/*,*/*;q=0.8");
+            httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+            // Set Referer to the image's own domain to bypass referrer checks
+            httpClient.DefaultRequestHeaders.Add("Referer", $"{uri.Scheme}://{uri.Host}/");
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await httpClient.GetAsync(uri);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to download image from {Url}", request.ImageUrl);
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = "Failed to download image from URL"
+                });
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = $"Failed to download image: {response.StatusCode}"
+                });
+            }
+
+            // Validate content type
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+            if (!contentType.StartsWith("image/"))
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = "URL does not point to a valid image"
+                });
+            }
+
+            // Get the image data
+            var imageData = await response.Content.ReadAsByteArrayAsync();
+
+            // Check file size (max 10MB)
+            if (imageData.Length > 10 * 1024 * 1024)
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = "Image is too large (max 10MB)"
+                });
+            }
+
+            // Determine file extension from content type
+            var extension = contentType switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/gif" => ".gif",
+                "image/webp" => ".webp",
+                _ => ".jpg"
+            };
+
+            // Create a memory stream and form file
+            using var stream = new MemoryStream(imageData);
+            var fileName = $"thumbnail_{eventItem.EventId}_{DateTime.UtcNow.Ticks}{extension}";
+            var formFile = new FormFile(stream, 0, imageData.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+
+            // Delete old thumbnail asset if exists
+            if (!string.IsNullOrEmpty(eventItem.ThumbnailUrl) && eventItem.ThumbnailUrl.StartsWith("/asset/"))
+            {
+                var oldFileIdStr = eventItem.ThumbnailUrl.Replace("/asset/", "");
+                if (int.TryParse(oldFileIdStr, out var oldFileId))
+                {
+                    await _assetService.DeleteAssetAsync(oldFileId);
+                }
+            }
+
+            // Upload using asset service
+            var uploadResult = await _assetService.UploadAssetAsync(
+                formFile,
+                "events",
+                objectType: "Event",
+                objectId: eventItem.EventId,
+                uploadedBy: currentUserId
+            );
+
+            if (!uploadResult.Success)
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = uploadResult.Error ?? "Failed to save image"
+                });
+            }
+
+            // Update event thumbnail URL
+            eventItem.ThumbnailUrl = uploadResult.Url;
+            await _context.SaveChangesAsync();
+
+            // Log activity
+            var log = new ActivityLog
+            {
+                UserId = currentUserId,
+                ActivityType = "EventThumbnailUpdated",
+                Description = $"Updated thumbnail for event: {eventItem.Title} (from URL)"
+            };
+            _context.ActivityLogs.Add(log);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<UploadResponse>
+            {
+                Success = true,
+                Message = "Thumbnail saved successfully",
+                Data = new UploadResponse { Url = uploadResult.Url }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving thumbnail from URL");
+            return StatusCode(500, new ApiResponse<UploadResponse>
+            {
+                Success = false,
+                Message = "An error occurred while saving thumbnail"
             });
         }
     }
@@ -530,7 +808,7 @@ public class EventsController : ControllerBase
             }
 
             // Check if event requires registration
-            if (!eventItem.IsRegistrationRequired)
+            if (eventItem.IsRegistrationRequired != true)
             {
                 return BadRequest(new ApiResponse<object>
                 {
@@ -608,6 +886,77 @@ public class EventsController : ControllerBase
             {
                 Success = false,
                 Message = "An error occurred while registering for event"
+            });
+        }
+    }
+
+    // POST: api/Events/{id}/unregister
+    [HttpPost("{id}/unregister")]
+    public async Task<ActionResult<ApiResponse<object>>> UnregisterFromEvent(int id)
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+            var eventItem = await _context.Events.FindAsync(id);
+
+            if (eventItem == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Event not found"
+                });
+            }
+
+            // Check if event has already passed
+            if (eventItem.EventDate < DateTime.UtcNow)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Cannot unregister from a past event"
+                });
+            }
+
+            // Find existing registration
+            var registration = await _context.EventRegistrations
+                .FirstOrDefaultAsync(er => er.EventId == id && er.UserId == currentUserId);
+
+            if (registration == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "You are not registered for this event"
+                });
+            }
+
+            _context.EventRegistrations.Remove(registration);
+            await _context.SaveChangesAsync();
+
+            // Log activity
+            var log = new ActivityLog
+            {
+                UserId = currentUserId,
+                ActivityType = "EventUnregistration",
+                Description = $"Unregistered from event: {eventItem.Title}"
+            };
+            _context.ActivityLogs.Add(log);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Successfully unregistered from event"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error unregistering from event");
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Success = false,
+                Message = "An error occurred while unregistering from event"
             });
         }
     }
@@ -721,7 +1070,7 @@ public class EventsController : ControllerBase
                     FileName = a.OriginalFileName,
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
-                    Url = $"/api/asset/{a.FileId}",
+                    Url = $"/asset/{a.FileId}",
                     Status = a.Status,
                     SortOrder = a.SortOrder,
                     Caption = a.Caption,
@@ -739,7 +1088,7 @@ public class EventsController : ControllerBase
                     FileName = a.OriginalFileName,
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
-                    Url = $"/api/asset/{a.FileId}",
+                    Url = $"/asset/{a.FileId}",
                     Status = a.Status,
                     SortOrder = a.SortOrder,
                     Caption = a.Caption,
@@ -857,7 +1206,7 @@ public class EventsController : ControllerBase
                     FileName = a.OriginalFileName,
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
-                    Url = $"/api/asset/{a.FileId}",
+                    Url = $"/asset/{a.FileId}",
                     Status = a.Status,
                     SortOrder = a.SortOrder,
                     Caption = a.Caption,
@@ -875,7 +1224,7 @@ public class EventsController : ControllerBase
                     FileName = a.OriginalFileName,
                     ContentType = a.ContentType,
                     FileSize = a.FileSize,
-                    Url = $"/api/asset/{a.FileId}",
+                    Url = $"/asset/{a.FileId}",
                     Status = a.Status,
                     SortOrder = a.SortOrder,
                     Caption = a.Caption,
@@ -927,8 +1276,10 @@ public class EventsController : ControllerBase
                 MaxCapacity = eventItem.MaxCapacity,
                 IsRegistrationRequired = eventItem.IsRegistrationRequired,
                 IsFeatured = eventItem.IsFeatured,
+                ThumbnailUrl = eventItem.ThumbnailUrl,
+                SourceUrl = eventItem.SourceUrl,
                 TotalRegistrations = totalRegistrations,
-                SpotsRemaining = eventItem.MaxCapacity - totalRegistrations,
+                SpotsRemaining = (eventItem.MaxCapacity ?? 0) - totalRegistrations,
                 IsUserRegistered = currentUserId > 0 &&
                     await _context.EventRegistrations.AnyAsync(er => er.EventId == id && er.UserId == currentUserId),
                 CreatedAt = eventItem.CreatedAt,
@@ -1024,7 +1375,7 @@ public class EventsController : ControllerBase
                 FileName = asset.OriginalFileName,
                 ContentType = asset.ContentType,
                 FileSize = asset.FileSize,
-                Url = $"/api/asset/{asset.FileId}",
+                Url = $"/asset/{asset.FileId}",
                 Status = asset.Status,
                 SortOrder = asset.SortOrder,
                 Caption = asset.Caption,

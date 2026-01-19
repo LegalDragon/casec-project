@@ -11,7 +11,7 @@ using CasecApi.Services;
 namespace CasecApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class ClubsController : ControllerBase
 {
     private readonly CasecDbContext _context;
@@ -153,6 +153,23 @@ public class ClubsController : ControllerBase
                 })
                 .ToListAsync();
 
+            var members = await _context.ClubMemberships
+                .Where(cm => cm.ClubId == club.ClubId)
+                .Include(cm => cm.User)
+                .OrderBy(cm => cm.User!.FirstName)
+                .ThenBy(cm => cm.User!.LastName)
+                .Select(cm => new ClubMemberDto
+                {
+                    UserId = cm.User!.UserId,
+                    FirstName = cm.User.FirstName,
+                    LastName = cm.User.LastName,
+                    Email = cm.User.Email,
+                    AvatarUrl = cm.User.AvatarUrl,
+                    JoinedDate = cm.JoinedDate,
+                    IsAdmin = _context.ClubAdmins.Any(ca => ca.ClubId == club.ClubId && ca.UserId == cm.UserId)
+                })
+                .ToListAsync();
+
             var isUserMember = currentUserId > 0 &&
                 await _context.ClubMemberships.AnyAsync(cm => cm.ClubId == club.ClubId && cm.UserId == currentUserId);
 
@@ -171,6 +188,7 @@ public class ClubsController : ControllerBase
                 IsActive = club.IsActive,
                 TotalMembers = totalMembers,
                 Admins = admins,
+                Members = members,
                 IsUserMember = isUserMember,
                 IsUserAdmin = isUserAdmin,
                 CreatedAt = club.CreatedAt
@@ -621,10 +639,10 @@ public class ClubsController : ControllerBase
                 return Forbid();
             }
 
-            // Delete old avatar asset if exists (by parsing FileId from URL /api/asset/{id})
-            if (!string.IsNullOrEmpty(club.AvatarUrl) && club.AvatarUrl.StartsWith("/api/asset/"))
+            // Delete old avatar asset if exists (by parsing FileId from URL /asset/{id})
+            if (!string.IsNullOrEmpty(club.AvatarUrl) && club.AvatarUrl.StartsWith("/asset/"))
             {
-                var oldFileIdStr = club.AvatarUrl.Replace("/api/asset/", "");
+                var oldFileIdStr = club.AvatarUrl.Replace("/asset/", "");
                 if (int.TryParse(oldFileIdStr, out var oldFileId))
                 {
                     await _assetService.DeleteAssetAsync(oldFileId);
@@ -649,7 +667,7 @@ public class ClubsController : ControllerBase
                 });
             }
 
-            club.AvatarUrl = uploadResult.Url; // Now saves as /api/asset/{id}
+            club.AvatarUrl = uploadResult.Url; // Now saves as /asset/{id}
             await _context.SaveChangesAsync();
 
             // Log activity
@@ -876,6 +894,57 @@ public class ClubsController : ControllerBase
             {
                 Success = false,
                 Message = "An error occurred while fetching club events"
+            });
+        }
+    }
+
+    // GET: api/Clubs/{id}/members
+    [AllowAnonymous]
+    [HttpGet("{id}/members")]
+    public async Task<ActionResult<ApiResponse<List<ClubMemberDto>>>> GetClubMembers(int id)
+    {
+        try
+        {
+            var club = await _context.Clubs.FindAsync(id);
+            if (club == null)
+            {
+                return NotFound(new ApiResponse<List<ClubMemberDto>>
+                {
+                    Success = false,
+                    Message = "Club not found"
+                });
+            }
+
+            var members = await _context.ClubMemberships
+                .Where(cm => cm.ClubId == id)
+                .Include(cm => cm.User)
+                .OrderBy(cm => cm.User!.FirstName)
+                .ThenBy(cm => cm.User!.LastName)
+                .Select(cm => new ClubMemberDto
+                {
+                    UserId = cm.User!.UserId,
+                    FirstName = cm.User.FirstName,
+                    LastName = cm.User.LastName,
+                    Email = cm.User.Email,
+                    AvatarUrl = cm.User.AvatarUrl,
+                    JoinedDate = cm.JoinedDate,
+                    IsAdmin = _context.ClubAdmins.Any(ca => ca.ClubId == id && ca.UserId == cm.UserId)
+                })
+                .ToListAsync();
+
+            return Ok(new ApiResponse<List<ClubMemberDto>>
+            {
+                Success = true,
+                Data = members
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching club members");
+            return StatusCode(500, new ApiResponse<List<ClubMemberDto>>
+            {
+                Success = false,
+                Message = "An error occurred while fetching club members"
             });
         }
     }
