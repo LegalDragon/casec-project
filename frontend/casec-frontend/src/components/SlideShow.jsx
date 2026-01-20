@@ -18,6 +18,7 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
   const [config, setConfig] = useState(null);
   const [sharedVideos, setSharedVideos] = useState([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [currentBgVideoIndex, setCurrentBgVideoIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,6 +27,7 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
   const timerRef = useRef(null);
   const progressRef = useRef(null);
   const videoRef = useRef(null);
+  const bgVideoTimerRef = useRef(null);
 
   // Load slideshow configuration
   useEffect(() => {
@@ -68,28 +70,64 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
   // Get current slide
   const currentSlide = config?.slides?.[currentSlideIndex];
 
-  // Get video URL for current slide (only for heroVideos background type)
-  const getVideoUrl = useCallback(() => {
+  // Reset background video index when slide changes
+  useEffect(() => {
+    setCurrentBgVideoIndex(0);
+  }, [currentSlideIndex]);
+
+  // Handle background video cycling (separate from slide timing)
+  useEffect(() => {
+    if (!isPlaying || !currentSlide) return;
+
+    const bgType = currentSlide.backgroundType || 'heroVideos';
+    if (bgType !== 'heroVideos') return;
+
+    const bgVideos = currentSlide.backgroundVideos || [];
+    if (bgVideos.length <= 1) return; // No need to cycle if 0 or 1 video
+
+    const currentBgVideo = bgVideos[currentBgVideoIndex];
+    const duration = currentBgVideo?.duration || 5000;
+
+    bgVideoTimerRef.current = setTimeout(() => {
+      setCurrentBgVideoIndex((prev) => (prev + 1) % bgVideos.length);
+    }, duration);
+
+    return () => {
+      if (bgVideoTimerRef.current) {
+        clearTimeout(bgVideoTimerRef.current);
+      }
+    };
+  }, [isPlaying, currentSlide, currentBgVideoIndex]);
+
+  // Get BACKGROUND video URL for current slide (only for heroVideos background type)
+  // This is separate from video SlideObjects which are foreground content
+  const getBackgroundVideoUrl = useCallback(() => {
     if (!currentSlide) return null;
 
-    // Only show video for heroVideos background type (or legacy slides without backgroundType)
+    // Only show background video for heroVideos background type
     const bgType = currentSlide.backgroundType || 'heroVideos';
     if (bgType !== 'heroVideos') return null;
 
-    // If using random video from shared pool
+    // First, check if there are specific background videos defined
+    const bgVideos = currentSlide.backgroundVideos || [];
+    if (bgVideos.length > 0) {
+      const currentBgVideo = bgVideos[currentBgVideoIndex];
+      // Get URL from the video object or direct videoUrl
+      return currentBgVideo?.video?.url || currentBgVideo?.videoUrl || null;
+    }
+
+    // Fallback: If using random video from shared pool (legacy support)
     if (currentSlide.useRandomVideo || currentSlide.useRandomHeroVideos) {
       if (sharedVideos.length > 0) {
-        // Use a consistent random video per slide based on slide index
         const videoIndex = currentSlideIndex % sharedVideos.length;
         return sharedVideos[videoIndex].url;
       }
-      // Still loading shared videos - return null to wait
       return null;
     }
 
-    // Use specific video URL
+    // Fallback: Use specific video URL (legacy support)
     return currentSlide.videoUrl || null;
-  }, [currentSlide, sharedVideos, currentSlideIndex]);
+  }, [currentSlide, currentBgVideoIndex, sharedVideos, currentSlideIndex]);
 
   // Get background style based on backgroundType
   const getBackgroundStyle = () => {
@@ -246,26 +284,26 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
     return null;
   }
 
-  const videoUrl = getVideoUrl();
+  const backgroundVideoUrl = getBackgroundVideoUrl();
   const backgroundStyle = getBackgroundStyle();
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
       {/* Static Background (color/image) */}
-      {!videoUrl && (
+      {!backgroundVideoUrl && (
         <div
           className="absolute inset-0 z-0"
           style={backgroundStyle}
         />
       )}
 
-      {/* Video Background (heroVideos only) */}
-      {videoUrl && (
+      {/* Video Background (heroVideos only - separate from video SlideObjects) */}
+      {backgroundVideoUrl && (
         <video
           ref={videoRef}
-          key={videoUrl}
+          key={backgroundVideoUrl}
           className="absolute inset-0 w-full h-full object-cover z-0"
-          src={getAssetUrl(videoUrl)}
+          src={getAssetUrl(backgroundVideoUrl)}
           autoPlay
           muted
           loop
