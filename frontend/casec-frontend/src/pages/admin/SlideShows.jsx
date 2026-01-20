@@ -6,6 +6,7 @@ import {
 import { slideShowsAPI, getAssetUrl } from '../../services/api';
 import SlideShowPreview from '../../components/SlideShow';
 import SlideObjectEditor from '../../components/admin/SlideObjectEditor';
+import BackgroundVideoEditor from '../../components/admin/BackgroundVideoEditor';
 
 // Animation options
 const ANIMATIONS = ['fadeIn', 'slideUp', 'slideDown', 'zoomIn', 'typewriter'];
@@ -654,14 +655,32 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
     const updateData = {
       displayOrder: localData.displayOrder,
       duration: localData.duration,
+      // Background settings
+      backgroundType: localData.backgroundType || 'heroVideos',
+      backgroundColor: localData.backgroundColor,
+      backgroundImageUrl: localData.backgroundImageUrl,
+      useRandomHeroVideos: localData.useRandomHeroVideos || false,
+      // Legacy video fields (kept for backwards compatibility)
       videoUrl: localData.videoUrl,
       useRandomVideo: localData.useRandomVideo,
+      // Layout & overlay
       layout: localData.layout,
       overlayType: localData.overlayType,
       overlayColor: localData.overlayColor,
       overlayOpacity: localData.overlayOpacity,
     };
     onUpdate(updateData);
+  };
+
+  // Handle background settings update from BackgroundVideoEditor
+  const handleBackgroundUpdate = (bgSettings) => {
+    setLocalData(prev => ({
+      ...prev,
+      backgroundType: bgSettings.backgroundType,
+      backgroundColor: bgSettings.backgroundColor,
+      backgroundImageUrl: bgSettings.backgroundImageUrl,
+      useRandomHeroVideos: bgSettings.useRandomHeroVideos,
+    }));
   };
 
   return (
@@ -731,39 +750,20 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
             </div>
           </div>
 
-          {/* Video */}
-          <div className="border-t pt-4">
-            <label className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                checked={localData.useRandomVideo}
-                onChange={(e) => setLocalData({ ...localData, useRandomVideo: e.target.checked, videoUrl: e.target.checked ? '' : localData.videoUrl })}
-                className="mr-2"
-              />
-              <span className="text-sm font-medium">Use random video from pool</span>
-            </label>
-            {!localData.useRandomVideo && (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Select Video</label>
-                {sharedVideos?.length > 0 ? (
-                  <select
-                    className="input w-full text-sm"
-                    value={localData.videoUrl || ''}
-                    onChange={(e) => setLocalData({ ...localData, videoUrl: e.target.value })}
-                  >
-                    <option value="">-- Select a video --</option>
-                    {sharedVideos.map((video) => (
-                      <option key={video.videoId} value={video.url}>
-                        {video.title || video.url}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="text-sm text-gray-500">No videos in pool. Add videos in the "Video Pool" tab first.</p>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Background Settings */}
+          <BackgroundVideoEditor
+            slideId={slide.slideId}
+            backgroundType={localData.backgroundType || 'heroVideos'}
+            backgroundColor={localData.backgroundColor}
+            backgroundImageUrl={localData.backgroundImageUrl}
+            useRandomHeroVideos={localData.useRandomHeroVideos}
+            backgroundVideos={slide.backgroundVideos || []}
+            sharedVideos={sharedVideos}
+            sharedImages={sharedImages}
+            onUpdate={handleBackgroundUpdate}
+            onRefresh={onRefresh}
+            onToast={onToast}
+          />
 
           {/* Slide Objects (Text, Image, Video) */}
           <SlideObjectEditor
