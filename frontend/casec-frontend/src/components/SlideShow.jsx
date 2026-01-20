@@ -585,7 +585,7 @@ function SlideObject({ object, slideIndex }) {
             ...animProps.style,
             width: dimensions.width,
             height: dimensions.height,
-            objectFit: props.objectFit || 'cover',
+            objectFit: 'cover',
           }}
         />
       </div>
