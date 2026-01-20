@@ -321,154 +321,135 @@ export default function AdminSlideShows() {
 
       {/* SlideShows Tab */}
       {activeTab === 'slideshows' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* SlideShow List */}
-          <div className="lg:col-span-1 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">All SlideShows</h2>
-              <button onClick={handleCreateShow} className="btn btn-primary btn-sm">
-                <Plus className="w-4 h-4 mr-1" /> New
+        <div className="space-y-4">
+          {/* SlideShow Selector */}
+          <div className="card">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                <Film className="w-5 h-5 text-gray-400" />
+                <select
+                  className="input flex-1"
+                  value={selectedShow?.slideShowId || ''}
+                  onChange={(e) => {
+                    const id = parseInt(e.target.value);
+                    if (id) loadSlideShowDetails(id);
+                    else setSelectedShow(null);
+                  }}
+                >
+                  <option value="">-- Select a SlideShow --</option>
+                  {slideShows.map((show) => (
+                    <option key={show.slideShowId} value={show.slideShowId}>
+                      {show.name} ({show.code}) - {show.slideCount} slides {show.isActive ? '✓' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button onClick={handleCreateShow} className="btn btn-primary">
+                <Plus className="w-4 h-4 mr-1" /> New SlideShow
               </button>
             </div>
-
-            {slideShows.length === 0 ? (
-              <div className="card text-center py-8">
-                <Film className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No slideshows yet</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {slideShows.map((show) => (
-                  <div
-                    key={show.slideShowId}
-                    onClick={() => loadSlideShowDetails(show.slideShowId)}
-                    className={`card cursor-pointer transition-all hover:shadow-md ${
-                      selectedShow?.slideShowId === show.slideShowId
-                        ? 'ring-2 ring-primary'
-                        : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold">{show.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          <code className="bg-gray-100 px-1 rounded">{show.code}</code>
-                          <span className="mx-2">•</span>
-                          {show.slideCount} slides
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {show.isActive ? (
-                          <span className="w-2 h-2 bg-green-500 rounded-full" title="Active"></span>
-                        ) : (
-                          <span className="w-2 h-2 bg-gray-300 rounded-full" title="Inactive"></span>
-                        )}
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* SlideShow Editor */}
-          <div className="lg:col-span-2">
-            {selectedShow ? (
-              <div className="card space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b pb-4">
-                  <div>
-                    <h2 className="text-xl font-bold">{selectedShow.name}</h2>
-                    <p className="text-sm text-gray-500">
-                      Code: <code className="bg-gray-100 px-2 py-0.5 rounded">{selectedShow.code}</code>
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setShowPreview(true)}
-                      className="btn btn-accent btn-sm"
-                      disabled={!selectedShow.slides?.length}
-                    >
-                      <Play className="w-4 h-4 mr-1" /> Preview
-                    </button>
-                    <button
-                      onClick={() => copyShareLink(selectedShow.code)}
-                      className={`btn btn-sm ${linkCopied ? 'btn-success' : 'btn-secondary'}`}
-                      title="Copy share link"
-                    >
-                      {linkCopied ? (
-                        <><Check className="w-4 h-4 mr-1" /> Copied!</>
-                      ) : (
-                        <><Share2 className="w-4 h-4 mr-1" /> Share</>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleEditShow(selectedShow)}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      <Settings className="w-4 h-4 mr-1" /> Settings
-                    </button>
-                    <button
-                      onClick={() => handleDeleteShow(selectedShow.slideShowId)}
-                      className="btn btn-sm text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Slides */}
+          {selectedShow ? (
+            <div className="card space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b pb-4">
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold">Slides ({selectedShow.slides?.length || 0})</h3>
-                    <button onClick={handleAddSlide} className="btn btn-primary btn-sm">
-                      <Plus className="w-4 h-4 mr-1" /> Add Slide
-                    </button>
+                  <h2 className="text-xl font-bold">{selectedShow.name}</h2>
+                  <p className="text-sm text-gray-500">
+                    Code: <code className="bg-gray-100 px-2 py-0.5 rounded">{selectedShow.code}</code>
+                    {selectedShow.isActive ? (
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Active</span>
+                    ) : (
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Inactive</span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowPreview(true)}
+                    className="btn btn-accent btn-sm"
+                    disabled={!selectedShow.slides?.length}
+                  >
+                    <Play className="w-4 h-4 mr-1" /> Preview
+                  </button>
+                  <button
+                    onClick={() => copyShareLink(selectedShow.code)}
+                    className={`btn btn-sm ${linkCopied ? 'btn-success' : 'btn-secondary'}`}
+                    title="Copy share link"
+                  >
+                    {linkCopied ? (
+                      <><Check className="w-4 h-4 mr-1" /> Copied!</>
+                    ) : (
+                      <><Share2 className="w-4 h-4 mr-1" /> Share</>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleEditShow(selectedShow)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    <Settings className="w-4 h-4 mr-1" /> Settings
+                  </button>
+                  <button
+                    onClick={() => handleDeleteShow(selectedShow.slideShowId)}
+                    className="btn btn-sm text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Slides */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Slides ({selectedShow.slides?.length || 0})</h3>
+                  <button onClick={handleAddSlide} className="btn btn-primary btn-sm">
+                    <Plus className="w-4 h-4 mr-1" /> Add Slide
+                  </button>
+                </div>
+
+                {(!selectedShow.slides || selectedShow.slides.length === 0) ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <Layers className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No slides yet. Add your first slide!</p>
                   </div>
-
-                  {(!selectedShow.slides || selectedShow.slides.length === 0) ? (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <Layers className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500">No slides yet. Add your first slide!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {selectedShow.slides.map((slide, index) => (
-                        <SlideEditor
-                          key={slide.slideId}
-                          slide={slide}
-                          index={index}
-                          sharedVideos={sharedVideos}
-                          sharedImages={sharedImages}
-                          onUpdate={(data) => handleUpdateSlide(slide.slideId, data)}
-                          onDelete={() => handleDeleteSlide(slide.slideId)}
-                          onRefresh={() => loadSlideShowDetails(selectedShow.slideShowId)}
-                          isExpanded={editingSlide === slide.slideId}
-                          onToggle={() => setEditingSlide(
-                            editingSlide === slide.slideId ? null : slide.slideId
-                          )}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Usage Info */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-blue-900 font-medium text-sm">How to use this slideshow:</p>
-                  <code className="text-xs bg-blue-100 px-2 py-1 rounded block mt-2">
-                    {`<SlideShow code="${selectedShow.code}" onComplete={() => setShowContent(true)} />`}
-                  </code>
-                </div>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedShow.slides.map((slide, index) => (
+                      <SlideEditor
+                        key={slide.slideId}
+                        slide={slide}
+                        index={index}
+                        sharedVideos={sharedVideos}
+                        sharedImages={sharedImages}
+                        onUpdate={(data) => handleUpdateSlide(slide.slideId, data)}
+                        onDelete={() => handleDeleteSlide(slide.slideId)}
+                        onRefresh={() => loadSlideShowDetails(selectedShow.slideShowId)}
+                        isExpanded={editingSlide === slide.slideId}
+                        onToggle={() => setEditingSlide(
+                          editingSlide === slide.slideId ? null : slide.slideId
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="card text-center py-12">
-                <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">Select a slideshow to edit or create a new one</p>
+
+              {/* Usage Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-900 font-medium text-sm">How to use this slideshow:</p>
+                <code className="text-xs bg-blue-100 px-2 py-1 rounded block mt-2">
+                  {`<SlideShow code="${selectedShow.code}" onComplete={() => setShowContent(true)} />`}
+                </code>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="card text-center py-12">
+              <Film className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">Select a slideshow from the dropdown above or create a new one</p>
+            </div>
+          )}
         </div>
       )}
 
