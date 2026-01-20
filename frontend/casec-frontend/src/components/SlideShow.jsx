@@ -213,6 +213,16 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
 
   const videoUrl = getVideoUrl();
 
+  // Debug logging for video URL
+  console.log('[SlideShow] Video debug:', {
+    currentSlideIndex,
+    useRandomVideo: currentSlide?.useRandomVideo,
+    slideVideoUrl: currentSlide?.videoUrl,
+    sharedVideosCount: sharedVideos.length,
+    rawVideoUrl: videoUrl,
+    resolvedVideoUrl: videoUrl ? getAssetUrl(videoUrl) : null
+  });
+
   return (
     <div className="fixed inset-0 z-50 bg-black">
       {/* Video Background */}
@@ -226,6 +236,8 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
           muted
           loop
           playsInline
+          onError={(e) => console.error('[SlideShow] Video error:', e.target.error, 'src:', e.target.src)}
+          onLoadStart={() => console.log('[SlideShow] Video loading:', getAssetUrl(videoUrl))}
         />
       )}
 

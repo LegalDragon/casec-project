@@ -10,6 +10,13 @@ if (API_BASE_URL.endsWith("/")) {
   API_BASE_URL = API_BASE_URL.slice(0, -1);
 }
 
+// Debug logging for API configuration
+console.log('[API] Configuration:', {
+  API_BASE_URL,
+  fromConfig: window.APP_CONFIG?.API_URL,
+  fromEnv: import.meta.env.VITE_API_URL
+});
+
 // Helper function to get full asset URL (for avatars, images, etc.)
 export const getAssetUrl = (path) => {
   if (!path) return null;
