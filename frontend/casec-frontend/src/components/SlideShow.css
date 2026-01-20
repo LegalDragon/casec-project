@@ -220,7 +220,7 @@
   animation-name: slideshow-fadeOut;
 }
 
-/* Slide Out Up */
+/* Slide Out Up - fully off screen */
 @keyframes slideshow-slideOutUp {
   from {
     opacity: 1;
@@ -228,7 +228,7 @@
   }
   to {
     opacity: 0;
-    transform: translateY(-30px);
+    transform: translateY(-100vh);
   }
 }
 
@@ -236,7 +236,7 @@
   animation-name: slideshow-slideOutUp;
 }
 
-/* Slide Out Down */
+/* Slide Out Down - fully off screen */
 @keyframes slideshow-slideOutDown {
   from {
     opacity: 1;
@@ -244,7 +244,7 @@
   }
   to {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(100vh);
   }
 }
 
@@ -260,7 +260,7 @@
   }
   to {
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0);
   }
 }
 
@@ -268,7 +268,7 @@
   animation-name: slideshow-zoomOut;
 }
 
-/* Slide Out Left */
+/* Slide Out Left - fully off screen */
 @keyframes slideshow-slideOutLeft {
   from {
     opacity: 1;
@@ -276,7 +276,7 @@
   }
   to {
     opacity: 0;
-    transform: translateX(-50px);
+    transform: translateX(-100vw);
   }
 }
 
@@ -284,7 +284,7 @@
   animation-name: slideshow-slideOutLeft;
 }
 
-/* Slide Out Right */
+/* Slide Out Right - fully off screen */
 @keyframes slideshow-slideOutRight {
   from {
     opacity: 1;
@@ -292,7 +292,7 @@
   }
   to {
     opacity: 0;
-    transform: translateX(50px);
+    transform: translateX(100vw);
   }
 }
 
