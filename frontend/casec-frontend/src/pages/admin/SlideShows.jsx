@@ -13,6 +13,8 @@ const LAYOUTS = ['center', 'left', 'right', 'split'];
 const OVERLAYS = ['dark', 'light', 'gradient', 'none'];
 const POSITIONS = ['center', 'left', 'right', 'bottom-left', 'bottom-right', 'top-left', 'top-right'];
 const SIZES = ['small', 'medium', 'large', 'full'];
+const TITLE_SIZES = ['small', 'medium', 'large', 'xlarge'];
+const SUBTITLE_SIZES = ['small', 'medium', 'large'];
 
 export default function AdminSlideShows() {
   const [slideShows, setSlideShows] = useState([]);
@@ -699,21 +701,41 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
               <input
                 type="checkbox"
                 checked={localData.useRandomVideo}
-                onChange={(e) => setLocalData({ ...localData, useRandomVideo: e.target.checked })}
+                onChange={(e) => setLocalData({ ...localData, useRandomVideo: e.target.checked, videoUrl: e.target.checked ? '' : localData.videoUrl })}
                 className="mr-2"
               />
               <span className="text-sm font-medium">Use random video from pool</span>
             </label>
             {!localData.useRandomVideo && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Video URL</label>
-                <input
-                  type="text"
-                  className="input w-full text-sm"
-                  value={localData.videoUrl || ''}
-                  onChange={(e) => setLocalData({ ...localData, videoUrl: e.target.value })}
-                  placeholder="https://..."
-                />
+                <label className="block text-xs font-medium text-gray-600 mb-1">Select Video</label>
+                {sharedVideos?.length > 0 ? (
+                  <select
+                    className="input w-full text-sm"
+                    value={localData.videoUrl || ''}
+                    onChange={(e) => setLocalData({ ...localData, videoUrl: e.target.value })}
+                  >
+                    <option value="">-- Select a video --</option>
+                    {sharedVideos.map((video) => (
+                      <option key={video.videoId} value={video.url}>
+                        {video.title || video.url}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm text-gray-500">No videos in pool. Add videos in the "Video Pool" tab first.</p>
+                )}
+                {localData.videoUrl && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded">
+                    <video
+                      src={getAssetUrl(localData.videoUrl)}
+                      className="w-full max-h-32 object-contain rounded"
+                      muted
+                      autoPlay
+                      loop
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -723,6 +745,7 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
             <h4 className="text-sm font-medium mb-2">Title</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">Text</label>
                 <input
                   type="text"
                   className="input w-full text-sm"
@@ -732,6 +755,7 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
                 />
               </div>
               <div>
+                <label className="block text-xs text-gray-500 mb-1">Animation</label>
                 <select
                   className="input w-full text-sm"
                   value={localData.titleAnimation}
@@ -740,21 +764,55 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
                   {ANIMATIONS.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Size</label>
+                <select
+                  className="input w-full text-sm"
+                  value={localData.titleSize || 'large'}
+                  onChange={(e) => setLocalData({ ...localData, titleSize: e.target.value })}
+                >
+                  {TITLE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
               <div className="flex space-x-2">
-                <input
-                  type="number"
-                  className="input w-1/2 text-sm"
-                  placeholder="Duration"
-                  value={localData.titleDuration}
-                  onChange={(e) => setLocalData({ ...localData, titleDuration: parseInt(e.target.value) || 800 })}
-                />
-                <input
-                  type="number"
-                  className="input w-1/2 text-sm"
-                  placeholder="Delay"
-                  value={localData.titleDelay}
-                  onChange={(e) => setLocalData({ ...localData, titleDelay: parseInt(e.target.value) || 500 })}
-                />
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Duration</label>
+                  <input
+                    type="number"
+                    className="input w-full text-sm"
+                    value={localData.titleDuration}
+                    onChange={(e) => setLocalData({ ...localData, titleDuration: parseInt(e.target.value) || 800 })}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Delay</label>
+                  <input
+                    type="number"
+                    className="input w-full text-sm"
+                    value={localData.titleDelay}
+                    onChange={(e) => setLocalData({ ...localData, titleDelay: parseInt(e.target.value) || 500 })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    className="w-8 h-8 rounded border cursor-pointer"
+                    value={localData.titleColor || '#ffffff'}
+                    onChange={(e) => setLocalData({ ...localData, titleColor: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    className="input flex-1 text-sm"
+                    placeholder="#ffffff"
+                    value={localData.titleColor || ''}
+                    onChange={(e) => setLocalData({ ...localData, titleColor: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -764,6 +822,7 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
             <h4 className="text-sm font-medium mb-2">Subtitle</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">Text</label>
                 <input
                   type="text"
                   className="input w-full text-sm"
@@ -773,6 +832,7 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
                 />
               </div>
               <div>
+                <label className="block text-xs text-gray-500 mb-1">Animation</label>
                 <select
                   className="input w-full text-sm"
                   value={localData.subtitleAnimation}
@@ -781,21 +841,55 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
                   {ANIMATIONS.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Size</label>
+                <select
+                  className="input w-full text-sm"
+                  value={localData.subtitleSize || 'medium'}
+                  onChange={(e) => setLocalData({ ...localData, subtitleSize: e.target.value })}
+                >
+                  {SUBTITLE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
               <div className="flex space-x-2">
-                <input
-                  type="number"
-                  className="input w-1/2 text-sm"
-                  placeholder="Duration"
-                  value={localData.subtitleDuration}
-                  onChange={(e) => setLocalData({ ...localData, subtitleDuration: parseInt(e.target.value) || 600 })}
-                />
-                <input
-                  type="number"
-                  className="input w-1/2 text-sm"
-                  placeholder="Delay"
-                  value={localData.subtitleDelay}
-                  onChange={(e) => setLocalData({ ...localData, subtitleDelay: parseInt(e.target.value) || 1200 })}
-                />
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Duration</label>
+                  <input
+                    type="number"
+                    className="input w-full text-sm"
+                    value={localData.subtitleDuration}
+                    onChange={(e) => setLocalData({ ...localData, subtitleDuration: parseInt(e.target.value) || 600 })}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Delay</label>
+                  <input
+                    type="number"
+                    className="input w-full text-sm"
+                    value={localData.subtitleDelay}
+                    onChange={(e) => setLocalData({ ...localData, subtitleDelay: parseInt(e.target.value) || 1200 })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    className="w-8 h-8 rounded border cursor-pointer"
+                    value={localData.subtitleColor || '#ffffff'}
+                    onChange={(e) => setLocalData({ ...localData, subtitleColor: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    className="input flex-1 text-sm"
+                    placeholder="#ffffff"
+                    value={localData.subtitleColor || ''}
+                    onChange={(e) => setLocalData({ ...localData, subtitleColor: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
           </div>
