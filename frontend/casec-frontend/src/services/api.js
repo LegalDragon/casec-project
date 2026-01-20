@@ -183,6 +183,11 @@ export const themeAPI = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+  uploadHeroVideo: (formData) => {
+    return api.post("/theme/hero-video", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
   getPresets: () => api.get("/theme/presets"),
   applyPreset: (presetId) => api.post(`/theme/apply-preset/${presetId}`),
   reset: () => api.post("/theme/reset"),

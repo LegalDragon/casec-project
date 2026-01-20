@@ -11,6 +11,9 @@ export default function ThemeCustomization() {
   const [faviconFile, setFaviconFile] = useState(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [videoInputMode, setVideoInputMode] = useState('url'); // 'url' or 'upload'
+  const [selectedVideoFile, setSelectedVideoFile] = useState(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   // Parse hero video URLs from JSON string
   const getHeroVideos = () => {
@@ -50,6 +53,40 @@ export default function ThemeCustomization() {
     setNewVideoUrl('');
   };
 
+  // Handle video file selection
+  const handleVideoFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedVideoFile(file);
+    }
+  };
+
+  // Upload video file
+  const uploadVideoFile = async () => {
+    if (!selectedVideoFile) return;
+
+    setUploadingVideo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedVideoFile);
+
+      const response = await themeAPI.uploadHeroVideo(formData);
+      if (response.success) {
+        // Add the uploaded video URL to the list
+        const videos = getHeroVideos();
+        setHeroVideos([...videos, response.data.url]);
+        setSelectedVideoFile(null);
+        setVideoInputMode('url');
+      } else {
+        alert(response.message || 'Failed to upload video');
+      }
+    } catch (err) {
+      alert('Error uploading video: ' + (err.message || 'Please try again'));
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
   // Remove a video URL
   const removeVideoUrl = (index) => {
     const videos = getHeroVideos();
@@ -77,8 +114,12 @@ export default function ThemeCustomization() {
   const getVideoType = (url) => {
     if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
     if (url.includes('tiktok.com')) return 'TikTok';
+    if (url.startsWith('/asset/')) return 'Uploaded';
     return 'Video';
   };
+
+  // Check if URL is an uploaded asset
+  const isAssetUrl = (url) => url.startsWith('/asset/');
 
   useEffect(() => {
     loadTheme();
@@ -358,34 +399,101 @@ export default function ThemeCustomization() {
         </h2>
 
         <p className="text-gray-600 mb-4">
-          Add YouTube or TikTok video URLs to display as background videos on the home page hero section.
+          Add videos to display as background on the home page hero section.
           Videos will <strong>play in order</strong> from top to bottom, then loop back to the first video.
         </p>
 
-        {/* Add new video URL */}
-        <div className="flex gap-3 mb-4">
-          <input
-            type="text"
-            value={newVideoUrl}
-            onChange={(e) => setNewVideoUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addVideoUrl();
-              }
-            }}
-            className="input flex-1"
-            placeholder="Paste YouTube or TikTok URL..."
-          />
+        {/* Input Mode Toggle */}
+        <div className="flex mb-4 bg-gray-100 rounded-lg p-1 max-w-xs">
           <button
             type="button"
-            onClick={addVideoUrl}
-            className="btn btn-primary flex items-center gap-2"
+            onClick={() => setVideoInputMode('url')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              videoInputMode === 'url'
+                ? 'bg-white shadow text-primary'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
           >
-            <Plus className="w-4 h-4" />
-            Add Video
+            YouTube/TikTok URL
+          </button>
+          <button
+            type="button"
+            onClick={() => setVideoInputMode('upload')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              videoInputMode === 'upload'
+                ? 'bg-white shadow text-primary'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Upload Video
           </button>
         </div>
+
+        {/* URL Input Mode */}
+        {videoInputMode === 'url' && (
+          <div className="flex gap-3 mb-4">
+            <input
+              type="text"
+              value={newVideoUrl}
+              onChange={(e) => setNewVideoUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addVideoUrl();
+                }
+              }}
+              className="input flex-1"
+              placeholder="Paste YouTube or TikTok URL..."
+            />
+            <button
+              type="button"
+              onClick={addVideoUrl}
+              className="btn btn-primary flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Video
+            </button>
+          </div>
+        )}
+
+        {/* Upload Mode */}
+        {videoInputMode === 'upload' && (
+          <div className="mb-4">
+            <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-primary transition-colors">
+              <div className="space-y-1 text-center">
+                <Video className="mx-auto h-12 w-12 text-gray-400" />
+                <div className="flex text-sm text-gray-600">
+                  <label className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary-dark">
+                    <span>Choose a video file</span>
+                    <input
+                      type="file"
+                      className="sr-only"
+                      accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                      onChange={handleVideoFileSelect}
+                    />
+                  </label>
+                  <p className="pl-1">or drag and drop</p>
+                </div>
+                <p className="text-xs text-gray-500">MP4, WebM, OGG, MOV</p>
+                {selectedVideoFile && (
+                  <div className="mt-2">
+                    <p className="text-sm text-green-600 font-medium">
+                      Selected: {selectedVideoFile.name}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={uploadVideoFile}
+                      disabled={uploadingVideo}
+                      className="btn btn-primary btn-sm mt-2"
+                    >
+                      {uploadingVideo ? 'Uploading...' : 'Upload Video'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* List of videos */}
         <div className="space-y-2">
@@ -434,6 +542,8 @@ export default function ThemeCustomization() {
                   <span className={`px-2 py-1 text-xs font-medium rounded ${
                     getVideoType(url) === 'YouTube'
                       ? 'bg-red-100 text-red-700'
+                      : getVideoType(url) === 'Uploaded'
+                      ? 'bg-green-100 text-green-700'
                       : 'bg-black text-white'
                   }`}>
                     {getVideoType(url)}

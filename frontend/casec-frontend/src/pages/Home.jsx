@@ -76,14 +76,25 @@ export default function Home() {
     return url?.includes('youtube.com') || url?.includes('youtu.be');
   };
 
-  // Get the embed URL for the selected video
-  const videoEmbedUrl = useMemo(() => {
-    if (!heroVideoUrl) return null;
-    if (isYouTubeUrl(heroVideoUrl)) {
-      return getYouTubeEmbedUrl(heroVideoUrl);
+  // Check if URL is an uploaded asset
+  const isAssetUrl = (url) => {
+    return url?.startsWith('/asset/');
+  };
+
+  // Get the video info for the selected video
+  const videoInfo = useMemo(() => {
+    if (!heroVideoUrl) return { type: null, url: null };
+
+    if (isAssetUrl(heroVideoUrl)) {
+      return { type: 'asset', url: getAssetUrl(heroVideoUrl) };
     }
+
+    if (isYouTubeUrl(heroVideoUrl)) {
+      return { type: 'youtube', url: getYouTubeEmbedUrl(heroVideoUrl) };
+    }
+
     // TikTok videos can't be easily embedded as background, skip for now
-    return null;
+    return { type: null, url: null };
   }, [heroVideoUrl]);
 
   // Custom smooth scroll with easing
@@ -372,20 +383,35 @@ export default function Home() {
       {/* Hero Section - Logo, Name, and CTAs Centered */}
       <section className="px-6 py-12 md:py-16 relative overflow-hidden">
         {/* Video Background */}
-        {videoEmbedUrl && (
+        {videoInfo.url && (
           <>
-            {/* Video iframe container */}
+            {/* Video container */}
             <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-              <iframe
-                key={currentVideoIndex}
-                src={videoEmbedUrl}
-                title="Hero Background Video"
-                className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 object-cover"
-                style={{ minWidth: '100%', minHeight: '100%' }}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                frameBorder="0"
-              />
+              {videoInfo.type === 'asset' ? (
+                /* Native HTML5 video for uploaded assets */
+                <video
+                  key={currentVideoIndex}
+                  src={videoInfo.url}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2 object-cover"
+                  style={{ minWidth: '100%', minHeight: '100%' }}
+                />
+              ) : (
+                /* YouTube iframe for external videos */
+                <iframe
+                  key={currentVideoIndex}
+                  src={videoInfo.url}
+                  title="Hero Background Video"
+                  className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 object-cover"
+                  style={{ minWidth: '100%', minHeight: '100%' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  frameBorder="0"
+                />
+              )}
             </div>
             {/* Dark overlay for readability */}
             <div className="absolute inset-0 bg-black/50" />
