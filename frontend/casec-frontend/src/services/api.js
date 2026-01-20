@@ -30,12 +30,6 @@ export const getAssetUrl = (path) => {
     return `${API_BASE_URL}${path.substring(4)}`;
   }
 
-  // /asset paths go directly to root, not under /api
-  // AssetController is at /asset/{id}, not /api/asset/{id}
-  if (path.startsWith("/asset")) {
-    return path;
-  }
-
   // If path starts with /, prepend API_BASE_URL
   if (path.startsWith("/")) {
     return `${API_BASE_URL}${path}`;
