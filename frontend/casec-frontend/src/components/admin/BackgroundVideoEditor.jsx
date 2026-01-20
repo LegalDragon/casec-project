@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Film } from 'lucide-react';
-import { getAssetUrl } from '../../services/api';
+import { Plus, Trash2, ChevronDown, ChevronRight, Video, Clock, Film } from 'lucide-react';
+import { slideShowsAPI, getAssetUrl } from '../../services/api';
 
 // Background types
 const BACKGROUND_TYPES = [
@@ -16,14 +16,20 @@ export default function BackgroundVideoEditor({
   backgroundColor,
   backgroundImageUrl,
   useRandomHeroVideos = false,
+  backgroundVideos = [],
+  sharedVideos = [],
   sharedImages = [],
   onUpdate,
+  onRefresh,
+  onToast,
 }) {
   const [localBackgroundType, setLocalBackgroundType] = useState(backgroundType);
   const [localBackgroundColor, setLocalBackgroundColor] = useState(backgroundColor || '#000000');
   const [localBackgroundImageUrl, setLocalBackgroundImageUrl] = useState(backgroundImageUrl || '');
   const [localUseRandom, setLocalUseRandom] = useState(useRandomHeroVideos);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [showAddVideo, setShowAddVideo] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Get background type label for collapsed view
@@ -47,6 +53,63 @@ export default function BackgroundVideoEditor({
       backgroundImageUrl: localBackgroundImageUrl,
       useRandomHeroVideos: localUseRandom,
     });
+  };
+
+  // Add background video
+  const handleAddBackgroundVideo = async (videoData) => {
+    setSaving(true);
+    try {
+      const response = await slideShowsAPI.createSlideBackgroundVideo({
+        slideId,
+        videoId: videoData.videoId || null,
+        videoUrl: videoData.videoUrl || null,
+        duration: videoData.duration || 5000,
+        sortOrder: backgroundVideos.length,
+      });
+
+      if (response.success) {
+        setShowAddVideo(false);
+        onRefresh?.();
+        onToast?.('success', 'Background video added');
+      } else {
+        onToast?.('error', response.message || 'Failed to add background video');
+      }
+    } catch (err) {
+      onToast?.('error', 'Error adding background video');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Update background video
+  const handleUpdateBackgroundVideo = async (videoId, data) => {
+    try {
+      const response = await slideShowsAPI.updateSlideBackgroundVideo(videoId, data);
+      if (response.success) {
+        onRefresh?.();
+        onToast?.('success', 'Background video updated');
+      } else {
+        onToast?.('error', response.message || 'Failed to update background video');
+      }
+    } catch (err) {
+      onToast?.('error', 'Error updating background video');
+    }
+  };
+
+  // Delete background video
+  const handleDeleteBackgroundVideo = async (videoId) => {
+    if (!confirm('Remove this background video?')) return;
+    try {
+      const response = await slideShowsAPI.deleteSlideBackgroundVideo(videoId);
+      if (response.success) {
+        onRefresh?.();
+        onToast?.('success', 'Background video removed');
+      } else {
+        onToast?.('error', response.message || 'Failed to remove background video');
+      }
+    } catch (err) {
+      onToast?.('error', 'Error removing background video');
+    }
   };
 
   return (
@@ -179,9 +242,52 @@ export default function BackgroundVideoEditor({
           )}
 
           {localBackgroundType === 'heroVideos' && (
-            <p className="text-sm text-gray-500">
-              Uses videos from the shared video pool as background.
-            </p>
+            <div className="space-y-4">
+              {/* Background Videos List */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm text-gray-600">
+                    Background Videos ({backgroundVideos.length})
+                  </label>
+                  <button
+                    onClick={() => setShowAddVideo(true)}
+                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Video
+                  </button>
+                </div>
+
+                {backgroundVideos.length === 0 ? (
+                  <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed text-gray-500 text-sm">
+                    No background videos. Add videos to cycle through as background.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {backgroundVideos.map((bgVideo, index) => (
+                      <BackgroundVideoItem
+                        key={bgVideo.slideBackgroundVideoId}
+                        bgVideo={bgVideo}
+                        index={index}
+                        sharedVideos={sharedVideos}
+                        onUpdate={(data) => handleUpdateBackgroundVideo(bgVideo.slideBackgroundVideoId, data)}
+                        onDelete={() => handleDeleteBackgroundVideo(bgVideo.slideBackgroundVideoId)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Add Video Panel */}
+                {showAddVideo && (
+                  <AddBackgroundVideoPanel
+                    sharedVideos={sharedVideos}
+                    onAdd={handleAddBackgroundVideo}
+                    onCancel={() => setShowAddVideo(false)}
+                    saving={saving}
+                  />
+                )}
+              </div>
+            </div>
           )}
 
           {/* Save Button - always visible when expanded */}
@@ -195,6 +301,140 @@ export default function BackgroundVideoEditor({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Background Video Item Component
+function BackgroundVideoItem({ bgVideo, index, sharedVideos, onUpdate, onDelete }) {
+  const [localDuration, setLocalDuration] = useState(bgVideo.duration);
+
+  useEffect(() => {
+    setLocalDuration(bgVideo.duration);
+  }, [bgVideo]);
+
+  const videoUrl = bgVideo.video?.url || bgVideo.videoUrl;
+
+  const handleSave = () => {
+    onUpdate({
+      videoId: bgVideo.videoId,
+      videoUrl: bgVideo.videoUrl,
+      duration: localDuration,
+      sortOrder: bgVideo.sortOrder,
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+      <span className="text-sm text-gray-400 w-6">#{index + 1}</span>
+
+      {videoUrl ? (
+        <video
+          src={getAssetUrl(videoUrl)}
+          className="w-24 h-14 object-cover rounded"
+          muted
+        />
+      ) : (
+        <div className="w-24 h-14 bg-gray-100 rounded flex items-center justify-center text-gray-400">
+          <Video className="w-6 h-6" />
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 flex-1">
+        <Clock className="w-4 h-4 text-gray-400" />
+        <input
+          type="number"
+          value={localDuration}
+          onChange={(e) => setLocalDuration(parseInt(e.target.value) || 5000)}
+          className="w-24 px-2 py-1 border rounded text-sm"
+          min="1000"
+          step="500"
+        />
+        <span className="text-xs text-gray-500">ms</span>
+      </div>
+
+      <button
+        onClick={handleSave}
+        className="px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+      >
+        Save
+      </button>
+
+      <button
+        onClick={onDelete}
+        className="p-1 text-red-500 hover:bg-red-50 rounded"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// Add Background Video Panel
+function AddBackgroundVideoPanel({ sharedVideos, onAdd, onCancel, saving }) {
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [duration, setDuration] = useState(5000);
+
+  const handleAdd = () => {
+    onAdd({
+      videoId: selectedVideo?.videoId || null,
+      videoUrl: selectedVideo?.url || null,
+      duration,
+    });
+  };
+
+  return (
+    <div className="mt-3 bg-gray-50 p-4 rounded-lg border">
+      <h5 className="font-medium text-sm mb-3">Add Background Video</h5>
+
+      <div className="space-y-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-2">Select Video:</label>
+          <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
+            {sharedVideos.map(vid => (
+              <button
+                key={vid.videoId}
+                onClick={() => setSelectedVideo(vid)}
+                className={`aspect-video rounded border overflow-hidden ${
+                  selectedVideo?.videoId === vid.videoId ? 'ring-2 ring-blue-500' : ''
+                }`}
+              >
+                <video src={getAssetUrl(vid.url)} className="w-full h-full object-cover" muted />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Duration (ms)</label>
+          <input
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(parseInt(e.target.value) || 5000)}
+            className="w-full px-3 py-2 border rounded text-sm"
+            min="1000"
+            step="500"
+          />
+          <p className="text-xs text-gray-400 mt-1">How long to show this video before switching</p>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            className="btn btn-secondary"
+            disabled={saving}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAdd}
+            className="btn btn-primary"
+            disabled={saving || !selectedVideo}
+          >
+            {saving ? 'Adding...' : 'Add Video'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
