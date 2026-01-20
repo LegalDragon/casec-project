@@ -221,7 +221,7 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
           ref={videoRef}
           key={videoUrl}
           className="absolute inset-0 w-full h-full object-cover"
-          src={videoUrl}
+          src={getAssetUrl(videoUrl)}
           autoPlay
           muted
           loop
