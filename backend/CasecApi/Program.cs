@@ -8,6 +8,18 @@ using CasecApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Kestrel for large file uploads (100MB for videos)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 110 * 1024 * 1024; // 110MB to allow some overhead
+});
+
+// Configure form options for large file uploads
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 110 * 1024 * 1024; // 110MB
+});
+
 // Add services to the container
 builder.Services.AddDbContext<CasecDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
