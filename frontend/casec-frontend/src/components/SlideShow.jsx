@@ -552,20 +552,39 @@ function SlideObject({ object, slideIndex }) {
     const imageUrl = props.imageUrl || props.url;
     if (!imageUrl) return null;
 
-    const width = props.width || 'auto';
-    const height = props.height || 'auto';
+    // Map size property to dimensions
+    const getImageDimensions = () => {
+      switch (props.size) {
+        case 'small': return { width: '200px', height: 'auto' };
+        case 'medium': return { width: '400px', height: 'auto' };
+        case 'large': return { width: '600px', height: 'auto' };
+        case 'full': return { width: '100vw', height: '100vh' };
+        default: return { width: props.width || 'auto', height: props.height || 'auto' };
+      }
+    };
+    const dimensions = getImageDimensions();
+    const isFull = props.size === 'full';
+
+    // For full size, override wrapper to fill screen
+    const imageWrapperStyle = isFull ? {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+    } : wrapperStyle;
 
     return (
-      <div style={wrapperStyle}>
+      <div style={imageWrapperStyle}>
         <img
           key={`${object.slideObjectId}-${slideIndex}`}
           src={getAssetUrl(imageUrl)}
           alt={props.alt || ''}
-          className={`${animProps.className} ${props.borderRadius || 'rounded-lg'} ${props.shadow || ''}`}
+          className={`${animProps.className} ${isFull ? '' : (props.borderRadius || 'rounded-lg')} ${props.shadow || ''}`}
           style={{
             ...animProps.style,
-            width,
-            height,
+            width: dimensions.width,
+            height: dimensions.height,
             objectFit: props.objectFit || 'cover',
           }}
         />
@@ -577,6 +596,17 @@ function SlideObject({ object, slideIndex }) {
     const videoUrl = props.videoUrl || props.url;
     if (!videoUrl) return null;
 
+    // Map size property to dimensions
+    const getVideoDimensions = () => {
+      switch (props.size) {
+        case 'small': return { width: '320px', height: 'auto' };
+        case 'medium': return { width: '640px', height: 'auto' };
+        case 'large': return { width: '960px', height: 'auto' };
+        default: return { width: props.width || 'auto', height: props.height || 'auto' };
+      }
+    };
+    const dimensions = getVideoDimensions();
+
     return (
       <div style={wrapperStyle}>
         <video
@@ -585,8 +615,8 @@ function SlideObject({ object, slideIndex }) {
           className={`${animProps.className} ${props.borderRadius || 'rounded-lg'}`}
           style={{
             ...animProps.style,
-            width: props.width || 'auto',
-            height: props.height || 'auto',
+            width: dimensions.width,
+            height: dimensions.height,
           }}
           autoPlay={props.autoPlay !== false}
           muted={props.muted !== false}
