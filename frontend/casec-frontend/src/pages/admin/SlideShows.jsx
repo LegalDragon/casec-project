@@ -673,7 +673,9 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
   };
 
   // Handle background settings update from BackgroundVideoEditor
+  // This saves directly to the server AND updates local state
   const handleBackgroundUpdate = (bgSettings) => {
+    // Update local state
     setLocalData(prev => ({
       ...prev,
       backgroundType: bgSettings.backgroundType,
@@ -681,6 +683,14 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
       backgroundImageUrl: bgSettings.backgroundImageUrl,
       useRandomHeroVideos: bgSettings.useRandomHeroVideos,
     }));
+
+    // Also save to server immediately
+    onUpdate({
+      backgroundType: bgSettings.backgroundType,
+      backgroundColor: bgSettings.backgroundColor,
+      backgroundImageUrl: bgSettings.backgroundImageUrl,
+      useRandomHeroVideos: bgSettings.useRandomHeroVideos,
+    });
   };
 
   return (
