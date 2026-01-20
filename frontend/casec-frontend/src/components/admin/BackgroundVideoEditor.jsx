@@ -136,182 +136,184 @@ export default function BackgroundVideoEditor({
         <div className="space-y-4 mt-4">
           {/* Background Type Selector */}
           <div>
-        <label className="block text-sm text-gray-600 mb-2">Background Type</label>
-        <div className="grid grid-cols-2 gap-2">
-          {BACKGROUND_TYPES.map(type => (
-            <button
-              key={type.value}
-              onClick={() => setLocalBackgroundType(type.value)}
-              className={`p-3 rounded-lg border text-left transition-colors ${
-                localBackgroundType === type.value
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <span className="font-medium text-sm">{type.label}</span>
-              <p className="text-xs text-gray-500 mt-1">{type.description}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Type-specific settings */}
-      {localBackgroundType === 'color' && (
-        <div>
-          <label className="block text-sm text-gray-600 mb-2">Background Color</label>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={localBackgroundColor}
-              onChange={(e) => setLocalBackgroundColor(e.target.value)}
-              className="w-12 h-10 border rounded cursor-pointer"
-            />
-            <input
-              type="text"
-              value={localBackgroundColor}
-              onChange={(e) => setLocalBackgroundColor(e.target.value)}
-              className="flex-1 px-3 py-2 border rounded text-sm"
-              placeholder="#000000"
-            />
-          </div>
-        </div>
-      )}
-
-      {localBackgroundType === 'image' && (
-        <div>
-          <label className="block text-sm text-gray-600 mb-2">Background Image</label>
-          {localBackgroundImageUrl ? (
-            <div className="flex items-center gap-3">
-              <img
-                src={getAssetUrl(localBackgroundImageUrl)}
-                alt="Background"
-                className="w-24 h-16 object-cover rounded border"
-              />
-              <div className="flex-1">
-                <p className="text-sm text-gray-600 truncate">{localBackgroundImageUrl}</p>
+            <label className="block text-sm text-gray-600 mb-2">Background Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              {BACKGROUND_TYPES.map(type => (
                 <button
-                  onClick={() => setShowImagePicker(true)}
-                  className="text-sm text-blue-600 hover:underline"
+                  key={type.value}
+                  onClick={() => setLocalBackgroundType(type.value)}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    localBackgroundType === type.value
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
                 >
-                  Change image
+                  <span className="font-medium text-sm">{type.label}</span>
+                  <p className="text-xs text-gray-500 mt-1">{type.description}</p>
                 </button>
-              </div>
+              ))}
             </div>
-          ) : (
-            <button
-              onClick={() => setShowImagePicker(true)}
-              className="w-full py-4 border-2 border-dashed rounded-lg text-gray-500 hover:border-blue-500"
-            >
-              Select Background Image
-            </button>
-          )}
-
-          {showImagePicker && (
-            <div className="mt-3 bg-gray-50 p-3 rounded-lg border">
-              <p className="text-xs text-gray-500 mb-2">Select from shared images:</p>
-              <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
-                {sharedImages.map(img => (
-                  <button
-                    key={img.imageId}
-                    onClick={() => {
-                      setLocalBackgroundImageUrl(img.url);
-                      setShowImagePicker(false);
-                    }}
-                    className="aspect-video rounded border overflow-hidden hover:ring-2 ring-blue-500"
-                  >
-                    <img src={getAssetUrl(img.url)} alt={img.title} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-              <input
-                type="text"
-                value={localBackgroundImageUrl}
-                onChange={(e) => setLocalBackgroundImageUrl(e.target.value)}
-                className="w-full mt-2 px-2 py-1 border rounded text-sm"
-                placeholder="Or enter URL..."
-              />
-              <button
-                onClick={() => setShowImagePicker(false)}
-                className="mt-2 text-sm text-gray-500"
-              >
-                Close
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {localBackgroundType === 'heroVideos' && (
-        <div className="space-y-4">
-          {/* Random option */}
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={localUseRandom}
-                onChange={(e) => setLocalUseRandom(e.target.checked)}
-                className="rounded"
-              />
-              <div>
-                <span className="font-medium text-sm flex items-center gap-1">
-                  <Shuffle className="w-4 h-4" />
-                  Use Random Videos
-                </span>
-                <p className="text-xs text-gray-500">
-                  Randomly select from shared video pool instead of specific videos below
-                </p>
-              </div>
-            </label>
           </div>
 
-          {/* Video List (only shown if not using random) */}
-          {!localUseRandom && (
+          {/* Type-specific settings */}
+          {localBackgroundType === 'color' && (
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm text-gray-600">
-                  Background Videos ({backgroundVideos.length})
-                </label>
-                <button
-                  onClick={() => setShowAddVideo(true)}
-                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Video
-                </button>
+              <label className="block text-sm text-gray-600 mb-2">Background Color</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={localBackgroundColor}
+                  onChange={(e) => setLocalBackgroundColor(e.target.value)}
+                  className="w-12 h-10 border rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={localBackgroundColor}
+                  onChange={(e) => setLocalBackgroundColor(e.target.value)}
+                  className="flex-1 px-3 py-2 border rounded text-sm"
+                  placeholder="#000000"
+                />
               </div>
+            </div>
+          )}
 
-              {backgroundVideos.length === 0 ? (
-                <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed text-gray-500 text-sm">
-                  No background videos. Add videos or enable random selection.
+          {localBackgroundType === 'image' && (
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">Background Image</label>
+              {localBackgroundImageUrl ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={getAssetUrl(localBackgroundImageUrl)}
+                    alt="Background"
+                    className="w-24 h-16 object-cover rounded border"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 truncate">{localBackgroundImageUrl}</p>
+                    <button
+                      onClick={() => setShowImagePicker(true)}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Change image
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {backgroundVideos.map((bgVideo, index) => (
-                    <BackgroundVideoItem
-                      key={bgVideo.slideBackgroundVideoId}
-                      bgVideo={bgVideo}
-                      index={index}
-                      sharedVideos={sharedVideos}
-                      onUpdate={(data) => handleUpdateBackgroundVideo(bgVideo.slideBackgroundVideoId, data)}
-                      onDelete={() => handleDeleteBackgroundVideo(bgVideo.slideBackgroundVideoId)}
-                    />
-                  ))}
-                </div>
+                <button
+                  onClick={() => setShowImagePicker(true)}
+                  className="w-full py-4 border-2 border-dashed rounded-lg text-gray-500 hover:border-blue-500"
+                >
+                  Select Background Image
+                </button>
               )}
 
-              {/* Add Video Panel */}
-              {showAddVideo && (
-                <AddBackgroundVideoPanel
-                  sharedVideos={sharedVideos}
-                  onAdd={handleAddBackgroundVideo}
-                  onCancel={() => setShowAddVideo(false)}
-                  saving={saving}
-                />
+              {showImagePicker && (
+                <div className="mt-3 bg-gray-50 p-3 rounded-lg border">
+                  <p className="text-xs text-gray-500 mb-2">Select from shared images:</p>
+                  <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
+                    {sharedImages.map(img => (
+                      <button
+                        key={img.imageId}
+                        onClick={() => {
+                          setLocalBackgroundImageUrl(img.url);
+                          setShowImagePicker(false);
+                        }}
+                        className="aspect-video rounded border overflow-hidden hover:ring-2 ring-blue-500"
+                      >
+                        <img src={getAssetUrl(img.url)} alt={img.title} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={localBackgroundImageUrl}
+                    onChange={(e) => setLocalBackgroundImageUrl(e.target.value)}
+                    className="w-full mt-2 px-2 py-1 border rounded text-sm"
+                    placeholder="Or enter URL..."
+                  />
+                  <button
+                    onClick={() => setShowImagePicker(false)}
+                    className="mt-2 text-sm text-gray-500"
+                  >
+                    Close
+                  </button>
+                </div>
               )}
             </div>
           )}
 
-          {/* Save Button */}
+          {localBackgroundType === 'heroVideos' && (
+            <div className="space-y-4">
+              {/* Random option */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={localUseRandom}
+                    onChange={(e) => setLocalUseRandom(e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <span className="font-medium text-sm flex items-center gap-1">
+                      <Shuffle className="w-4 h-4" />
+                      Use Random Videos
+                    </span>
+                    <p className="text-xs text-gray-500">
+                      Randomly select from shared video pool instead of specific videos below
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Video List (only shown if not using random) */}
+              {!localUseRandom && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm text-gray-600">
+                      Background Videos ({backgroundVideos.length})
+                    </label>
+                    <button
+                      onClick={() => setShowAddVideo(true)}
+                      className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Video
+                    </button>
+                  </div>
+
+                  {backgroundVideos.length === 0 ? (
+                    <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed text-gray-500 text-sm">
+                      No background videos. Add videos or enable random selection.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {backgroundVideos.map((bgVideo, index) => (
+                        <BackgroundVideoItem
+                          key={bgVideo.slideBackgroundVideoId}
+                          bgVideo={bgVideo}
+                          index={index}
+                          sharedVideos={sharedVideos}
+                          onUpdate={(data) => handleUpdateBackgroundVideo(bgVideo.slideBackgroundVideoId, data)}
+                          onDelete={() => handleDeleteBackgroundVideo(bgVideo.slideBackgroundVideoId)}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add Video Panel */}
+                  {showAddVideo && (
+                    <AddBackgroundVideoPanel
+                      sharedVideos={sharedVideos}
+                      onAdd={handleAddBackgroundVideo}
+                      onCancel={() => setShowAddVideo(false)}
+                      saving={saving}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Save Button - always visible when expanded */}
           <div className="flex justify-end pt-4">
             <button
               onClick={handleSaveSettings}
