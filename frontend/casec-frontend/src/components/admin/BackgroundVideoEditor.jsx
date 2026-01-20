@@ -33,6 +33,13 @@ export default function BackgroundVideoEditor({
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Get background type label for collapsed view
+  const getBackgroundLabel = () => {
+    const type = BACKGROUND_TYPES.find(t => t.value === localBackgroundType);
+    return type?.label || 'Hero Videos';
+  };
 
   useEffect(() => {
     setLocalBackgroundType(backgroundType);
@@ -110,17 +117,25 @@ export default function BackgroundVideoEditor({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="border-t pt-4">
+      {/* Collapsible Header */}
+      <div
+        className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-4 px-4 py-2 rounded"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <h4 className="font-medium text-gray-700 flex items-center gap-2">
           <Film className="w-4 h-4" />
           Background Settings
+          <span className="text-sm font-normal text-gray-500">({getBackgroundLabel()})</span>
         </h4>
+        {isExpanded ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
       </div>
 
-      {/* Background Type Selector */}
-      <div>
+      {/* Collapsible Content */}
+      {isExpanded && (
+        <div className="space-y-4 mt-4">
+          {/* Background Type Selector */}
+          <div>
         <label className="block text-sm text-gray-600 mb-2">Background Type</label>
         <div className="grid grid-cols-2 gap-2">
           {BACKGROUND_TYPES.map(type => (
@@ -295,18 +310,18 @@ export default function BackgroundVideoEditor({
               )}
             </div>
           )}
+
+          {/* Save Button */}
+          <div className="flex justify-end pt-4">
+            <button
+              onClick={handleSaveSettings}
+              className="btn btn-primary"
+            >
+              Save Background Settings
+            </button>
+          </div>
         </div>
       )}
-
-      {/* Save Button */}
-      <div className="flex justify-end pt-4 border-t">
-        <button
-          onClick={handleSaveSettings}
-          className="btn btn-primary"
-        >
-          Save Background Settings
-        </button>
-      </div>
     </div>
   );
 }

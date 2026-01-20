@@ -432,10 +432,11 @@ function ObjectItem({
 
           {/* Animation In Settings */}
           <div>
-            <h5 className="font-medium text-sm text-gray-700 mb-3 flex items-center gap-2">
+            <h5 className="font-medium text-sm text-gray-700 mb-2 flex items-center gap-2">
               <Play className="w-4 h-4" />
               Animation In (Entry)
             </h5>
+            <p className="text-xs text-gray-400 mb-3">All times are measured from when the slide starts</p>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Animation</label>
@@ -450,7 +451,7 @@ function ObjectItem({
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Delay (ms)</label>
+                <label className="block text-xs text-gray-500 mb-1">Start at (ms)</label>
                 <input
                   type="number"
                   value={localData.animationInDelay}
@@ -458,6 +459,7 @@ function ObjectItem({
                   className="w-full px-2 py-1 border rounded text-sm"
                   min="0"
                   step="100"
+                  placeholder="0 = slide start"
                 />
               </div>
               <div>
@@ -506,7 +508,7 @@ function ObjectItem({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Start at (ms)</label>
+                  <label className="block text-xs text-gray-500 mb-1">Exit at (ms from slide start)</label>
                   <input
                     type="number"
                     value={localData.animationOutDelay || 0}
@@ -514,6 +516,7 @@ function ObjectItem({
                     className="w-full px-2 py-1 border rounded text-sm"
                     min="0"
                     step="100"
+                    placeholder="from slide start"
                   />
                 </div>
                 <div>
