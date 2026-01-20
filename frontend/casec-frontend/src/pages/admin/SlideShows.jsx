@@ -19,6 +19,7 @@ const SUBTITLE_SIZES = ['small', 'medium', 'large'];
 export default function AdminSlideShows() {
   const [slideShows, setSlideShows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('slideshows'); // slideshows, videos, images
   const [selectedShow, setSelectedShow] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -72,12 +73,23 @@ export default function AdminSlideShows() {
 
   const loadSlideShows = async () => {
     try {
+      setError(null);
       const response = await slideShowsAPI.getAllAdmin();
       if (response.success) {
         setSlideShows(response.data);
+      } else {
+        setError(response.message || 'Failed to load slideshows');
       }
     } catch (err) {
       console.error('Failed to load slideshows:', err);
+      const status = err.response?.status;
+      if (status === 403) {
+        setError('Access denied. Admin privileges required.');
+      } else if (status === 404) {
+        setError('SlideShows API not found. The backend may need to be redeployed.');
+      } else {
+        setError(err.response?.data?.message || err.message || 'Failed to load slideshows. Please check the console for details.');
+      }
     } finally {
       setLoading(false);
     }
@@ -248,6 +260,25 @@ export default function AdminSlideShows() {
           <p className="text-gray-600">Create and manage intro slideshows for your pages</p>
         </div>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-red-800">Error Loading SlideShows</h3>
+              <p className="text-red-600 text-sm mt-1">{error}</p>
+              <button
+                onClick={loadSlideShows}
+                className="mt-2 text-sm text-red-700 underline hover:no-underline"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
