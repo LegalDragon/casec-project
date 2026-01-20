@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Play, Plus, Edit2, Trash2, ChevronRight, ChevronDown, GripVertical,
-  Image, Video, Settings, Eye, Copy, Check, X, Film, Layers
+  Image, Video, Settings, Eye, Copy, Check, X, Film, Layers, Share2, Link
 } from 'lucide-react';
 import { slideShowsAPI, getAssetUrl } from '../../services/api';
 import SlideShowPreview from '../../components/SlideShow';
@@ -25,6 +25,27 @@ export default function AdminSlideShows() {
   const [editingSlide, setEditingSlide] = useState(null);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Copy share link to clipboard
+  const copyShareLink = async (code) => {
+    const url = `${window.location.origin}/preview/slideshow/${code}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  };
 
   // Shared media
   const [sharedVideos, setSharedVideos] = useState([]);
@@ -324,6 +345,17 @@ export default function AdminSlideShows() {
                       disabled={!selectedShow.slides?.length}
                     >
                       <Play className="w-4 h-4 mr-1" /> Preview
+                    </button>
+                    <button
+                      onClick={() => copyShareLink(selectedShow.code)}
+                      className={`btn btn-sm ${linkCopied ? 'btn-success' : 'btn-secondary'}`}
+                      title="Copy share link"
+                    >
+                      {linkCopied ? (
+                        <><Check className="w-4 h-4 mr-1" /> Copied!</>
+                      ) : (
+                        <><Share2 className="w-4 h-4 mr-1" /> Share</>
+                      )}
                     </button>
                     <button
                       onClick={() => handleEditShow(selectedShow)}

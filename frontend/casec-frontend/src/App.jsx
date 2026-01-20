@@ -31,6 +31,7 @@ import AdminPaymentMethods from './pages/admin/PaymentMethods';
 import AdminPolls from './pages/admin/Polls';
 import AdminSurveys from './pages/admin/Surveys';
 import AdminSlideShows from './pages/admin/SlideShows';
+import SlideShowPreview from './pages/SlideShowPreview';
 import Membership from './pages/Membership';
 
 function ProtectedRoute({ children }) {
@@ -76,6 +77,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/event/:eventId" element={<EventDetail />} />
+        <Route path="/preview/slideshow/:code" element={<SlideShowPreview />} />
 
         {/* Protected Routes */}
         <Route path="/" element={
