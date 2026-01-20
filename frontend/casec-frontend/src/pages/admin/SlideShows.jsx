@@ -120,6 +120,7 @@ export default function AdminSlideShows() {
   };
 
   const handleCreateShow = () => {
+    setSelectedShow(null); // Clear selection so save creates new instead of updating
     setFormData({
       code: '',
       name: '',
