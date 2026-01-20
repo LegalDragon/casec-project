@@ -167,13 +167,11 @@ export default function AdminSlideShows() {
     setSaving(true);
     try {
       let response;
-      console.log('Saving slideshow:', selectedShow ? `UPDATE ${selectedShow.slideShowId}` : 'CREATE', formData);
       if (selectedShow) {
         response = await slideShowsAPI.update(selectedShow.slideShowId, formData);
       } else {
         response = await slideShowsAPI.create(formData);
       }
-      console.log('Save response:', response);
 
       if (response.success) {
         setShowForm(false);
@@ -233,10 +231,8 @@ export default function AdminSlideShows() {
   };
 
   const handleUpdateSlide = async (slideId, data) => {
-    console.log('handleUpdateSlide called:', { slideId, data });
     try {
       const response = await slideShowsAPI.updateSlide(slideId, data);
-      console.log('updateSlide response:', response);
       if (response.success) {
         loadSlideShowDetails(selectedShow.slideShowId);
         showToast('success', 'Slide saved!');
@@ -669,7 +665,6 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
       overlayColor: localData.overlayColor,
       overlayOpacity: localData.overlayOpacity,
     };
-    console.log('SlideEditor handleSave called with:', updateData);
     onUpdate(updateData);
   };
 
@@ -882,17 +877,6 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
                   </select>
                 ) : (
                   <p className="text-sm text-gray-500">No videos in pool. Add videos in the "Video Pool" tab first.</p>
-                )}
-                {localData.videoUrl && (
-                  <div className="mt-2 p-2 bg-gray-50 rounded">
-                    <video
-                      src={getAssetUrl(localData.videoUrl)}
-                      className="w-full max-h-32 object-contain rounded"
-                      muted
-                      autoPlay
-                      loop
-                    />
-                  </div>
                 )}
               </div>
             )}
