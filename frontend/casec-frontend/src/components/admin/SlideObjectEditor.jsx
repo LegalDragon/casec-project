@@ -39,7 +39,20 @@ const VERTICAL_ALIGN = [
   { value: 'bottom', label: 'Bottom', icon: ArrowDown },
 ];
 
-const TEXT_SIZES = ['small', 'medium', 'large', 'xlarge'];
+const TEXT_SIZES = [
+  { value: 'xs', label: 'XS (14px)' },
+  { value: 'sm', label: 'Small (16px)' },
+  { value: 'base', label: 'Base (18px)' },
+  { value: 'lg', label: 'Large (20px)' },
+  { value: 'xl', label: 'XL (24px)' },
+  { value: '2xl', label: '2XL (30px)' },
+  { value: '3xl', label: '3XL (36px)' },
+  { value: '4xl', label: '4XL (48px)' },
+  { value: '5xl', label: '5XL (60px)' },
+  { value: '6xl', label: '6XL (72px)' },
+  { value: '7xl', label: '7XL (96px)' },
+  { value: '8xl', label: '8XL (128px)' },
+];
 const IMAGE_SIZES = ['small', 'medium', 'large', 'full'];
 const VIDEO_SIZES = ['small', 'medium', 'large'];
 
@@ -49,7 +62,7 @@ const getDefaultProperties = (objectType) => {
     case 'text':
       return {
         content: '',
-        fontSize: 'large',
+        fontSize: '4xl',
         fontWeight: 'bold',
         fontFamily: '',
         color: '#ffffff',
@@ -598,12 +611,12 @@ function TextProperties({ properties, onChange }) {
         <div>
           <label className="block text-xs text-gray-500 mb-1">Size</label>
           <select
-            value={properties.fontSize || 'large'}
+            value={properties.fontSize || '4xl'}
             onChange={(e) => onChange('fontSize', e.target.value)}
             className="w-full px-2 py-1 border rounded text-sm"
           >
             {TEXT_SIZES.map(size => (
-              <option key={size} value={size}>{size}</option>
+              <option key={size.value} value={size.value}>{size.label}</option>
             ))}
           </select>
         </div>

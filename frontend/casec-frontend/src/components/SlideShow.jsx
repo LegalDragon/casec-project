@@ -522,8 +522,12 @@ function SlideObject({ object, slideIndex }) {
 
   // Render based on object type - wrapper handles position, inner element handles animation
   if (object.objectType === 'text') {
-    const fontSize = props.fontSize || 'text-4xl';
-    const fontWeight = props.fontWeight || 'font-bold';
+    // Map fontSize value to Tailwind class (e.g., '4xl' -> 'text-4xl')
+    const sizeValue = props.fontSize || '4xl';
+    const fontSize = sizeValue.startsWith('text-') ? sizeValue : `text-${sizeValue}`;
+    // Map fontWeight value to Tailwind class (e.g., 'bold' -> 'font-bold')
+    const weightValue = props.fontWeight || 'bold';
+    const fontWeight = weightValue.startsWith('font-') ? weightValue : `font-${weightValue}`;
     const color = props.color || 'white';
 
     return (
@@ -535,7 +539,7 @@ function SlideObject({ object, slideIndex }) {
             ...animProps.style,
             color,
             textAlign: props.textAlign || 'center',
-            maxWidth: props.maxWidth || '80%',
+            maxWidth: props.maxWidth ? `${props.maxWidth}px` : '80%',
           }}
         >
           {props.content || props.text}
