@@ -12,7 +12,8 @@ const IMAGE_ANIMATIONS = ['fadeIn', 'zoomIn', 'slideInLeft', 'slideInRight', 'bo
 const LAYOUTS = ['center', 'left', 'right', 'split'];
 const OVERLAYS = ['dark', 'light', 'gradient', 'none'];
 const POSITIONS = ['center', 'left', 'right', 'bottom-left', 'bottom-right', 'top-left', 'top-right'];
-const SIZES = ['small', 'medium', 'large', 'full'];
+const SIZES = ['small', 'medium', 'large', 'full', 'maximum'];
+const ORIENTATIONS = ['auto', 'portrait', 'landscape'];
 const TITLE_SIZES = ['small', 'medium', 'large', 'xlarge'];
 const SUBTITLE_SIZES = ['small', 'medium', 'large'];
 
@@ -674,7 +675,7 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
   };
 
   // Add image to slide
-  const handleAddImage = async (imageUrl, animation = 'fadeIn', position = 'center', size = 'medium') => {
+  const handleAddImage = async (imageUrl, animation = 'fadeIn', position = 'center', size = 'medium', orientation = 'auto') => {
     setSavingImage(true);
     try {
       const response = await slideShowsAPI.createSlideImage({
@@ -683,6 +684,7 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
         displayOrder: slide.images?.length || 0,
         position,
         size,
+        orientation,
         animation,
         duration: 500,
         delay: 1500
@@ -1005,34 +1007,66 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
             </div>
 
             {slide.images?.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {slide.images.map((img) => (
-                  <div key={img.slideImageId} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                    <img
-                      src={getAssetUrl(img.imageUrl)}
-                      alt=""
-                      className="w-12 h-12 object-cover rounded"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <span className="bg-gray-200 px-1.5 py-0.5 rounded">{img.position}</span>
-                        <span className="bg-gray-200 px-1.5 py-0.5 rounded">{img.size}</span>
-                        <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">{img.animation}</span>
+                  <div key={img.slideImageId} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-start gap-3 mb-2">
+                      <img
+                        src={getAssetUrl(img.imageUrl)}
+                        alt=""
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                      <div className="flex-1">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Animation</label>
+                            <select
+                              className="input text-xs py-1 w-full"
+                              value={img.animation}
+                              onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, animation: e.target.value })}
+                            >
+                              {IMAGE_ANIMATIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Position</label>
+                            <select
+                              className="input text-xs py-1 w-full"
+                              value={img.position}
+                              onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, position: e.target.value })}
+                            >
+                              {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Size</label>
+                            <select
+                              className="input text-xs py-1 w-full"
+                              value={img.size}
+                              onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, size: e.target.value })}
+                            >
+                              {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Orientation</label>
+                            <select
+                              className="input text-xs py-1 w-full"
+                              value={img.orientation || 'auto'}
+                              onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, orientation: e.target.value })}
+                            >
+                              {ORIENTATIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </div>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => handleDeleteImage(img.slideImageId)}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <select
-                      className="input text-xs py-1 w-24"
-                      value={img.animation}
-                      onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, animation: e.target.value })}
-                    >
-                      {IMAGE_ANIMATIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
-                    <button
-                      onClick={() => handleDeleteImage(img.slideImageId)}
-                      className="p-1 text-gray-400 hover:text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 ))}
               </div>
@@ -1074,10 +1108,11 @@ function ImagePickerModal({ sharedImages, onSelect, onClose, saving }) {
   const [animation, setAnimation] = useState('fadeIn');
   const [position, setPosition] = useState('center');
   const [size, setSize] = useState('medium');
+  const [orientation, setOrientation] = useState('auto');
 
   const handleAdd = () => {
     if (selectedImage) {
-      onSelect(selectedImage.url, animation, position, size);
+      onSelect(selectedImage.url, animation, position, size, orientation);
     }
   };
 
@@ -1119,7 +1154,7 @@ function ImagePickerModal({ sharedImages, onSelect, onClose, saving }) {
 
         {selectedImage && (
           <div className="p-4 border-t bg-gray-50">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Animation</label>
                 <select
@@ -1148,6 +1183,16 @@ function ImagePickerModal({ sharedImages, onSelect, onClose, saving }) {
                   onChange={(e) => setSize(e.target.value)}
                 >
                   {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Orientation</label>
+                <select
+                  className="input w-full text-sm"
+                  value={orientation}
+                  onChange={(e) => setOrientation(e.target.value)}
+                >
+                  {ORIENTATIONS.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
             </div>

@@ -690,6 +690,7 @@ public class SlideShowsController : ControllerBase
                 DisplayOrder = request.DisplayOrder,
                 Position = request.Position,
                 Size = request.Size,
+                Orientation = request.Orientation,
                 Animation = request.Animation,
                 Duration = request.Duration,
                 Delay = request.Delay,
@@ -742,6 +743,7 @@ public class SlideShowsController : ControllerBase
             slideImage.DisplayOrder = request.DisplayOrder;
             slideImage.Position = request.Position;
             slideImage.Size = request.Size;
+            slideImage.Orientation = request.Orientation;
             slideImage.Animation = request.Animation;
             slideImage.Duration = request.Duration;
             slideImage.Delay = request.Delay;
@@ -1425,6 +1427,7 @@ public class SlideShowsController : ControllerBase
             DisplayOrder = image.DisplayOrder,
             Position = image.Position,
             Size = image.Size,
+            Orientation = image.Orientation,
             Animation = image.Animation,
             Duration = image.Duration,
             Delay = image.Delay,

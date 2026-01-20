@@ -1329,7 +1329,10 @@ public class SlideImage
     public string Position { get; set; } = "center"; // center, left, right, bottom-left, bottom-right, top-left, top-right
 
     [MaxLength(20)]
-    public string Size { get; set; } = "medium"; // small, medium, large, full
+    public string Size { get; set; } = "medium"; // small, medium, large, full, maximum
+
+    [MaxLength(20)]
+    public string Orientation { get; set; } = "auto"; // auto, portrait, landscape
 
     // Animation
     [MaxLength(50)]

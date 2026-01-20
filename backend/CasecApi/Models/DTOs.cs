@@ -1106,6 +1106,7 @@ public class SlideImageDto
     public int DisplayOrder { get; set; }
     public string Position { get; set; } = "center";
     public string Size { get; set; } = "medium";
+    public string Orientation { get; set; } = "auto";
     public string Animation { get; set; } = "fadeIn";
     public int Duration { get; set; }
     public int Delay { get; set; }
@@ -1121,6 +1122,7 @@ public class CreateSlideImageRequest
     public int DisplayOrder { get; set; }
     public string Position { get; set; } = "center";
     public string Size { get; set; } = "medium";
+    public string Orientation { get; set; } = "auto";
     public string Animation { get; set; } = "fadeIn";
     public int Duration { get; set; } = 500;
     public int Delay { get; set; } = 1500;
@@ -1135,6 +1137,7 @@ public class UpdateSlideImageRequest
     public int DisplayOrder { get; set; }
     public string Position { get; set; } = "center";
     public string Size { get; set; } = "medium";
+    public string Orientation { get; set; } = "auto";
     public string Animation { get; set; } = "fadeIn";
     public int Duration { get; set; }
     public int Delay { get; set; }
