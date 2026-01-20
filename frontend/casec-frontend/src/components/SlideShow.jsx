@@ -225,6 +225,15 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
+      {/* Debug Display - Video URL */}
+      <div className="absolute top-4 left-4 z-[100] bg-black/80 text-white p-3 rounded-lg text-xs max-w-md font-mono">
+        <div className="text-yellow-400 font-bold mb-1">Video Debug:</div>
+        <div>Raw URL: {videoUrl || 'null'}</div>
+        <div>Resolved: {videoUrl ? getAssetUrl(videoUrl) : 'null'}</div>
+        <div>Shared Videos: {sharedVideos.length}</div>
+        <div>UseRandom: {currentSlide?.useRandomVideo ? 'true' : 'false'}</div>
+      </div>
+
       {/* Video Background */}
       {videoUrl && (
         <video
