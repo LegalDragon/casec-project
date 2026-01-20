@@ -675,7 +675,7 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
   };
 
   // Add image to slide
-  const handleAddImage = async (imageUrl, animation = 'fadeIn', position = 'center', size = 'medium', orientation = 'auto') => {
+  const handleAddImage = async (imageUrl, animation = 'fadeIn', position = 'center', size = 'medium', orientation = 'auto', delay = 1500, duration = 500) => {
     setSavingImage(true);
     try {
       const response = await slideShowsAPI.createSlideImage({
@@ -686,8 +686,8 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
         size,
         orientation,
         animation,
-        duration: 500,
-        delay: 1500
+        duration,
+        delay
       });
       if (response.success) {
         setShowImagePicker(false);
@@ -1010,59 +1010,81 @@ function SlideEditor({ slide, index, sharedVideos, sharedImages, onUpdate, onDel
               <div className="space-y-3">
                 {slide.images.map((img) => (
                   <div key={img.slideImageId} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-start gap-3 mb-2">
+                    <div className="flex items-start gap-3">
                       <img
                         src={getAssetUrl(img.imageUrl)}
                         alt=""
-                        className="w-16 h-16 object-cover rounded"
+                        className="w-16 h-16 object-cover rounded flex-shrink-0"
                       />
-                      <div className="flex-1">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          <div>
-                            <label className="block text-xs text-gray-500 mb-1">Animation</label>
-                            <select
-                              className="input text-xs py-1 w-full"
-                              value={img.animation}
-                              onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, animation: e.target.value })}
-                            >
-                              {IMAGE_ANIMATIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs text-gray-500 mb-1">Position</label>
-                            <select
-                              className="input text-xs py-1 w-full"
-                              value={img.position}
-                              onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, position: e.target.value })}
-                            >
-                              {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs text-gray-500 mb-1">Size</label>
-                            <select
-                              className="input text-xs py-1 w-full"
-                              value={img.size}
-                              onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, size: e.target.value })}
-                            >
-                              {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs text-gray-500 mb-1">Orientation</label>
-                            <select
-                              className="input text-xs py-1 w-full"
-                              value={img.orientation || 'auto'}
-                              onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, orientation: e.target.value })}
-                            >
-                              {ORIENTATIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                            </select>
-                          </div>
+                      {/* Timing controls - prominent on left */}
+                      <div className="flex gap-2 flex-shrink-0">
+                        <div className="bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                          <label className="block text-[10px] font-bold text-blue-700">Start</label>
+                          <input
+                            type="number"
+                            className="w-16 text-xs py-0.5 px-1 border rounded text-center font-medium"
+                            value={img.delay}
+                            onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, delay: parseInt(e.target.value) || 0 })}
+                          />
+                          <span className="text-[10px] text-blue-600">ms</span>
+                        </div>
+                        <div className="bg-green-50 px-2 py-1 rounded border border-green-200">
+                          <label className="block text-[10px] font-bold text-green-700">Duration</label>
+                          <input
+                            type="number"
+                            className="w-16 text-xs py-0.5 px-1 border rounded text-center font-medium"
+                            value={img.duration}
+                            onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, duration: parseInt(e.target.value) || 500 })}
+                          />
+                          <span className="text-[10px] text-green-600">ms</span>
+                        </div>
+                      </div>
+                      {/* Other options */}
+                      <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Animation</label>
+                          <select
+                            className="input text-xs py-1 w-full"
+                            value={img.animation}
+                            onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, animation: e.target.value })}
+                          >
+                            {IMAGE_ANIMATIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Position</label>
+                          <select
+                            className="input text-xs py-1 w-full"
+                            value={img.position}
+                            onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, position: e.target.value })}
+                          >
+                            {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Size</label>
+                          <select
+                            className="input text-xs py-1 w-full"
+                            value={img.size}
+                            onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, size: e.target.value })}
+                          >
+                            {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Orientation</label>
+                          <select
+                            className="input text-xs py-1 w-full"
+                            value={img.orientation || 'auto'}
+                            onChange={(e) => handleUpdateImage(img.slideImageId, { ...img, orientation: e.target.value })}
+                          >
+                            {ORIENTATIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                          </select>
                         </div>
                       </div>
                       <button
                         onClick={() => handleDeleteImage(img.slideImageId)}
-                        className="p-1 text-gray-400 hover:text-red-600"
+                        className="p-1 text-gray-400 hover:text-red-600 flex-shrink-0"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1109,10 +1131,12 @@ function ImagePickerModal({ sharedImages, onSelect, onClose, saving }) {
   const [position, setPosition] = useState('center');
   const [size, setSize] = useState('medium');
   const [orientation, setOrientation] = useState('auto');
+  const [delay, setDelay] = useState(1500);
+  const [duration, setDuration] = useState(500);
 
   const handleAdd = () => {
     if (selectedImage) {
-      onSelect(selectedImage.url, animation, position, size, orientation);
+      onSelect(selectedImage.url, animation, position, size, orientation, delay, duration);
     }
   };
 
@@ -1154,7 +1178,33 @@ function ImagePickerModal({ sharedImages, onSelect, onClose, saving }) {
 
         {selectedImage && (
           <div className="p-4 border-t bg-gray-50">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Timing - prominent on top */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <label className="block text-xs font-bold text-blue-700 mb-1">Start Delay (ms)</label>
+                <input
+                  type="number"
+                  className="input w-full text-sm font-medium"
+                  value={delay}
+                  onChange={(e) => setDelay(parseInt(e.target.value) || 0)}
+                  placeholder="1500"
+                />
+                <p className="text-xs text-blue-600 mt-1">When animation begins</p>
+              </div>
+              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                <label className="block text-xs font-bold text-green-700 mb-1">Duration (ms)</label>
+                <input
+                  type="number"
+                  className="input w-full text-sm font-medium"
+                  value={duration}
+                  onChange={(e) => setDuration(parseInt(e.target.value) || 500)}
+                  placeholder="500"
+                />
+                <p className="text-xs text-green-600 mt-1">How long animation takes</p>
+              </div>
+            </div>
+            {/* Other options */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Animation</label>
                 <select
