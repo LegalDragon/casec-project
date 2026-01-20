@@ -17,18 +17,33 @@ export default function Home() {
   const [upcomingPaused, setUpcomingPaused] = useState(false);
   const [pastPaused, setPastPaused] = useState(false);
 
-  // Parse hero video URLs and select a random one
-  const heroVideoUrl = useMemo(() => {
-    if (!theme?.heroVideoUrls) return null;
+  // Parse hero video URLs
+  const heroVideos = useMemo(() => {
+    if (!theme?.heroVideoUrls) return [];
     try {
       const videos = JSON.parse(theme.heroVideoUrls);
-      if (videos.length === 0) return null;
-      // Select random video
-      return videos[Math.floor(Math.random() * videos.length)];
+      return Array.isArray(videos) ? videos : [];
     } catch {
-      return null;
+      return [];
     }
   }, [theme?.heroVideoUrls]);
+
+  // Track current video index for sequential playback
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+
+  // Auto-advance to next video every 30 seconds
+  useEffect(() => {
+    if (heroVideos.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentVideoIndex((prev) => (prev + 1) % heroVideos.length);
+    }, 30000); // 30 seconds per video
+
+    return () => clearInterval(interval);
+  }, [heroVideos.length]);
+
+  // Current hero video URL based on index
+  const heroVideoUrl = heroVideos[currentVideoIndex] || null;
 
   // Convert YouTube URL to embeddable format
   const getYouTubeEmbedUrl = (url) => {
@@ -362,6 +377,7 @@ export default function Home() {
             {/* Video iframe container */}
             <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
               <iframe
+                key={currentVideoIndex}
                 src={videoEmbedUrl}
                 title="Hero Background Video"
                 className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 object-cover"
@@ -374,6 +390,24 @@ export default function Home() {
             {/* Dark overlay for readability */}
             <div className="absolute inset-0 bg-black/50" />
           </>
+        )}
+
+        {/* Video Progress Indicators */}
+        {heroVideos.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 z-20">
+            {heroVideos.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentVideoIndex(index)}
+                className={`w-2.5 h-2.5 rounded-full transition-all ${
+                  index === currentVideoIndex
+                    ? 'bg-white scale-125'
+                    : 'bg-white/50 hover:bg-white/75'
+                }`}
+                title={`Video ${index + 1}`}
+              />
+            ))}
+          </div>
         )}
 
         <div className="max-w-4xl mx-auto text-center relative z-10">

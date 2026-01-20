@@ -736,6 +736,9 @@ function SharedMediaManager({ type, items, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [inputMode, setInputMode] = useState('url'); // 'url' or 'upload'
+  const [selectedFile, setSelectedFile] = useState(null);
   const [formData, setFormData] = useState({
     url: '',
     title: '',
@@ -749,6 +752,8 @@ function SharedMediaManager({ type, items, onRefresh }) {
 
   const handleAdd = () => {
     setEditingId(null);
+    setInputMode('url');
+    setSelectedFile(null);
     setFormData({
       url: '',
       title: '',
@@ -761,6 +766,8 @@ function SharedMediaManager({ type, items, onRefresh }) {
 
   const handleEdit = (item) => {
     setEditingId(isVideo ? item.videoId : item.imageId);
+    setInputMode('url');
+    setSelectedFile(null);
     setFormData({
       url: item.url,
       title: item.title || '',
@@ -771,7 +778,51 @@ function SharedMediaManager({ type, items, onRefresh }) {
     setShowForm(true);
   };
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      if (!formData.title) {
+        setFormData({ ...formData, title: file.name.replace(/\.[^/.]+$/, '') });
+      }
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    setUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', selectedFile);
+      if (formData.title) uploadFormData.append('title', formData.title);
+      if (formData.category) uploadFormData.append('category', formData.category);
+
+      const response = isVideo
+        ? await slideShowsAPI.uploadVideo(uploadFormData)
+        : await slideShowsAPI.uploadImage(uploadFormData);
+
+      if (response.success) {
+        setShowForm(false);
+        setSelectedFile(null);
+        onRefresh();
+      } else {
+        alert(response.message || 'Upload failed');
+      }
+    } catch (err) {
+      alert(`Error uploading ${type}: ` + (err.message || 'Please try again'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
+    // If in upload mode with a file, use upload
+    if (inputMode === 'upload' && selectedFile) {
+      await handleUpload();
+      return;
+    }
+
     setSaving(true);
     try {
       let response;
@@ -834,7 +885,7 @@ function SharedMediaManager({ type, items, onRefresh }) {
             <div key={isVideo ? item.videoId : item.imageId} className="card">
               <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-3">
                 {isVideo ? (
-                  <video src={item.url} className="w-full h-full object-cover" muted />
+                  <video src={getAssetUrl(item.url)} className="w-full h-full object-cover" muted />
                 ) : (
                   <img src={getAssetUrl(item.url)} alt={item.title} className="w-full h-full object-cover" />
                 )}
@@ -880,17 +931,80 @@ function SharedMediaManager({ type, items, onRefresh }) {
                 {editingId ? 'Edit' : 'Add'} {isVideo ? 'Video' : 'Image'}
               </h2>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL *</label>
-                  <input
-                    type="text"
-                    className="input w-full"
-                    value={formData.url}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    placeholder="https://..."
-                  />
+              {/* Input Mode Toggle (only for new items) */}
+              {!editingId && (
+                <div className="flex mb-4 bg-gray-100 rounded-lg p-1">
+                  <button
+                    type="button"
+                    onClick={() => setInputMode('url')}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                      inputMode === 'url'
+                        ? 'bg-white shadow text-primary'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Enter URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInputMode('upload')}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                      inputMode === 'upload'
+                        ? 'bg-white shadow text-primary'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Upload File
+                  </button>
                 </div>
+              )}
+
+              <div className="space-y-4">
+                {/* URL Input or File Upload */}
+                {inputMode === 'url' || editingId ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">URL *</label>
+                    <input
+                      type="text"
+                      className="input w-full"
+                      value={formData.url}
+                      onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select {isVideo ? 'Video' : 'Image'} File *
+                    </label>
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-primary transition-colors">
+                      <div className="space-y-1 text-center">
+                        <Icon className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="flex text-sm text-gray-600">
+                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary-dark">
+                            <span>Choose a file</span>
+                            <input
+                              type="file"
+                              className="sr-only"
+                              accept={isVideo ? 'video/mp4,video/webm,video/ogg,video/quicktime' : 'image/jpeg,image/png,image/gif,image/webp,image/svg+xml'}
+                              onChange={handleFileSelect}
+                            />
+                          </label>
+                          <p className="pl-1">or drag and drop</p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {isVideo ? 'MP4, WebM, OGG, MOV' : 'JPEG, PNG, GIF, WebP, SVG'}
+                        </p>
+                        {selectedFile && (
+                          <p className="text-sm text-green-600 font-medium mt-2">
+                            Selected: {selectedFile.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                   <input
@@ -910,23 +1024,29 @@ function SharedMediaManager({ type, items, onRefresh }) {
                     placeholder="e.g., hero, community"
                   />
                 </div>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Active</span>
-                </label>
+                {editingId && (
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Active</span>
+                  </label>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
                 <button onClick={() => setShowForm(false)} className="btn btn-secondary">
                   Cancel
                 </button>
-                <button onClick={handleSave} disabled={saving} className="btn btn-primary">
-                  {saving ? 'Saving...' : 'Save'}
+                <button
+                  onClick={handleSave}
+                  disabled={saving || uploading || (inputMode === 'upload' && !selectedFile && !editingId)}
+                  className="btn btn-primary"
+                >
+                  {uploading ? 'Uploading...' : saving ? 'Saving...' : (inputMode === 'upload' && !editingId ? 'Upload' : 'Save')}
                 </button>
               </div>
             </div>

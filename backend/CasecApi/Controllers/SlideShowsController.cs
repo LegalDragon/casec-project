@@ -5,6 +5,7 @@ using System.Security.Claims;
 using CasecApi.Data;
 using CasecApi.Models;
 using CasecApi.Models.DTOs;
+using CasecApi.Services;
 
 namespace CasecApi.Controllers;
 
@@ -14,11 +15,13 @@ public class SlideShowsController : ControllerBase
 {
     private readonly CasecDbContext _context;
     private readonly ILogger<SlideShowsController> _logger;
+    private readonly IAssetService _assetService;
 
-    public SlideShowsController(CasecDbContext context, ILogger<SlideShowsController> logger)
+    public SlideShowsController(CasecDbContext context, ILogger<SlideShowsController> logger, IAssetService assetService)
     {
         _context = context;
         _logger = logger;
+        _assetService = assetService;
     }
 
     private int GetCurrentUserId()
@@ -1167,6 +1170,186 @@ public class SlideShowsController : ControllerBase
             {
                 Success = false,
                 Message = "An error occurred while deleting image"
+            });
+        }
+    }
+
+    // ============ ADMIN UPLOAD ENDPOINTS ============
+
+    // POST: /slideshows/admin/videos/upload
+    // Upload a video file and create a shared video entry
+    [HttpPost("admin/videos/upload")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<SharedVideoDto>>> UploadSharedVideo(
+        IFormFile file,
+        [FromForm] string? title = null,
+        [FromForm] string? category = null)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new ApiResponse<SharedVideoDto>
+                {
+                    Success = false,
+                    Message = "No file provided"
+                });
+            }
+
+            // Validate file type
+            var allowedTypes = new[] { "video/mp4", "video/webm", "video/ogg", "video/quicktime" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            {
+                return BadRequest(new ApiResponse<SharedVideoDto>
+                {
+                    Success = false,
+                    Message = "Invalid file type. Allowed types: MP4, WebM, OGG, MOV"
+                });
+            }
+
+            var currentUserId = GetCurrentUserId();
+
+            // Upload using asset service
+            var uploadResult = await _assetService.UploadAssetAsync(
+                file,
+                "slideshows/videos",
+                objectType: "SharedVideo",
+                uploadedBy: currentUserId
+            );
+
+            if (!uploadResult.Success)
+            {
+                return BadRequest(new ApiResponse<SharedVideoDto>
+                {
+                    Success = false,
+                    Message = uploadResult.Error ?? "Failed to upload file"
+                });
+            }
+
+            // Create shared video entry
+            var video = new SharedVideo
+            {
+                Url = uploadResult.Url!,
+                Title = title ?? file.FileName,
+                Category = category,
+                IsActive = true,
+                DisplayOrder = await _context.SharedVideos.CountAsync()
+            };
+
+            _context.SharedVideos.Add(video);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<SharedVideoDto>
+            {
+                Success = true,
+                Message = "Video uploaded successfully",
+                Data = new SharedVideoDto
+                {
+                    VideoId = video.VideoId,
+                    Url = video.Url,
+                    Title = video.Title,
+                    Category = video.Category,
+                    IsActive = video.IsActive,
+                    DisplayOrder = video.DisplayOrder
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading shared video");
+            return StatusCode(500, new ApiResponse<SharedVideoDto>
+            {
+                Success = false,
+                Message = "An error occurred while uploading video"
+            });
+        }
+    }
+
+    // POST: /slideshows/admin/images/upload
+    // Upload an image file and create a shared image entry
+    [HttpPost("admin/images/upload")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<SharedImageDto>>> UploadSharedImage(
+        IFormFile file,
+        [FromForm] string? title = null,
+        [FromForm] string? category = null)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new ApiResponse<SharedImageDto>
+                {
+                    Success = false,
+                    Message = "No file provided"
+                });
+            }
+
+            // Validate file type
+            var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            {
+                return BadRequest(new ApiResponse<SharedImageDto>
+                {
+                    Success = false,
+                    Message = "Invalid file type. Allowed types: JPEG, PNG, GIF, WebP, SVG"
+                });
+            }
+
+            var currentUserId = GetCurrentUserId();
+
+            // Upload using asset service
+            var uploadResult = await _assetService.UploadAssetAsync(
+                file,
+                "slideshows/images",
+                objectType: "SharedImage",
+                uploadedBy: currentUserId
+            );
+
+            if (!uploadResult.Success)
+            {
+                return BadRequest(new ApiResponse<SharedImageDto>
+                {
+                    Success = false,
+                    Message = uploadResult.Error ?? "Failed to upload file"
+                });
+            }
+
+            // Create shared image entry
+            var image = new SharedImage
+            {
+                Url = uploadResult.Url!,
+                Title = title ?? file.FileName,
+                Category = category,
+                IsActive = true,
+                DisplayOrder = await _context.SharedImages.CountAsync()
+            };
+
+            _context.SharedImages.Add(image);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<SharedImageDto>
+            {
+                Success = true,
+                Message = "Image uploaded successfully",
+                Data = new SharedImageDto
+                {
+                    ImageId = image.ImageId,
+                    Url = image.Url,
+                    Title = image.Title,
+                    Category = image.Category,
+                    IsActive = image.IsActive,
+                    DisplayOrder = image.DisplayOrder
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading shared image");
+            return StatusCode(500, new ApiResponse<SharedImageDto>
+            {
+                Success = false,
+                Message = "An error occurred while uploading image"
             });
         }
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Palette, Upload, RotateCcw, Save, Eye, Sparkles, Video, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { Palette, Upload, RotateCcw, Save, Eye, Sparkles, Video, Plus, Trash2, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react';
 import { themeAPI, getAssetUrl } from '../../services/api';
 
 export default function ThemeCustomization() {
@@ -54,6 +54,22 @@ export default function ThemeCustomization() {
   const removeVideoUrl = (index) => {
     const videos = getHeroVideos();
     videos.splice(index, 1);
+    setHeroVideos([...videos]);
+  };
+
+  // Move video up in order
+  const moveVideoUp = (index) => {
+    if (index === 0) return;
+    const videos = getHeroVideos();
+    [videos[index - 1], videos[index]] = [videos[index], videos[index - 1]];
+    setHeroVideos([...videos]);
+  };
+
+  // Move video down in order
+  const moveVideoDown = (index) => {
+    const videos = getHeroVideos();
+    if (index >= videos.length - 1) return;
+    [videos[index], videos[index + 1]] = [videos[index + 1], videos[index]];
     setHeroVideos([...videos]);
   };
 
@@ -343,7 +359,7 @@ export default function ThemeCustomization() {
 
         <p className="text-gray-600 mb-4">
           Add YouTube or TikTok video URLs to display as background videos on the home page hero section.
-          A random video will be selected each time the page loads.
+          Videos will <strong>play in order</strong> from top to bottom, then loop back to the first video.
         </p>
 
         {/* Add new video URL */}
@@ -385,6 +401,35 @@ export default function ThemeCustomization() {
                 key={index}
                 className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
               >
+                {/* Order number */}
+                <div className="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm">
+                  {index + 1}
+                </div>
+
+                {/* Reorder buttons */}
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    onClick={() => moveVideoUp(index)}
+                    disabled={index === 0}
+                    className={`p-1 rounded transition-colors ${
+                      index === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-primary hover:bg-gray-200'
+                    }`}
+                    title="Move up"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => moveVideoDown(index)}
+                    disabled={index === getHeroVideos().length - 1}
+                    className={`p-1 rounded transition-colors ${
+                      index === getHeroVideos().length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-primary hover:bg-gray-200'
+                    }`}
+                    title="Move down"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+
                 <div className="flex-shrink-0">
                   <span className={`px-2 py-1 text-xs font-medium rounded ${
                     getVideoType(url) === 'YouTube'
@@ -419,8 +464,7 @@ export default function ThemeCustomization() {
         </div>
 
         <p className="text-xs text-gray-500 mt-4">
-          Tip: For best results, use videos that work well as muted background content.
-          Videos will play automatically, muted, and loop continuously.
+          Tip: Use the arrows to reorder videos. Videos play automatically, muted, and will transition to the next video when each finishes.
         </p>
       </div>
 

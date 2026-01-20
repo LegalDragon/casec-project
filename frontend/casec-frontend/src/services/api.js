@@ -314,12 +314,20 @@ export const slideShowsAPI = {
   createVideo: (data) => api.post("/slideshows/admin/videos", data),
   updateVideo: (id, data) => api.put(`/slideshows/admin/videos/${id}`, data),
   deleteVideo: (id) => api.delete(`/slideshows/admin/videos/${id}`),
+  uploadVideo: (formData) =>
+    api.post("/slideshows/admin/videos/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
 
   // Admin shared image endpoints
   getAllImagesAdmin: () => api.get("/slideshows/admin/images"),
   createImage: (data) => api.post("/slideshows/admin/images", data),
   updateImage: (id, data) => api.put(`/slideshows/admin/images/${id}`, data),
   deleteImage: (id) => api.delete(`/slideshows/admin/images/${id}`),
+  uploadImage: (formData) =>
+    api.post("/slideshows/admin/images/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
 };
 
 export default api;
