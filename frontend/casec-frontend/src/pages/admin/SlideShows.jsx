@@ -1235,10 +1235,16 @@ function SharedMediaManager({ type, items, onRefresh }) {
         : await slideShowsAPI.deleteImage(id);
 
       if (response.success) {
-        onRefresh();
+        alert(`${isVideo ? 'Video' : 'Image'} deleted successfully`);
+      } else {
+        alert(response.message || `Failed to delete ${type}`);
       }
     } catch (err) {
-      alert(`Error deleting ${type}`);
+      console.error(`Error deleting ${type}:`, err);
+      alert(`Error deleting ${type}: ${err.message || 'Unknown error'}`);
+    } finally {
+      // Always refresh the list
+      onRefresh();
     }
   };
 
