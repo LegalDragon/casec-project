@@ -146,12 +146,18 @@ public class LocalFileStorageService : IFileStorageService
         if (file == null || file.Length == 0)
             return "No file provided";
 
-        if (file.Length > _validation.MaxFileSizeBytes)
-            return $"File size must be less than {_validation.MaxFileSizeBytes / (1024 * 1024)}MB";
-
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+        // Check if it's a video file and apply video-specific size limit
+        var isVideo = _validation.AllowedVideoExtensions.Contains(extension);
+        var maxSize = isVideo ? _validation.MaxVideoFileSizeBytes : _validation.MaxFileSizeBytes;
+
+        if (file.Length > maxSize)
+            return $"File size must be less than {maxSize / (1024 * 1024)}MB";
+
         var allAllowed = _validation.AllowedImageExtensions
             .Concat(_validation.AllowedDocumentExtensions)
+            .Concat(_validation.AllowedVideoExtensions)
             .ToArray();
 
         if (!allAllowed.Contains(extension))

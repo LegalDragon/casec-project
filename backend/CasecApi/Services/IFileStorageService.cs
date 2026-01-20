@@ -61,6 +61,8 @@ public class S3StorageSettings
 public class FileValidationSettings
 {
     public long MaxFileSizeBytes { get; set; } = 5 * 1024 * 1024; // 5MB default
+    public long MaxVideoFileSizeBytes { get; set; } = 100 * 1024 * 1024; // 100MB default for videos
     public string[] AllowedImageExtensions { get; set; } = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg" };
     public string[] AllowedDocumentExtensions { get; set; } = new[] { ".pdf", ".doc", ".docx" };
+    public string[] AllowedVideoExtensions { get; set; } = new[] { ".mp4", ".webm", ".ogg", ".mov" };
 }
