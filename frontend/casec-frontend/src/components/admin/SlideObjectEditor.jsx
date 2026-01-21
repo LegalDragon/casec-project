@@ -6,6 +6,55 @@ import {
 } from 'lucide-react';
 import { slideShowsAPI, getAssetUrl } from '../../services/api';
 
+// YouTube URL detection and parsing utilities
+const isYouTubeUrl = (url) => {
+  if (!url) return false;
+  return url.includes('youtube.com') || url.includes('youtu.be');
+};
+
+const getYouTubeVideoId = (url) => {
+  if (!url) return null;
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+  if (shortMatch) return shortMatch[1];
+  const longMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+  if (longMatch) return longMatch[1];
+  const embedMatch = url.match(/embed\/([a-zA-Z0-9_-]+)/);
+  if (embedMatch) return embedMatch[1];
+  return null;
+};
+
+// Video preview component that handles both regular videos and YouTube
+function VideoPreview({ url, className = '', style = {} }) {
+  if (!url) {
+    return (
+      <div className={`bg-gray-100 flex items-center justify-center text-gray-400 ${className}`} style={style}>
+        <Video className="w-6 h-6" />
+      </div>
+    );
+  }
+
+  if (isYouTubeUrl(url)) {
+    const videoId = getYouTubeVideoId(url);
+    return (
+      <img
+        src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+        alt="YouTube thumbnail"
+        className={`object-cover ${className}`}
+        style={style}
+      />
+    );
+  }
+
+  return (
+    <video
+      src={getAssetUrl(url)}
+      className={`object-cover ${className}`}
+      style={style}
+      muted
+    />
+  );
+}
+
 // Animation options
 const ANIMATIONS_IN = [
   { value: 'fadeIn', label: 'Fade In' },
@@ -797,16 +846,15 @@ function VideoProperties({ properties, onChange, sharedVideos }) {
         <label className="block text-xs text-gray-500 mb-1">Video</label>
         {properties.videoUrl ? (
           <div className="flex items-center gap-3">
-            <video
-              src={getAssetUrl(properties.videoUrl)}
-              className="w-32 h-20 object-cover rounded border"
-              muted
-            />
+            <VideoPreview url={properties.videoUrl} className="w-32 h-20 rounded border" />
             <div className="flex-1">
               <p className="text-sm text-gray-600 truncate">{properties.videoUrl}</p>
+              {isYouTubeUrl(properties.videoUrl) && (
+                <span className="text-xs text-red-500 font-medium">YouTube</span>
+              )}
               <button
                 onClick={() => setShowPicker(true)}
-                className="text-sm text-blue-600 hover:underline"
+                className="block text-sm text-blue-600 hover:underline"
               >
                 Change video
               </button>
@@ -836,18 +884,18 @@ function VideoProperties({ properties, onChange, sharedVideos }) {
                 }}
                 className="aspect-video rounded border overflow-hidden hover:ring-2 ring-purple-500"
               >
-                <video src={getAssetUrl(vid.url)} className="w-full h-full object-cover" muted />
+                <VideoPreview url={vid.url} className="w-full h-full" />
               </button>
             ))}
           </div>
           <div className="mt-2">
-            <label className="block text-xs text-gray-500 mb-1">Or enter URL:</label>
+            <label className="block text-xs text-gray-500 mb-1">Or enter URL (supports YouTube):</label>
             <input
               type="text"
               value={properties.videoUrl || ''}
               onChange={(e) => onChange('videoUrl', e.target.value)}
               className="w-full px-2 py-1 border rounded text-sm"
-              placeholder="https://..."
+              placeholder="https://youtube.com/watch?v=... or direct URL"
             />
           </div>
           <button

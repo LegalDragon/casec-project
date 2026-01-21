@@ -8,6 +8,56 @@ import SlideShowPreview from '../../components/SlideShow';
 import SlideObjectEditor from '../../components/admin/SlideObjectEditor';
 import BackgroundVideoEditor from '../../components/admin/BackgroundVideoEditor';
 
+// YouTube URL detection and parsing utilities
+const isYouTubeUrl = (url) => {
+  if (!url) return false;
+  return url.includes('youtube.com') || url.includes('youtu.be');
+};
+
+const getYouTubeVideoId = (url) => {
+  if (!url) return null;
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+  if (shortMatch) return shortMatch[1];
+  const longMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+  if (longMatch) return longMatch[1];
+  const embedMatch = url.match(/embed\/([a-zA-Z0-9_-]+)/);
+  if (embedMatch) return embedMatch[1];
+  return null;
+};
+
+// Video preview component that handles both regular videos and YouTube
+function VideoPreview({ url, className = '' }) {
+  if (!url) {
+    return (
+      <div className={`bg-gray-100 flex items-center justify-center text-gray-400 ${className}`}>
+        <Video className="w-8 h-8" />
+      </div>
+    );
+  }
+
+  if (isYouTubeUrl(url)) {
+    const videoId = getYouTubeVideoId(url);
+    return (
+      <div className={`relative ${className}`}>
+        <img
+          src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+          alt="YouTube thumbnail"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute top-1 right-1 bg-red-600 text-white text-xs px-1 rounded">YT</div>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      src={getAssetUrl(url)}
+      className={`object-cover ${className}`}
+      muted
+    />
+  );
+}
+
 // Animation options
 const ANIMATIONS = ['fadeIn', 'slideUp', 'slideDown', 'zoomIn', 'typewriter'];
 const IMAGE_ANIMATIONS = ['fadeIn', 'zoomIn', 'slideInLeft', 'slideInRight', 'bounce'];
@@ -1270,7 +1320,7 @@ function SharedMediaManager({ type, items, onRefresh }) {
             <div key={isVideo ? item.videoId : item.imageId} className="card">
               <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-3">
                 {isVideo ? (
-                  <video src={getAssetUrl(item.url)} className="w-full h-full object-cover" muted />
+                  <VideoPreview url={item.url} className="w-full h-full" />
                 ) : (
                   <img src={getAssetUrl(item.url)} alt={item.title} className="w-full h-full object-cover" />
                 )}

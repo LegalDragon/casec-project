@@ -2,6 +2,55 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, ChevronDown, ChevronRight, Video, Clock, Film } from 'lucide-react';
 import { slideShowsAPI, getAssetUrl } from '../../services/api';
 
+// YouTube URL detection and parsing utilities
+const isYouTubeUrl = (url) => {
+  if (!url) return false;
+  return url.includes('youtube.com') || url.includes('youtu.be');
+};
+
+const getYouTubeVideoId = (url) => {
+  if (!url) return null;
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+  if (shortMatch) return shortMatch[1];
+  const longMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+  if (longMatch) return longMatch[1];
+  const embedMatch = url.match(/embed\/([a-zA-Z0-9_-]+)/);
+  if (embedMatch) return embedMatch[1];
+  return null;
+};
+
+// Video preview component that handles both regular videos and YouTube
+function VideoPreview({ url, className = '', style = {} }) {
+  if (!url) {
+    return (
+      <div className={`bg-gray-100 flex items-center justify-center text-gray-400 ${className}`} style={style}>
+        <Video className="w-6 h-6" />
+      </div>
+    );
+  }
+
+  if (isYouTubeUrl(url)) {
+    const videoId = getYouTubeVideoId(url);
+    return (
+      <img
+        src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+        alt="YouTube thumbnail"
+        className={`object-cover ${className}`}
+        style={style}
+      />
+    );
+  }
+
+  return (
+    <video
+      src={getAssetUrl(url)}
+      className={`object-cover ${className}`}
+      style={style}
+      muted
+    />
+  );
+}
+
 // Background types
 const BACKGROUND_TYPES = [
   { value: 'heroVideos', label: 'Hero Videos', description: 'Cycle through video backgrounds' },
@@ -328,17 +377,7 @@ function BackgroundVideoItem({ bgVideo, index, sharedVideos, onUpdate, onDelete 
     <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
       <span className="text-sm text-gray-400 w-6">#{index + 1}</span>
 
-      {videoUrl ? (
-        <video
-          src={getAssetUrl(videoUrl)}
-          className="w-24 h-14 object-cover rounded"
-          muted
-        />
-      ) : (
-        <div className="w-24 h-14 bg-gray-100 rounded flex items-center justify-center text-gray-400">
-          <Video className="w-6 h-6" />
-        </div>
-      )}
+      <VideoPreview url={videoUrl} className="w-24 h-14 rounded" />
 
       <div className="flex items-center gap-2 flex-1">
         <Clock className="w-4 h-4 text-gray-400" />
@@ -399,7 +438,7 @@ function AddBackgroundVideoPanel({ sharedVideos, onAdd, onCancel, saving }) {
                   selectedVideo?.videoId === vid.videoId ? 'ring-2 ring-blue-500' : ''
                 }`}
               >
-                <video src={getAssetUrl(vid.url)} className="w-full h-full object-cover" muted />
+                <VideoPreview url={vid.url} className="w-full h-full" />
               </button>
             ))}
           </div>

@@ -3,6 +3,33 @@ import { X, ChevronRight, Play } from 'lucide-react';
 import { slideShowsAPI, getAssetUrl } from '../services/api';
 import './SlideShow.css';
 
+// YouTube URL detection and parsing utilities
+const isYouTubeUrl = (url) => {
+  if (!url) return false;
+  return url.includes('youtube.com') || url.includes('youtu.be');
+};
+
+const getYouTubeVideoId = (url) => {
+  if (!url) return null;
+  // Handle youtu.be/VIDEO_ID
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+  if (shortMatch) return shortMatch[1];
+  // Handle youtube.com/watch?v=VIDEO_ID
+  const longMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+  if (longMatch) return longMatch[1];
+  // Handle youtube.com/embed/VIDEO_ID
+  const embedMatch = url.match(/embed\/([a-zA-Z0-9_-]+)/);
+  if (embedMatch) return embedMatch[1];
+  return null;
+};
+
+// Get the proper video source - either asset URL or original YouTube URL
+const getVideoSource = (url) => {
+  if (!url) return null;
+  if (isYouTubeUrl(url)) return url; // Keep YouTube URLs as-is
+  return getAssetUrl(url); // Convert asset paths to full URLs
+};
+
 /**
  * SlideShow Component
  *
@@ -299,22 +326,34 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
 
       {/* Video Background (heroVideos only - separate from video SlideObjects) */}
       {backgroundVideoUrl && (
-        <video
-          ref={videoRef}
-          key={backgroundVideoUrl}
-          className="absolute inset-0 w-full h-full object-cover z-0"
-          src={getAssetUrl(backgroundVideoUrl)}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          onCanPlay={(e) => {
-            // Ensure video plays when ready
-            e.target.play().catch(() => {});
-          }}
-          onError={(e) => console.error('[SlideShow] Video error:', e.target.error, 'src:', e.target.src)}
-        />
+        isYouTubeUrl(backgroundVideoUrl) ? (
+          <iframe
+            key={backgroundVideoUrl}
+            className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+            src={`https://www.youtube.com/embed/${getYouTubeVideoId(backgroundVideoUrl)}?autoplay=1&mute=1&loop=1&playlist=${getYouTubeVideoId(backgroundVideoUrl)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            style={{ border: 'none', transform: 'scale(1.5)', transformOrigin: 'center center' }}
+            title="Background Video"
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            key={backgroundVideoUrl}
+            className="absolute inset-0 w-full h-full object-cover z-0"
+            src={getAssetUrl(backgroundVideoUrl)}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            onCanPlay={(e) => {
+              // Ensure video plays when ready
+              e.target.play().catch(() => {});
+            }}
+            onError={(e) => console.error('[SlideShow] Video error:', e.target.error, 'src:', e.target.src)}
+          />
+        )
       )}
 
       {/* Overlay */}
@@ -627,30 +666,49 @@ function SlideObject({ object, slideIndex }) {
     // Map size property to responsive dimensions (mobile-friendly)
     const getVideoDimensions = () => {
       switch (props.size) {
-        case 'small': return { width: 'min(320px, 80vw)', height: 'auto' };
-        case 'medium': return { width: 'min(640px, 90vw)', height: 'auto' };
-        case 'large': return { width: 'min(960px, 95vw)', height: 'auto' };
-        default: return { width: props.width || 'auto', height: props.height || 'auto' };
+        case 'small': return { width: 'min(320px, 80vw)', height: 'auto', iframeHeight: '180px' };
+        case 'medium': return { width: 'min(640px, 90vw)', height: 'auto', iframeHeight: '360px' };
+        case 'large': return { width: 'min(960px, 95vw)', height: 'auto', iframeHeight: '540px' };
+        default: return { width: props.width || 'auto', height: props.height || 'auto', iframeHeight: '360px' };
       }
     };
     const dimensions = getVideoDimensions();
+    const isYouTube = isYouTubeUrl(videoUrl);
+    const youtubeId = isYouTube ? getYouTubeVideoId(videoUrl) : null;
 
     return (
       <div style={wrapperStyle}>
-        <video
-          key={`${object.slideObjectId}-${slideIndex}`}
-          src={getAssetUrl(videoUrl)}
-          className={`${animProps.className} ${props.borderRadius || 'rounded-lg'}`}
-          style={{
-            ...animProps.style,
-            width: dimensions.width,
-            height: dimensions.height,
-          }}
-          autoPlay={props.autoPlay !== false}
-          muted={props.muted !== false}
-          loop={props.loop !== false}
-          playsInline
-        />
+        {isYouTube ? (
+          <iframe
+            key={`${object.slideObjectId}-${slideIndex}`}
+            className={`${animProps.className} ${props.borderRadius || 'rounded-lg'}`}
+            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=${props.autoPlay !== false ? 1 : 0}&mute=${props.muted !== false ? 1 : 0}&loop=${props.loop !== false ? 1 : 0}&playlist=${youtubeId}&controls=${props.showControls ? 1 : 0}&playsinline=1`}
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            style={{
+              ...animProps.style,
+              width: dimensions.width,
+              height: dimensions.iframeHeight,
+              border: 'none',
+            }}
+            title="Video"
+          />
+        ) : (
+          <video
+            key={`${object.slideObjectId}-${slideIndex}`}
+            src={getAssetUrl(videoUrl)}
+            className={`${animProps.className} ${props.borderRadius || 'rounded-lg'}`}
+            style={{
+              ...animProps.style,
+              width: dimensions.width,
+              height: dimensions.height,
+            }}
+            autoPlay={props.autoPlay !== false}
+            muted={props.muted !== false}
+            loop={props.loop !== false}
+            playsInline
+          />
+        )}
       </div>
     );
   }
