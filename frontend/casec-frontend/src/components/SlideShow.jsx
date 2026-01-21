@@ -41,7 +41,7 @@ const getVideoSource = (url) => {
  *   onSkip={() => {}}           // Called when user skips
  * />
  */
-export default function SlideShow({ code, id, onComplete, onSkip }) {
+export default function SlideShow({ code, id, onComplete, onSkip, adminMode = false }) {
   const [config, setConfig] = useState(null);
   const [sharedVideos, setSharedVideos] = useState([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -62,11 +62,18 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
         setLoading(true);
         setError(null);
 
-        // Load slideshow config and shared videos in parallel
-        const [configRes, videosRes] = await Promise.all([
-          code ? slideShowsAPI.getByCode(code) : slideShowsAPI.getById(id),
-          slideShowsAPI.getVideos()
-        ]);
+        // Use admin API when in admin mode (to load inactive slideshows)
+        let configRes;
+        if (adminMode && id) {
+          configRes = await slideShowsAPI.getAdmin(id);
+        } else if (code) {
+          configRes = await slideShowsAPI.getByCode(code);
+        } else {
+          configRes = await slideShowsAPI.getById(id);
+        }
+
+        // Load shared videos in parallel
+        const videosRes = await slideShowsAPI.getVideos();
 
         if (configRes.success && configRes.data) {
           setConfig(configRes.data);

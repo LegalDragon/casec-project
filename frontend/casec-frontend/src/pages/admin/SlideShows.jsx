@@ -659,6 +659,7 @@ export default function AdminSlideShows() {
         <div className="fixed inset-0 z-50">
           <SlideShowPreview
             id={selectedShow.slideShowId}
+            adminMode={true}
             onComplete={() => setShowPreview(false)}
             onSkip={() => setShowPreview(false)}
           />
