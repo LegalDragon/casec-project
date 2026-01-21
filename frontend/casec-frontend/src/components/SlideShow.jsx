@@ -55,6 +55,7 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
   const progressRef = useRef(null);
   const videoRef = useRef(null);
   const bgVideoTimerRef = useRef(null);
+  const [videoReady, setVideoReady] = useState(false);
 
   // Load slideshow configuration
   useEffect(() => {
@@ -125,6 +126,57 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
       }
     };
   }, [isPlaying, currentSlide, currentBgVideoIndex]);
+
+  // Get background video URL for a specific slide
+  const getSlideBackgroundVideoUrl = useCallback((slide, slideIdx) => {
+    if (!slide) return null;
+    const bgType = slide.backgroundType || 'heroVideos';
+    if (bgType !== 'heroVideos') return null;
+
+    const bgVideos = slide.backgroundVideos || [];
+    if (bgVideos.length > 0) {
+      return bgVideos[0]?.video?.url || bgVideos[0]?.videoUrl || null;
+    }
+    if (slide.useRandomVideo || slide.useRandomHeroVideos) {
+      if (sharedVideos.length > 0) {
+        return sharedVideos[slideIdx % sharedVideos.length].url;
+      }
+    }
+    return slide.videoUrl || null;
+  }, [sharedVideos]);
+
+  // Preload next slide's assets
+  useEffect(() => {
+    if (!config?.slides || currentSlideIndex >= config.slides.length - 1) return;
+
+    const nextSlide = config.slides[currentSlideIndex + 1];
+    if (!nextSlide) return;
+
+    // Preload next slide's background video
+    const nextVideoUrl = getSlideBackgroundVideoUrl(nextSlide, currentSlideIndex + 1);
+    if (nextVideoUrl && !isYouTubeUrl(nextVideoUrl)) {
+      const video = document.createElement('video');
+      video.preload = 'auto';
+      video.src = getAssetUrl(nextVideoUrl);
+    }
+
+    // Preload next slide's background image
+    if (nextSlide.backgroundType === 'image' && nextSlide.backgroundImageUrl) {
+      const img = new window.Image();
+      img.src = getAssetUrl(nextSlide.backgroundImageUrl);
+    }
+
+    // Preload next slide's object images
+    (nextSlide.objects || []).forEach(obj => {
+      if (obj.objectType === 'image') {
+        const props = typeof obj.properties === 'string' ? JSON.parse(obj.properties) : obj.properties;
+        if (props?.imageUrl) {
+          const img = new window.Image();
+          img.src = getAssetUrl(props.imageUrl);
+        }
+      }
+    });
+  }, [currentSlideIndex, config, getSlideBackgroundVideoUrl]);
 
   // Get BACKGROUND video URL for current slide (only for heroVideos background type)
   // This is separate from video SlideObjects which are foreground content
@@ -292,11 +344,20 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
     }
   };
 
-  // Loading state
+  // Reset video ready state when slide changes
+  useEffect(() => {
+    setVideoReady(false);
+  }, [currentSlideIndex]);
+
+  // Loading state with branded experience
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+      <div className="fixed inset-0 bg-gradient-to-br from-gray-900 to-black flex flex-col items-center justify-center z-50">
+        <div className="relative">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white/20 border-t-white"></div>
+          <Play className="absolute inset-0 m-auto w-6 h-6 text-white/60" />
+        </div>
+        <p className="mt-4 text-white/60 text-sm animate-pulse">Loading...</p>
       </div>
     );
   }
@@ -326,34 +387,45 @@ export default function SlideShow({ code, id, onComplete, onSkip }) {
 
       {/* Video Background (heroVideos only - separate from video SlideObjects) */}
       {backgroundVideoUrl && (
-        isYouTubeUrl(backgroundVideoUrl) ? (
-          <iframe
-            key={backgroundVideoUrl}
-            className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-            src={`https://www.youtube.com/embed/${getYouTubeVideoId(backgroundVideoUrl)}?autoplay=1&mute=1&loop=1&playlist=${getYouTubeVideoId(backgroundVideoUrl)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-            style={{ border: 'none', transform: 'scale(1.5)', transformOrigin: 'center center' }}
-            title="Background Video"
-          />
-        ) : (
-          <video
-            ref={videoRef}
-            key={backgroundVideoUrl}
-            className="absolute inset-0 w-full h-full object-cover z-0"
-            src={getAssetUrl(backgroundVideoUrl)}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            onCanPlay={(e) => {
-              // Ensure video plays when ready
-              e.target.play().catch(() => {});
-            }}
-            onError={(e) => console.error('[SlideShow] Video error:', e.target.error, 'src:', e.target.src)}
-          />
-        )
+        <>
+          {/* Video loading placeholder */}
+          {!videoReady && !isYouTubeUrl(backgroundVideoUrl) && (
+            <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
+              <div className="animate-pulse flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full border-4 border-white/20 border-t-white/60 animate-spin"></div>
+              </div>
+            </div>
+          )}
+          {isYouTubeUrl(backgroundVideoUrl) ? (
+            <iframe
+              key={backgroundVideoUrl}
+              className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+              src={`https://www.youtube.com/embed/${getYouTubeVideoId(backgroundVideoUrl)}?autoplay=1&mute=1&loop=1&playlist=${getYouTubeVideoId(backgroundVideoUrl)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+              style={{ border: 'none', transform: 'scale(1.5)', transformOrigin: 'center center' }}
+              title="Background Video"
+              onLoad={() => setVideoReady(true)}
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              key={backgroundVideoUrl}
+              className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+              src={getAssetUrl(backgroundVideoUrl)}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              onCanPlayThrough={(e) => {
+                setVideoReady(true);
+                e.target.play().catch(() => {});
+              }}
+              onError={(e) => console.error('[SlideShow] Video error:', e.target.error, 'src:', e.target.src)}
+            />
+          )}
+        </>
       )}
 
       {/* Overlay */}
