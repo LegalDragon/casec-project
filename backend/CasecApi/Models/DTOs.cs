@@ -232,6 +232,8 @@ public class EventDto
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public int? ThumbnailFocusX { get; set; }
+    public int? ThumbnailFocusY { get; set; }
     public string? SourceUrl { get; set; }
     public int? RegisteredCount { get; set; }
     public int? TotalRegistrations { get; set; }
@@ -259,6 +261,8 @@ public class CreateEventRequest
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public int? ThumbnailFocusX { get; set; }
+    public int? ThumbnailFocusY { get; set; }
     public string? SourceUrl { get; set; }
 }
 
@@ -281,6 +285,8 @@ public class UpdateEventRequest
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public int? ThumbnailFocusX { get; set; }
+    public int? ThumbnailFocusY { get; set; }
     public string? SourceUrl { get; set; }
 }
 
@@ -786,6 +792,8 @@ public class EventDetailDto
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public int? ThumbnailFocusX { get; set; }
+    public int? ThumbnailFocusY { get; set; }
     public string? SourceUrl { get; set; }
     public int? TotalRegistrations { get; set; }
     public int? SpotsRemaining { get; set; }

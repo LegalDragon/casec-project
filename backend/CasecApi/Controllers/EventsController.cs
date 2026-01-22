@@ -106,6 +106,8 @@ public class EventsController : ControllerBase
                     IsRegistrationRequired = e.IsRegistrationRequired,
                     IsFeatured = e.IsFeatured,
                     ThumbnailUrl = e.ThumbnailUrl,
+                    ThumbnailFocusX = e.ThumbnailFocusX,
+                    ThumbnailFocusY = e.ThumbnailFocusY,
                     SourceUrl = e.SourceUrl,
                     TotalRegistrations = _context.EventRegistrations.Count(er => er.EventId == e.EventId),
                     SpotsRemaining = (e.MaxCapacity ?? 0) - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
@@ -214,6 +216,8 @@ public class EventsController : ControllerBase
                     IsRegistrationRequired = e.IsRegistrationRequired,
                     IsFeatured = e.IsFeatured,
                     ThumbnailUrl = e.ThumbnailUrl,
+                    ThumbnailFocusX = e.ThumbnailFocusX,
+                    ThumbnailFocusY = e.ThumbnailFocusY,
                     SourceUrl = e.SourceUrl,
                     TotalRegistrations = _context.EventRegistrations.Count(er => er.EventId == e.EventId),
                     SpotsRemaining = (e.MaxCapacity ?? 0) - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
@@ -277,6 +281,8 @@ public class EventsController : ControllerBase
                 IsRegistrationRequired = eventItem.IsRegistrationRequired,
                 IsFeatured = eventItem.IsFeatured,
                 ThumbnailUrl = eventItem.ThumbnailUrl,
+                ThumbnailFocusX = eventItem.ThumbnailFocusX,
+                ThumbnailFocusY = eventItem.ThumbnailFocusY,
                 TotalRegistrations = await _context.EventRegistrations.CountAsync(er => er.EventId == id),
                 SpotsRemaining = (eventItem.MaxCapacity ?? 0) - await _context.EventRegistrations.CountAsync(er => er.EventId == id),
                 IsUserRegistered = currentUserId > 0 &&
@@ -346,6 +352,8 @@ public class EventsController : ControllerBase
                 IsRegistrationRequired = request.IsRegistrationRequired ?? true,
                 IsFeatured = request.IsFeatured ?? false,
                 ThumbnailUrl = request.ThumbnailUrl,
+                ThumbnailFocusX = request.ThumbnailFocusX ?? 50,
+                ThumbnailFocusY = request.ThumbnailFocusY ?? 50,
                 SourceUrl = request.SourceUrl
             };
 
@@ -422,6 +430,10 @@ public class EventsController : ControllerBase
             eventItem.IsFeatured = request.IsFeatured ?? eventItem.IsFeatured;
             if (request.ThumbnailUrl != null)
                 eventItem.ThumbnailUrl = request.ThumbnailUrl;
+            if (request.ThumbnailFocusX != null)
+                eventItem.ThumbnailFocusX = request.ThumbnailFocusX;
+            if (request.ThumbnailFocusY != null)
+                eventItem.ThumbnailFocusY = request.ThumbnailFocusY;
             if (request.SourceUrl != null)
                 eventItem.SourceUrl = request.SourceUrl;
 
@@ -1280,6 +1292,8 @@ public class EventsController : ControllerBase
                 IsRegistrationRequired = eventItem.IsRegistrationRequired,
                 IsFeatured = eventItem.IsFeatured,
                 ThumbnailUrl = eventItem.ThumbnailUrl,
+                ThumbnailFocusX = eventItem.ThumbnailFocusX,
+                ThumbnailFocusY = eventItem.ThumbnailFocusY,
                 SourceUrl = eventItem.SourceUrl,
                 TotalRegistrations = totalRegistrations,
                 SpotsRemaining = (eventItem.MaxCapacity ?? 0) - totalRegistrations,

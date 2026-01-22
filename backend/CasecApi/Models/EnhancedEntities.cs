@@ -401,6 +401,10 @@ public class Event
     [MaxLength(500)]
     public string? ThumbnailUrl { get; set; }
 
+    // Focus point for thumbnail cropping (0-100 percentage, default 50,50 = center)
+    public int? ThumbnailFocusX { get; set; } = 50;
+    public int? ThumbnailFocusY { get; set; } = 50;
+
     [MaxLength(1000)]
     public string? SourceUrl { get; set; }
 

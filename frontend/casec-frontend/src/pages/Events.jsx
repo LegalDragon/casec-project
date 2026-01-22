@@ -380,6 +380,7 @@ export default function EnhancedEvents() {
                         src={getAssetUrl(event.thumbnailUrl)}
                         alt={event.title}
                         className={`w-full h-48 sm:h-full sm:min-h-[280px] object-cover hover:opacity-90 transition-opacity ${isPastEvent ? 'grayscale-[30%]' : ''}`}
+                        style={{ objectPosition: `${event.thumbnailFocusX ?? 50}% ${event.thumbnailFocusY ?? 50}%` }}
                       />
                     ) : (
                       <div className="w-full h-48 sm:h-full sm:min-h-[280px] bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">

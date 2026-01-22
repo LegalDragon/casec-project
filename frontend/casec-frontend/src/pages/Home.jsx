@@ -290,6 +290,7 @@ export default function Home() {
             src={getAssetUrl(event.thumbnailUrl)}
             alt={event.title}
             className="w-full h-full object-cover"
+            style={{ objectPosition: `${event.thumbnailFocusX ?? 50}% ${event.thumbnailFocusY ?? 50}%` }}
             referrerPolicy="no-referrer"
             onError={(e) => {
               if (e.target) e.target.style.display = 'none';
@@ -364,6 +365,7 @@ export default function Home() {
             src={getAssetUrl(event.thumbnailUrl)}
             alt={event.title}
             className="w-full h-full object-cover grayscale-[30%]"
+            style={{ objectPosition: `${event.thumbnailFocusX ?? 50}% ${event.thumbnailFocusY ?? 50}%` }}
             referrerPolicy="no-referrer"
             onError={(e) => {
               if (e.target) e.target.style.display = 'none';

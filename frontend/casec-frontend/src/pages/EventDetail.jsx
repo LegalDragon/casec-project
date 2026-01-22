@@ -233,6 +233,7 @@ export default function EventDetail() {
             src={getAssetUrl(event.thumbnailUrl)}
             alt={event.title}
             className="w-full h-64 md:h-80 object-cover"
+            style={{ objectPosition: `${event.thumbnailFocusX ?? 50}% ${event.thumbnailFocusY ?? 50}%` }}
           />
         </div>
       )}

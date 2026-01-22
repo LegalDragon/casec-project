@@ -212,6 +212,7 @@ export default function Dashboard() {
                         src={getAssetUrl(event.thumbnailUrl)}
                         alt={event.title}
                         className="w-full h-full object-cover"
+                        style={{ objectPosition: `${event.thumbnailFocusX ?? 50}% ${event.thumbnailFocusY ?? 50}%` }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

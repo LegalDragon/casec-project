@@ -58,6 +58,10 @@ export default function AdminEvents() {
   const [savingThumbnail, setSavingThumbnail] = useState(false);
   const [sourceUrl, setSourceUrl] = useState(''); // URL used to generate thumbnail
 
+  // Thumbnail focus point (0-100 percentage, default 50,50 = center)
+  const [thumbnailFocusX, setThumbnailFocusX] = useState(50);
+  const [thumbnailFocusY, setThumbnailFocusY] = useState(50);
+
   // Event types from API
   const [eventTypes, setEventTypes] = useState([]);
 
@@ -147,6 +151,9 @@ export default function AdminEvents() {
     setFetchedMetadata(null);
     setThumbnailPreview('');
     setSourceUrl('');
+    // Reset focus point to center
+    setThumbnailFocusX(50);
+    setThumbnailFocusY(50);
   };
 
   const handleFetchMetadata = async () => {
@@ -208,6 +215,8 @@ export default function AdminEvents() {
         eventFee: parseFloat(formData.eventFee) || 0,
         maxCapacity: parseInt(formData.maxCapacity) || 100,
         thumbnailUrl: thumbnailPreview || null,
+        thumbnailFocusX: thumbnailFocusX,
+        thumbnailFocusY: thumbnailFocusY,
         sourceUrl: sourceUrl || null,
       };
       await eventsAPI.create(data);
@@ -246,6 +255,9 @@ export default function AdminEvents() {
     setFetchedMetadata(null);
     setThumbnailPreview(event.thumbnailUrl || '');
     setSourceUrl(event.sourceUrl || '');
+    // Load focus point (default to center if not set)
+    setThumbnailFocusX(event.thumbnailFocusX ?? 50);
+    setThumbnailFocusY(event.thumbnailFocusY ?? 50);
   };
 
   const handleUpdate = async (e) => {
@@ -256,6 +268,8 @@ export default function AdminEvents() {
         hostClubId: formData.hostClubId ? parseInt(formData.hostClubId) : null,
         eventFee: parseFloat(formData.eventFee) || 0,
         maxCapacity: parseInt(formData.maxCapacity) || 100,
+        thumbnailFocusX: thumbnailFocusX,
+        thumbnailFocusY: thumbnailFocusY,
         sourceUrl: sourceUrl || null,
       };
       // Include external thumbnail URL if it's different from the current one
@@ -848,43 +862,80 @@ export default function AdminEvents() {
                     </p>
                   </div>
 
-                  {/* Current Thumbnail Preview */}
+                  {/* Current Thumbnail Preview with Focus Point Picker */}
                   <div className="flex items-start gap-4">
                     {thumbnailPreview ? (
-                      <div className="relative">
-                        <img
-                          src={getAssetUrl(thumbnailPreview)}
-                          alt="Event thumbnail"
-                          className="w-32 h-24 object-cover rounded-lg border"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            if (e.target) {
-                              e.target.src = '';
-                              e.target.style.display = 'none';
-                            }
-                            if (e.target?.parentElement) {
-                              e.target.parentElement.innerHTML = '<div class="w-32 h-24 bg-red-50 rounded-lg border border-red-200 flex items-center justify-center text-xs text-red-500 text-center p-2">Image failed to load</div>';
-                            }
+                      <div className="space-y-2">
+                        {/* Thumbnail with clickable focus point */}
+                        <div
+                          className="relative w-48 h-32 rounded-lg border overflow-hidden cursor-crosshair group"
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+                            const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+                            setThumbnailFocusX(Math.max(0, Math.min(100, x)));
+                            setThumbnailFocusY(Math.max(0, Math.min(100, y)));
                           }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setThumbnailPreview('')}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                          title="Remove thumbnail"
+                          title="Click to set focus point"
                         >
-                          <X className="w-3 h-3" />
-                        </button>
-                        {thumbnailPreview.startsWith('http') && (
-                          <span className="absolute -bottom-1 left-0 right-0 text-center">
-                            <span className="bg-amber-100 text-amber-800 text-[10px] px-1 rounded">
-                              External
+                          <img
+                            src={getAssetUrl(thumbnailPreview)}
+                            alt="Event thumbnail"
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              if (e.target) {
+                                e.target.src = '';
+                                e.target.style.display = 'none';
+                              }
+                            }}
+                          />
+                          {/* Focus point indicator */}
+                          <div
+                            className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                            style={{ left: `${thumbnailFocusX}%`, top: `${thumbnailFocusY}%` }}
+                          >
+                            <div className="absolute inset-0 border-2 border-white rounded-full shadow-lg" />
+                            <div className="absolute inset-1 border-2 border-primary rounded-full" />
+                            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-primary -translate-y-1/2" />
+                            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-primary -translate-x-1/2" />
+                          </div>
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                          {/* Remove button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setThumbnailPreview('');
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 z-10"
+                            title="Remove thumbnail"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          {thumbnailPreview.startsWith('http') && (
+                            <span className="absolute bottom-1 left-1">
+                              <span className="bg-amber-100 text-amber-800 text-[10px] px-1 rounded">
+                                External
+                              </span>
                             </span>
-                          </span>
-                        )}
+                          )}
+                        </div>
+                        {/* Focus point info */}
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span>Focus: {thumbnailFocusX}%, {thumbnailFocusY}%</span>
+                          <button
+                            type="button"
+                            onClick={() => { setThumbnailFocusX(50); setThumbnailFocusY(50); }}
+                            className="text-primary hover:underline"
+                          >
+                            Reset to center
+                          </button>
+                        </div>
                       </div>
                     ) : (
-                      <div className="w-32 h-24 bg-gray-100 rounded-lg border flex items-center justify-center">
+                      <div className="w-48 h-32 bg-gray-100 rounded-lg border flex items-center justify-center">
                         <ImageIcon className="w-8 h-8 text-gray-400" />
                       </div>
                     )}
