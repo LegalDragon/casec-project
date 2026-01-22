@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Clock, ChevronLeft, ChevronRight, DollarSign, Building2 } from 'lucide-react';
-import { eventsAPI, getAssetUrl } from '../services/api';
+import { Calendar, MapPin, Clock, ChevronLeft, ChevronRight, DollarSign, Building2, ChevronDown, ChevronUp, BarChart3, ClipboardList, Check } from 'lucide-react';
+import { eventsAPI, pollsAPI, surveysAPI, getAssetUrl } from '../services/api';
 import { useTheme } from '../components/ThemeProvider';
 import PollWidget from '../components/PollWidget';
 import SurveyWidget from '../components/SurveyWidget';
@@ -16,6 +16,14 @@ export default function Home() {
   const pastScrollRef = useRef(null);
   const [upcomingPaused, setUpcomingPaused] = useState(false);
   const [pastPaused, setPastPaused] = useState(false);
+
+  // Poll and Survey collapsed state
+  const [pollAnswered, setPollAnswered] = useState(false);
+  const [surveyAnswered, setSurveyAnswered] = useState(false);
+  const [pollCollapsed, setPollCollapsed] = useState(false);
+  const [surveyCollapsed, setSurveyCollapsed] = useState(false);
+  const [hasPoll, setHasPoll] = useState(false);
+  const [hasSurvey, setHasSurvey] = useState(false);
 
   // Parse hero video URLs
   const heroVideos = useMemo(() => {
@@ -130,7 +138,41 @@ export default function Home() {
 
   useEffect(() => {
     fetchEvents();
+    checkPollSurveyStatus();
   }, []);
+
+  // Check if user has already answered poll/survey
+  const checkPollSurveyStatus = async () => {
+    try {
+      // Check featured poll
+      const pollRes = await pollsAPI.getFeatured();
+      if (pollRes.success && pollRes.data) {
+        setHasPoll(true);
+        if (pollRes.data.hasVoted) {
+          setPollAnswered(true);
+          setPollCollapsed(true);
+        }
+      }
+    } catch (err) {
+      // No featured poll
+    }
+
+    try {
+      // Check featured survey
+      const surveyRes = await surveysAPI.getFeatured();
+      if (surveyRes.success && surveyRes.data) {
+        setHasSurvey(true);
+        // Check for existing response
+        const responseRes = await surveysAPI.getMyResponse(surveyRes.data.surveyId);
+        if (responseRes?.data?.status === 'Completed') {
+          setSurveyAnswered(true);
+          setSurveyCollapsed(true);
+        }
+      }
+    } catch (err) {
+      // No featured survey
+    }
+  };
 
   // Auto-scroll for upcoming events - always animate even with 1 card
   useEffect(() => {
@@ -543,12 +585,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Featured Poll & Survey */}
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-6">
-          <PollWidget featured />
-          <SurveyWidget featured />
-        </div>
-
         {/* Past Featured Events Carousel */}
         <div className="w-full">
           <div className="max-w-7xl mx-auto px-6 mb-4">
@@ -608,6 +644,83 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Featured Poll & Survey - Collapsible when answered */}
+        {(hasPoll || hasSurvey) && (
+          <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-6">
+            {/* Poll Section */}
+            {hasPoll && (
+              <div>
+                {pollAnswered ? (
+                  <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <button
+                      onClick={() => setPollCollapsed(!pollCollapsed)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div className="text-left">
+                          <span className="font-medium text-gray-900">Poll Completed</span>
+                          <p className="text-xs text-gray-500">Thank you for your response</p>
+                        </div>
+                      </div>
+                      {pollCollapsed ? (
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                    {!pollCollapsed && (
+                      <div className="border-t">
+                        <PollWidget featured />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <PollWidget featured />
+                )}
+              </div>
+            )}
+
+            {/* Survey Section */}
+            {hasSurvey && (
+              <div>
+                {surveyAnswered ? (
+                  <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <button
+                      onClick={() => setSurveyCollapsed(!surveyCollapsed)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div className="text-left">
+                          <span className="font-medium text-gray-900">Survey Completed</span>
+                          <p className="text-xs text-gray-500">Thank you for your feedback</p>
+                        </div>
+                      </div>
+                      {surveyCollapsed ? (
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                    {!surveyCollapsed && (
+                      <div className="border-t">
+                        <SurveyWidget featured />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <SurveyWidget featured />
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Footer */}
