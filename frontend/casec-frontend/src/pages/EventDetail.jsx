@@ -18,11 +18,68 @@ export default function EventDetail() {
   const [unregistering, setUnregistering] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [eventTypes, setEventTypes] = useState({});
+  const [iframeStatus, setIframeStatus] = useState('loading'); // 'loading', 'loaded', 'failed'
+  const [redirectCountdown, setRedirectCountdown] = useState(null);
 
   useEffect(() => {
     fetchEventDetail();
     fetchEventTypes();
   }, [eventId]);
+
+  // Handle iframe failure countdown and redirect
+  useEffect(() => {
+    if (redirectCountdown === null) return;
+
+    if (redirectCountdown <= 0 && event?.sourceUrl) {
+      window.location.href = event.sourceUrl;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setRedirectCountdown(prev => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [redirectCountdown, event?.sourceUrl]);
+
+  // Handle iframe load event - check if content is accessible
+  const handleIframeLoad = (e) => {
+    try {
+      // Try to access the iframe content - this will throw if blocked by CORS/X-Frame-Options
+      const iframe = e.target;
+      // Just checking if we can read anything - if the site blocks embedding,
+      // this will either throw or return a blank page
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+
+      // If we can access the document and it has content, it's loaded
+      if (doc && doc.body && doc.body.innerHTML.length > 0) {
+        setIframeStatus('loaded');
+      } else {
+        // Empty content usually means it was blocked
+        setIframeStatus('failed');
+        setRedirectCountdown(5);
+      }
+    } catch (error) {
+      // CORS error - can't access content, likely blocked
+      setIframeStatus('failed');
+      setRedirectCountdown(5);
+    }
+  };
+
+  const handleIframeError = () => {
+    setIframeStatus('failed');
+    setRedirectCountdown(5);
+  };
+
+  const cancelRedirect = () => {
+    setRedirectCountdown(null);
+  };
+
+  const goToSourceNow = () => {
+    if (event?.sourceUrl) {
+      window.location.href = event.sourceUrl;
+    }
+  };
 
   const fetchEventTypes = async () => {
     try {
@@ -478,7 +535,67 @@ export default function EventDetail() {
             <FileText className="w-5 h-5 text-primary" />
             Original Article
           </h2>
-          <div className="rounded-lg overflow-hidden border border-gray-200">
+
+          {/* Iframe Failed Message with Countdown */}
+          {iframeStatus === 'failed' && (
+            <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-8 text-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ExternalLink className="w-8 h-8 text-amber-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                External Content Cannot Be Embedded
+              </h3>
+              <p className="text-gray-600 mb-4">
+                This content cannot be viewed as a sub-page due to security restrictions from the source website.
+              </p>
+
+              {redirectCountdown !== null && redirectCountdown > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center text-2xl font-bold">
+                      {redirectCountdown}
+                    </div>
+                    <span className="text-gray-600">Redirecting to source in {redirectCountdown} seconds...</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={goToSourceNow}
+                      className="btn btn-primary"
+                    >
+                      Go Now
+                    </button>
+                    <button
+                      onClick={cancelRedirect}
+                      className="btn btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <a
+                  href={event.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary inline-flex items-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  View Original Content
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {iframeStatus === 'loading' && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading external content...</p>
+            </div>
+          )}
+
+          {/* Iframe (hidden when failed) */}
+          <div className={iframeStatus === 'failed' ? 'hidden' : 'rounded-lg overflow-hidden border border-gray-200'}>
             <iframe
               src={event.sourceUrl}
               title="Event Source Content"
@@ -486,14 +603,19 @@ export default function EventDetail() {
               style={{ height: '80vh', minHeight: '600px' }}
               sandbox="allow-scripts allow-same-origin allow-popups"
               referrerPolicy="no-referrer"
+              onLoad={handleIframeLoad}
+              onError={handleIframeError}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Content from external source. If not loading properly,{' '}
-            <a href={event.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              click here to view directly
-            </a>.
-          </p>
+
+          {iframeStatus === 'loaded' && (
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Content from external source. If not displaying properly,{' '}
+              <a href={event.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                click here to view directly
+              </a>.
+            </p>
+          )}
         </div>
       )}
 
