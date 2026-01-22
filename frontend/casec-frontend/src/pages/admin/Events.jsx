@@ -853,7 +853,7 @@ export default function AdminEvents() {
                     {thumbnailPreview ? (
                       <div className="relative">
                         <img
-                          src={thumbnailPreview.startsWith('/api') ? getAssetUrl(thumbnailPreview) : thumbnailPreview}
+                          src={getAssetUrl(thumbnailPreview)}
                           alt="Event thumbnail"
                           className="w-32 h-24 object-cover rounded-lg border"
                           referrerPolicy="no-referrer"
