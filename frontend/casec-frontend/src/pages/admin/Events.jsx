@@ -563,9 +563,23 @@ export default function AdminEvents() {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">
-                  {editingEvent ? 'Edit Event' : 'Create New Event'}
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-bold">
+                    {editingEvent ? 'Edit Event' : 'Create New Event'}
+                  </h2>
+                  {editingEvent && (
+                    <a
+                      href={`/event/${editingEvent.eventId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary btn-sm flex items-center gap-1"
+                      title="View as public"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Public View
+                    </a>
+                  )}
+                </div>
                 <button
                   onClick={() => {
                     setShowCreateModal(false);
