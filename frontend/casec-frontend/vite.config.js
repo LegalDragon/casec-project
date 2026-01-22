@@ -57,6 +57,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       // Backend API routes (no /api prefix)
+      // Use bypass function to skip proxy for browser navigation requests
       "/auth": {
         target: "https://localhost:5001",
         changeOrigin: true,
@@ -66,6 +67,12 @@ export default defineConfig({
         target: "https://localhost:5001",
         changeOrigin: true,
         secure: false,
+        // Skip proxy for browser navigation (HTML requests) - serve React app instead
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) {
+            return '/index.html';
+          }
+        },
       },
       "/eventtypes": {
         target: "https://localhost:5001",
@@ -81,6 +88,12 @@ export default defineConfig({
         target: "https://localhost:5001",
         changeOrigin: true,
         secure: false,
+        // Skip proxy for browser navigation (HTML requests) - serve React app instead
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) {
+            return '/index.html';
+          }
+        },
       },
       "/users": {
         target: "https://localhost:5001",
