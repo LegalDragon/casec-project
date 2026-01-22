@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, DollarSign, Users, ExternalLink, Sparkles, Megaphone, Handshake, Building2, ImageIcon } from 'lucide-react';
+import { Calendar, MapPin, DollarSign, Users, ExternalLink, Sparkles, Megaphone, Handshake, Building2, ImageIcon, Clock } from 'lucide-react';
 import { eventsAPI, clubsAPI, eventTypesAPI, getAssetUrl } from '../services/api';
 import { useTheme } from '../components/ThemeProvider';
 
@@ -13,6 +13,7 @@ export default function EnhancedEvents() {
   const [selectedType, setSelectedType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedClub, setSelectedClub] = useState('all');
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState('recent'); // 'recent', 'upcoming', 'allPast'
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [categories, setCategories] = useState([]);
@@ -39,11 +40,12 @@ export default function EnhancedEvents() {
 
   useEffect(() => {
     filterEvents();
-  }, [selectedType, selectedCategory, selectedClub, dateFrom, dateTo, events]);
+  }, [selectedType, selectedCategory, selectedClub, selectedTimePeriod, dateFrom, dateTo, events]);
 
   const loadEvents = async () => {
     try {
-      const response = await eventsAPI.getAll();
+      // Load all events (both past and upcoming) - we'll filter client-side
+      const response = await eventsAPI.getAll({ upcoming: false });
       if (response.success) {
         setEvents(response.data);
       }
@@ -78,6 +80,23 @@ export default function EnhancedEvents() {
 
   const filterEvents = () => {
     let filtered = events;
+    const now = new Date();
+
+    // Time period filter (only apply if no custom date range is set)
+    if (!dateFrom && !dateTo) {
+      if (selectedTimePeriod === 'upcoming') {
+        // Future events only
+        filtered = filtered.filter(e => new Date(e.eventDate) >= now);
+      } else if (selectedTimePeriod === 'allPast') {
+        // All past events
+        filtered = filtered.filter(e => new Date(e.eventDate) < now);
+      } else if (selectedTimePeriod === 'recent') {
+        // Upcoming + past 30 days (default)
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        filtered = filtered.filter(e => new Date(e.eventDate) >= thirtyDaysAgo);
+      }
+    }
 
     if (selectedType !== 'all') {
       filtered = filtered.filter(e => e.eventType === selectedType);
@@ -102,6 +121,22 @@ export default function EnhancedEvents() {
     if (dateTo) {
       filtered = filtered.filter(e => new Date(e.eventDate) <= new Date(dateTo + 'T23:59:59'));
     }
+
+    // Sort: upcoming events first (by date ascending), then past events (by date descending)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.eventDate);
+      const dateB = new Date(b.eventDate);
+      const aIsUpcoming = dateA >= now;
+      const bIsUpcoming = dateB >= now;
+
+      if (aIsUpcoming && bIsUpcoming) {
+        return dateA - dateB; // Upcoming: soonest first
+      } else if (!aIsUpcoming && !bIsUpcoming) {
+        return dateB - dateA; // Past: most recent first
+      } else {
+        return aIsUpcoming ? -1 : 1; // Upcoming before past
+      }
+    });
 
     setFilteredEvents(filtered);
   };
@@ -165,11 +200,21 @@ export default function EnhancedEvents() {
     setSelectedType('all');
     setSelectedCategory('all');
     setSelectedClub('all');
+    setSelectedTimePeriod('recent');
     setDateFrom('');
     setDateTo('');
   };
 
-  const hasActiveFilters = selectedType !== 'all' || selectedCategory !== 'all' || selectedClub !== 'all' || dateFrom || dateTo;
+  const hasActiveFilters = selectedType !== 'all' || selectedCategory !== 'all' || selectedClub !== 'all' || selectedTimePeriod !== 'recent' || dateFrom || dateTo;
+
+  const getTimePeriodLabel = (period) => {
+    switch (period) {
+      case 'upcoming': return 'Future Only';
+      case 'allPast': return 'All Past Events';
+      case 'recent': return 'Recent & Upcoming';
+      default: return period;
+    }
+  };
 
   if (loading) return <div className="text-center py-12">Loading events...</div>;
 
@@ -183,7 +228,24 @@ export default function EnhancedEvents() {
 
       {/* Filters */}
       <div className="card">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Time Period Filter */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <Clock className="w-4 h-4 inline mr-1" />
+              Show Events
+            </label>
+            <select
+              value={selectedTimePeriod}
+              onChange={(e) => setSelectedTimePeriod(e.target.value)}
+              className="input w-full"
+            >
+              <option value="recent">📅 Recent & Upcoming</option>
+              <option value="upcoming">🔜 Future Only</option>
+              <option value="allPast">📜 All Past Events</option>
+            </select>
+          </div>
+
           {/* Event Type Filter */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Event Type</label>
@@ -233,7 +295,7 @@ export default function EnhancedEvents() {
 
           {/* Date Filter */}
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Date Range</label>
+            <label className="block text-sm font-semibold text-gray-700">Custom Date Range</label>
             <div className="flex gap-2">
               <input
                 type="date"
@@ -257,6 +319,12 @@ export default function EnhancedEvents() {
         {hasActiveFilters && (
           <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-2">
             <span className="text-sm text-gray-600">Active filters:</span>
+            {selectedTimePeriod !== 'recent' && (
+              <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                {getTimePeriodLabel(selectedTimePeriod)}
+                <button onClick={() => setSelectedTimePeriod('recent')} className="ml-2">×</button>
+              </span>
+            )}
             {selectedType !== 'all' && (
               <span className="inline-flex items-center px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
                 {getEventTypeInfo(selectedType).label}
@@ -296,21 +364,22 @@ export default function EnhancedEvents() {
         {filteredEvents.map((event) => {
           const eventDate = new Date(event.eventDate);
           const typeInfo = getEventTypeInfo(event.eventType);
+          const isPastEvent = eventDate < new Date();
 
           return (
             <div
               key={event.eventId}
-              className={`rounded-xl ${event.isFeatured ? 'ring-4 ring-accent shadow-2xl' : 'shadow-lg'} overflow-hidden relative bg-gradient-to-r from-gray-800 via-gray-700 to-gray-600`}
+              className={`rounded-xl ${event.isFeatured ? 'ring-4 ring-accent shadow-2xl' : 'shadow-lg'} overflow-hidden relative bg-gradient-to-r ${isPastEvent ? 'from-gray-600 via-gray-500 to-gray-400 opacity-80' : 'from-gray-800 via-gray-700 to-gray-600'}`}
             >
               <div className="flex flex-col sm:flex-row">
                 {/* Thumbnail - full width on mobile, fixed width on desktop */}
-                <div className="flex-shrink-0 w-full sm:w-40 md:w-48">
+                <div className="flex-shrink-0 w-full sm:w-40 md:w-48 relative">
                   <Link to={`/events/${event.eventId}`} className="block">
                     {event.thumbnailUrl ? (
                       <img
                         src={getAssetUrl(event.thumbnailUrl)}
                         alt={event.title}
-                        className="w-full h-48 sm:h-full sm:min-h-[280px] object-cover hover:opacity-90 transition-opacity"
+                        className={`w-full h-48 sm:h-full sm:min-h-[280px] object-cover hover:opacity-90 transition-opacity ${isPastEvent ? 'grayscale-[30%]' : ''}`}
                       />
                     ) : (
                       <div className="w-full h-48 sm:h-full sm:min-h-[280px] bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
@@ -318,12 +387,18 @@ export default function EnhancedEvents() {
                       </div>
                     )}
                   </Link>
+                  {/* Past Event Badge on thumbnail */}
+                  {isPastEvent && (
+                    <div className="absolute top-2 left-2 bg-gray-900/80 text-white px-2 py-1 rounded text-xs font-medium">
+                      Past Event
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 p-4 sm:p-5 flex flex-col">
                   {/* Featured Badge */}
-                  {event.isFeatured && (
+                  {event.isFeatured && !isPastEvent && (
                     <div className="absolute top-3 right-3 bg-accent text-white px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
                       <Sparkles className="w-3 h-3" />
                       <span>Featured</span>
