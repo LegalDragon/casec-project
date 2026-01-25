@@ -15,15 +15,18 @@ public class RaffleParticipantsController : ControllerBase
     private readonly CasecDbContext _context;
     private readonly ILogger<RaffleParticipantsController> _logger;
     private readonly IWebHostEnvironment _environment;
+    private readonly IEmailNotificationService _notificationService;
 
     public RaffleParticipantsController(
         CasecDbContext context,
         ILogger<RaffleParticipantsController> logger,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        IEmailNotificationService notificationService)
     {
         _context = context;
         _logger = logger;
         _environment = environment;
+        _notificationService = notificationService;
     }
 
     // POST: /RaffleParticipants/{raffleId}/register - Register for a raffle
@@ -394,10 +397,26 @@ public class RaffleParticipantsController : ControllerBase
 
             await _context.SaveChangesAsync();
 
-            // TODO: In production, send SMS with ticket range
             _logger.LogInformation(
                 "Participant {ParticipantId} purchased {TicketCount} tickets ({Start}-{End}) for raffle {RaffleId}",
                 participant.ParticipantId, tier.TicketCount, ticketStart, ticketEnd, raffleId);
+
+            // Send ticket confirmation SMS
+            try
+            {
+                var smsMessage = CasecEmailTemplates.RaffleTicketSms(
+                    raffle.Name,
+                    ticketStart,
+                    ticketEnd,
+                    tier.TicketCount,
+                    raffle.TicketDigits);
+                await _notificationService.SendSmsAsync(null, participant.PhoneNumber, smsMessage);
+                _logger.LogInformation("Ticket confirmation SMS sent to {Phone}", participant.PhoneNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send ticket confirmation SMS to {Phone}", participant.PhoneNumber);
+            }
 
             return Ok(new ApiResponse<RafflePurchaseResponse>
             {
@@ -606,9 +625,17 @@ public class RaffleParticipantsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        // TODO: In production, integrate with SMS service (Twilio, etc.)
-        // For now, we'll return the OTP in development mode
-        _logger.LogInformation("OTP for {Phone}: {OTP}", participant.PhoneNumber, otp);
+        // Send OTP via SMS using notification service
+        try
+        {
+            var smsMessage = CasecEmailTemplates.OtpSms(otp, 10);
+            await _notificationService.SendSmsAsync(null, participant.PhoneNumber, smsMessage);
+            _logger.LogInformation("OTP SMS sent to {Phone}", participant.PhoneNumber);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send OTP SMS to {Phone}, OTP: {OTP}", participant.PhoneNumber, otp);
+        }
 
         var response = new RaffleRegistrationResponse
         {
@@ -619,7 +646,7 @@ public class RaffleParticipantsController : ControllerBase
             SessionToken = participant.SessionToken
         };
 
-        // In development, include OTP in response
+        // In development, include OTP in response for testing
         if (_environment.IsDevelopment())
         {
             response.OtpMessage = $"[DEV MODE] Your verification code is: {otp}";

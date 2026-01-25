@@ -5,6 +5,7 @@ using System.Security.Claims;
 using CasecApi.Data;
 using CasecApi.Models;
 using CasecApi.Models.DTOs;
+using CasecApi.Services;
 
 namespace CasecApi.Controllers;
 
@@ -14,11 +15,16 @@ public class RafflesController : ControllerBase
 {
     private readonly CasecDbContext _context;
     private readonly ILogger<RafflesController> _logger;
+    private readonly IEmailNotificationService _notificationService;
 
-    public RafflesController(CasecDbContext context, ILogger<RafflesController> logger)
+    public RafflesController(
+        CasecDbContext context,
+        ILogger<RafflesController> logger,
+        IEmailNotificationService notificationService)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     private int? GetCurrentUserId()
@@ -886,6 +892,24 @@ public class RafflesController : ControllerBase
                 if (winner != null)
                 {
                     winner.IsWinner = true;
+
+                    // Send winner notification SMS
+                    try
+                    {
+                        var grandPrize = raffle.Prizes.FirstOrDefault(p => p.IsGrandPrize)
+                            ?? raffle.Prizes.FirstOrDefault();
+                        var prizeName = grandPrize?.Name ?? "Prize";
+
+                        var smsMessage = CasecEmailTemplates.RaffleWinnerSms(raffle.Name, prizeName);
+                        await _notificationService.SendSmsAsync(null, winner.PhoneNumber, smsMessage);
+                        _logger.LogInformation(
+                            "Winner notification SMS sent to {Phone} for raffle {RaffleId}, winning number {WinningNumber}",
+                            winner.PhoneNumber, id, winningNumber);
+                    }
+                    catch (Exception notifyEx)
+                    {
+                        _logger.LogError(notifyEx, "Failed to send winner notification SMS to {Phone}", winner.PhoneNumber);
+                    }
                 }
             }
 
