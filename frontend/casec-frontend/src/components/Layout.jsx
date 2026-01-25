@@ -35,6 +35,7 @@ export default function Layout() {
     { path: '/admin/event-types', label: 'Event Types' },
     { path: '/admin/polls', label: 'Polls' },
     { path: '/admin/surveys', label: 'Surveys' },
+    { path: '/admin/raffles', label: 'Raffles' },
     { path: '/admin/theme', label: 'Theme' },
   ] : [];
 

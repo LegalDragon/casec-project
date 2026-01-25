@@ -279,4 +279,73 @@ export const utilityAPI = {
   fetchUrlMetadata: (url) => api.post("/utility/fetch-url-metadata", { url }),
 };
 
+// Raffle APIs
+export const rafflesAPI = {
+  // Public endpoints
+  getActive: () => api.get("/raffles"),
+  getById: (id) => api.get(`/raffles/${id}`),
+  getDrawingData: (id) => api.get(`/raffles/${id}/drawing`),
+
+  // Admin endpoints
+  getAllAdmin: () => api.get("/raffles/admin/all"),
+  create: (data) => api.post("/raffles", data),
+  update: (id, data) => api.put(`/raffles/${id}`, data),
+  delete: (id) => api.delete(`/raffles/${id}`),
+
+  // Prize management
+  addPrize: (raffleId, data) => api.post(`/raffles/${raffleId}/prizes`, data),
+  updatePrize: (prizeId, data) => api.put(`/raffles/prizes/${prizeId}`, data),
+  deletePrize: (prizeId) => api.delete(`/raffles/prizes/${prizeId}`),
+
+  // Ticket tier management
+  addTier: (raffleId, data) => api.post(`/raffles/${raffleId}/tiers`, data),
+  updateTier: (tierId, data) => api.put(`/raffles/tiers/${tierId}`, data),
+  deleteTier: (tierId) => api.delete(`/raffles/tiers/${tierId}`),
+
+  // Drawing management
+  startDrawing: (id) => api.post(`/raffles/${id}/start-drawing`),
+  revealDigit: (id, digit) =>
+    api.post(`/raffles/${id}/reveal-digit`, { digit }),
+  resetDrawing: (id) => api.post(`/raffles/${id}/reset-drawing`),
+
+  // Participant management (admin)
+  getParticipants: (id) => api.get(`/raffles/${id}/participants`),
+  confirmPayment: (participantId, data) =>
+    api.post(`/raffles/participants/${participantId}/confirm-payment`, data),
+};
+
+// Raffle Participant APIs (public, uses session token)
+export const raffleParticipantAPI = {
+  register: (raffleId, data) =>
+    api.post(`/raffleparticipants/${raffleId}/register`, data),
+  verifyOtp: (raffleId, data) =>
+    api.post(`/raffleparticipants/${raffleId}/verify-otp`, data),
+  resendOtp: (raffleId, data) =>
+    api.post(`/raffleparticipants/${raffleId}/resend-otp`, data),
+  getMyInfo: (raffleId, sessionToken) =>
+    api.get(`/raffleparticipants/${raffleId}/me`, {
+      headers: { "X-Raffle-Session": sessionToken },
+    }),
+  purchaseTickets: (raffleId, data, sessionToken) =>
+    api.post(`/raffleparticipants/${raffleId}/purchase`, data, {
+      headers: { "X-Raffle-Session": sessionToken },
+    }),
+  updateAvatar: (raffleId, avatarUrl, sessionToken) =>
+    api.put(
+      `/raffleparticipants/${raffleId}/avatar`,
+      { avatarUrl },
+      { headers: { "X-Raffle-Session": sessionToken } }
+    ),
+  uploadAvatar: (raffleId, file, sessionToken) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post(`/raffleparticipants/${raffleId}/avatar-upload`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        "X-Raffle-Session": sessionToken,
+      },
+    });
+  },
+};
+
 export default api;

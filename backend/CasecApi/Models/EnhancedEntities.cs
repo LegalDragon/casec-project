@@ -1186,3 +1186,207 @@ public class SurveyAnswer
     [ForeignKey("QuestionId")]
     public virtual SurveyQuestion? Question { get; set; }
 }
+
+// ============ RAFFLE ENTITIES ============
+
+// Raffle Entity - Main raffle configuration
+public class Raffle
+{
+    [Key]
+    public int RaffleId { get; set; }
+
+    [Required]
+    [MaxLength(200)]
+    public string Name { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? Description { get; set; }
+
+    [MaxLength(500)]
+    public string? ImageUrl { get; set; }
+
+    // Status: Draft, Active, Drawing, Completed, Cancelled
+    [Required]
+    [MaxLength(50)]
+    public string Status { get; set; } = "Draft";
+
+    // The winning number (set when drawing is complete)
+    public int? WinningNumber { get; set; }
+
+    // Current digits revealed during drawing (e.g., "123" means first 3 digits revealed)
+    [MaxLength(20)]
+    public string? RevealedDigits { get; set; }
+
+    // Total number of digits in ticket numbers
+    public int TicketDigits { get; set; } = 6;
+
+    // Next available ticket number
+    public int NextTicketNumber { get; set; } = 1;
+
+    // Total tickets sold
+    public int TotalTicketsSold { get; set; } = 0;
+
+    // Total revenue
+    [Column(TypeName = "decimal(10, 2)")]
+    public decimal TotalRevenue { get; set; } = 0;
+
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
+
+    public DateTime? DrawingDate { get; set; }
+
+    public int? CreatedBy { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("CreatedBy")]
+    public virtual User? CreatedByUser { get; set; }
+
+    public virtual ICollection<RafflePrize> Prizes { get; set; } = new List<RafflePrize>();
+    public virtual ICollection<RaffleTicketTier> TicketTiers { get; set; } = new List<RaffleTicketTier>();
+    public virtual ICollection<RaffleParticipant> Participants { get; set; } = new List<RaffleParticipant>();
+}
+
+// RafflePrize Entity - Prizes available in a raffle
+public class RafflePrize
+{
+    [Key]
+    public int PrizeId { get; set; }
+
+    [Required]
+    public int RaffleId { get; set; }
+
+    [Required]
+    [MaxLength(200)]
+    public string Name { get; set; } = string.Empty;
+
+    [MaxLength(1000)]
+    public string? Description { get; set; }
+
+    [MaxLength(500)]
+    public string? ImageUrl { get; set; }
+
+    [Column(TypeName = "decimal(10, 2)")]
+    public decimal? Value { get; set; }
+
+    // Display order (lower = shown first)
+    public int DisplayOrder { get; set; } = 0;
+
+    public bool IsGrandPrize { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("RaffleId")]
+    public virtual Raffle? Raffle { get; set; }
+}
+
+// RaffleTicketTier Entity - Pricing tiers for ticket purchases
+public class RaffleTicketTier
+{
+    [Key]
+    public int TierId { get; set; }
+
+    [Required]
+    public int RaffleId { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty; // e.g., "Basic", "Value Pack", "Super Saver"
+
+    [Required]
+    [Column(TypeName = "decimal(10, 2)")]
+    public decimal Price { get; set; }
+
+    [Required]
+    public int TicketCount { get; set; }
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    // Display order (lower = shown first)
+    public int DisplayOrder { get; set; } = 0;
+
+    public bool IsActive { get; set; } = true;
+
+    public bool IsFeatured { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("RaffleId")]
+    public virtual Raffle? Raffle { get; set; }
+}
+
+// RaffleParticipant Entity - People who register and purchase tickets
+public class RaffleParticipant
+{
+    [Key]
+    public int ParticipantId { get; set; }
+
+    [Required]
+    public int RaffleId { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(30)]
+    public string PhoneNumber { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? AvatarUrl { get; set; }
+
+    // OTP verification
+    [MaxLength(10)]
+    public string? OtpCode { get; set; }
+
+    public DateTime? OtpExpiresAt { get; set; }
+
+    public bool IsVerified { get; set; } = false;
+
+    public DateTime? VerifiedAt { get; set; }
+
+    // Ticket range assigned to this participant
+    public int? TicketStart { get; set; }
+
+    public int? TicketEnd { get; set; }
+
+    public int TotalTickets { get; set; } = 0;
+
+    // Payment tracking
+    [Column(TypeName = "decimal(10, 2)")]
+    public decimal TotalPaid { get; set; } = 0;
+
+    // PaymentStatus: Pending, Confirmed, Refunded
+    [MaxLength(50)]
+    public string PaymentStatus { get; set; } = "Pending";
+
+    [MaxLength(100)]
+    public string? PaymentMethod { get; set; }
+
+    [MaxLength(100)]
+    public string? TransactionId { get; set; }
+
+    public DateTime? PaymentDate { get; set; }
+
+    // Is this participant a winner?
+    public bool IsWinner { get; set; } = false;
+
+    // Unique session token for the participant (used for unauthenticated access)
+    [MaxLength(100)]
+    public string? SessionToken { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("RaffleId")]
+    public virtual Raffle? Raffle { get; set; }
+}

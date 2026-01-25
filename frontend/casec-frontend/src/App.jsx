@@ -28,7 +28,10 @@ import AdminPayments from './pages/admin/Payments';
 import AdminPaymentMethods from './pages/admin/PaymentMethods';
 import AdminPolls from './pages/admin/Polls';
 import AdminSurveys from './pages/admin/Surveys';
+import AdminRaffles from './pages/admin/Raffles';
 import Membership from './pages/Membership';
+import Raffle from './pages/Raffle';
+import RaffleDrawing from './pages/RaffleDrawing';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -73,6 +76,8 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/event/:eventId" element={<EventDetail />} />
+        <Route path="/raffle/:raffleId" element={<Raffle />} />
+        <Route path="/raffle/:raffleId/drawing" element={<RaffleDrawing />} />
 
         {/* Protected Routes */}
         <Route path="/" element={
@@ -125,6 +130,9 @@ function App() {
           } />
           <Route path="admin/surveys" element={
             <AdminRoute><AdminSurveys /></AdminRoute>
+          } />
+          <Route path="admin/raffles" element={
+            <AdminRoute><AdminRaffles /></AdminRoute>
           } />
         </Route>
         </Routes>
