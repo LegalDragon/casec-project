@@ -564,12 +564,21 @@ public class RaffleParticipantsController : ControllerBase
             }
 
             // Upload file
-            var uploadResult = await assetService.UploadFileAsync(
+            var uploadResult = await assetService.UploadAssetAsync(
                 file,
                 $"raffle-avatars/{raffleId}",
                 "RaffleParticipant",
                 participant.ParticipantId,
                 null);
+
+            if (!uploadResult.Success || string.IsNullOrEmpty(uploadResult.Url))
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = uploadResult.Error ?? "Failed to upload avatar"
+                });
+            }
 
             // Update participant avatar
             participant.AvatarUrl = uploadResult.Url;
