@@ -71,6 +71,14 @@ public class CasecDbContext : DbContext
     public DbSet<RaffleTicketTier> RaffleTicketTiers { get; set; }
     public DbSet<RaffleParticipant> RaffleParticipants { get; set; }
 
+    // Event Program entities
+    public DbSet<EventProgram> EventPrograms { get; set; }
+    public DbSet<ProgramSection> ProgramSections { get; set; }
+    public DbSet<ProgramItem> ProgramItems { get; set; }
+    public DbSet<ProgramItemPerformer> ProgramItemPerformers { get; set; }
+    public DbSet<Performer> Performers { get; set; }
+    public DbSet<ProgramContent> ProgramContents { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -561,6 +569,115 @@ public class CasecDbContext : DbContext
             entity.HasIndex(e => e.PhoneNumber);
             entity.HasIndex(e => e.SessionToken);
             entity.HasIndex(e => new { e.RaffleId, e.PhoneNumber }).IsUnique();
+        });
+
+        // EventProgram entity configuration
+        modelBuilder.Entity<EventProgram>(entity =>
+        {
+            entity.HasKey(e => e.ProgramId);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsFeatured);
+        });
+
+        // ProgramSection entity configuration
+        modelBuilder.Entity<ProgramSection>(entity =>
+        {
+            entity.HasKey(e => e.SectionId);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+
+            entity.HasOne(e => e.Program)
+                .WithMany(p => p.Sections)
+                .HasForeignKey(e => e.ProgramId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.ProgramId);
+            entity.HasIndex(e => new { e.ProgramId, e.DisplayOrder });
+        });
+
+        // ProgramItem entity configuration
+        modelBuilder.Entity<ProgramItem>(entity =>
+        {
+            entity.HasKey(e => e.ItemId);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(300);
+
+            entity.HasOne(e => e.Section)
+                .WithMany(s => s.Items)
+                .HasForeignKey(e => e.SectionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ContentPage)
+                .WithMany()
+                .HasForeignKey(e => e.ContentPageId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.SectionId);
+            entity.HasIndex(e => new { e.SectionId, e.DisplayOrder });
+        });
+
+        // ProgramItemPerformer entity configuration
+        modelBuilder.Entity<ProgramItemPerformer>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Item)
+                .WithMany(i => i.Performers)
+                .HasForeignKey(e => e.ItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Performer)
+                .WithMany(p => p.ProgramItems)
+                .HasForeignKey(e => e.PerformerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.ItemId);
+            entity.HasIndex(e => e.PerformerId);
+            entity.HasIndex(e => new { e.ItemId, e.PerformerId }).IsUnique();
+        });
+
+        // Performer entity configuration
+        modelBuilder.Entity<Performer>(entity =>
+        {
+            entity.HasKey(e => e.PerformerId);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+
+            entity.HasOne(e => e.ContentPage)
+                .WithMany()
+                .HasForeignKey(e => e.ContentPageId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.IsActive);
+        });
+
+        // ProgramContent entity configuration
+        modelBuilder.Entity<ProgramContent>(entity =>
+        {
+            entity.HasKey(e => e.ContentId);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.ContentType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.SlideShow)
+                .WithMany()
+                .HasForeignKey(e => e.SlideShowId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.Slug);
+            entity.HasIndex(e => e.ContentType);
+            entity.HasIndex(e => e.Status);
         });
     }
 }

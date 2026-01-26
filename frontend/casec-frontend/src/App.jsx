@@ -33,9 +33,11 @@ import AdminSurveys from './pages/admin/Surveys';
 import AdminSlideShows from './pages/admin/SlideShows';
 import SlideShowPreview from './pages/SlideShowPreview';
 import AdminRaffles from './pages/admin/Raffles';
+import AdminEventPrograms from './pages/admin/EventPrograms';
 import Membership from './pages/Membership';
 import Raffle from './pages/Raffle';
 import RaffleDrawing from './pages/RaffleDrawing';
+import EventProgram from './pages/EventProgram';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -83,6 +85,7 @@ function App() {
         <Route path="/preview/slideshow/:code" element={<SlideShowPreview />} />
         <Route path="/raffle/:raffleId" element={<Raffle />} />
         <Route path="/raffle/:raffleId/drawing" element={<RaffleDrawing />} />
+        <Route path="/program/:slug" element={<EventProgram />} />
 
         {/* Protected Routes */}
         <Route path="/" element={
@@ -121,6 +124,7 @@ function App() {
           <Route path="surveys" element={<AdminSurveys />} />
           <Route path="slideshows" element={<AdminSlideShows />} />
           <Route path="raffles" element={<AdminRaffles />} />
+          <Route path="programs" element={<AdminEventPrograms />} />
           {/* Admin Routes */}
           <Route path="admin/users" element={
             <AdminRoute><AdminUsers /></AdminRoute>

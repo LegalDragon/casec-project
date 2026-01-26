@@ -1698,3 +1698,235 @@ public class RaffleResendOtpRequest
 {
     public string PhoneNumber { get; set; } = string.Empty;
 }
+
+// ============ EVENT PROGRAM DTOs ============
+
+// EventProgram DTOs
+public class EventProgramDto
+{
+    public int ProgramId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Subtitle { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public DateTime? EventDate { get; set; }
+    public string? Venue { get; set; }
+    public string? VenueAddress { get; set; }
+    public List<int>? SlideShowIds { get; set; }
+    public string Status { get; set; } = "Draft";
+    public bool IsFeatured { get; set; }
+    public string? Slug { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public List<ProgramSectionDto> Sections { get; set; } = new();
+}
+
+public class EventProgramListDto
+{
+    public int ProgramId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Subtitle { get; set; }
+    public string? ImageUrl { get; set; }
+    public DateTime? EventDate { get; set; }
+    public string? Venue { get; set; }
+    public string Status { get; set; } = "Draft";
+    public bool IsFeatured { get; set; }
+    public string? Slug { get; set; }
+    public int SectionCount { get; set; }
+    public int ItemCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateEventProgramRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string? Subtitle { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public DateTime? EventDate { get; set; }
+    public string? Venue { get; set; }
+    public string? VenueAddress { get; set; }
+    public List<int>? SlideShowIds { get; set; }
+    public string? Slug { get; set; }
+}
+
+public class UpdateEventProgramRequest
+{
+    public string? Title { get; set; }
+    public string? Subtitle { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public DateTime? EventDate { get; set; }
+    public string? Venue { get; set; }
+    public string? VenueAddress { get; set; }
+    public List<int>? SlideShowIds { get; set; }
+    public string? Status { get; set; }
+    public bool? IsFeatured { get; set; }
+    public string? Slug { get; set; }
+}
+
+// ProgramSection DTOs
+public class ProgramSectionDto
+{
+    public int SectionId { get; set; }
+    public int ProgramId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Subtitle { get; set; }
+    public string? Description { get; set; }
+    public int DisplayOrder { get; set; }
+    public List<ProgramItemDto> Items { get; set; } = new();
+}
+
+public class CreateProgramSectionRequest
+{
+    public int ProgramId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Subtitle { get; set; }
+    public string? Description { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+public class UpdateProgramSectionRequest
+{
+    public string? Title { get; set; }
+    public string? Subtitle { get; set; }
+    public string? Description { get; set; }
+    public int? DisplayOrder { get; set; }
+}
+
+// ProgramItem DTOs
+public class ProgramItemDto
+{
+    public int ItemId { get; set; }
+    public int SectionId { get; set; }
+    public int ItemNumber { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? PerformanceType { get; set; }
+    public string? PerformerNames { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public int? ContentPageId { get; set; }
+    public int DisplayOrder { get; set; }
+    public int? DurationMinutes { get; set; }
+    public List<PerformerDto>? Performers { get; set; }
+}
+
+public class CreateProgramItemRequest
+{
+    public int SectionId { get; set; }
+    public int ItemNumber { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? PerformanceType { get; set; }
+    public string? PerformerNames { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public int? ContentPageId { get; set; }
+    public int DisplayOrder { get; set; }
+    public int? DurationMinutes { get; set; }
+    public List<int>? PerformerIds { get; set; }
+}
+
+public class UpdateProgramItemRequest
+{
+    public int? ItemNumber { get; set; }
+    public string? Title { get; set; }
+    public string? PerformanceType { get; set; }
+    public string? PerformerNames { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public int? ContentPageId { get; set; }
+    public int? DisplayOrder { get; set; }
+    public int? DurationMinutes { get; set; }
+    public List<int>? PerformerIds { get; set; }
+}
+
+// Performer DTOs
+public class PerformerDto
+{
+    public int PerformerId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? ChineseName { get; set; }
+    public string? EnglishName { get; set; }
+    public string? Bio { get; set; }
+    public string? PhotoUrl { get; set; }
+    public string? Website { get; set; }
+    public string? Instagram { get; set; }
+    public string? YouTube { get; set; }
+    public int? ContentPageId { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class CreatePerformerRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string? ChineseName { get; set; }
+    public string? EnglishName { get; set; }
+    public string? Bio { get; set; }
+    public string? PhotoUrl { get; set; }
+    public string? Website { get; set; }
+    public string? Instagram { get; set; }
+    public string? YouTube { get; set; }
+    public int? ContentPageId { get; set; }
+}
+
+public class UpdatePerformerRequest
+{
+    public string? Name { get; set; }
+    public string? ChineseName { get; set; }
+    public string? EnglishName { get; set; }
+    public string? Bio { get; set; }
+    public string? PhotoUrl { get; set; }
+    public string? Website { get; set; }
+    public string? Instagram { get; set; }
+    public string? YouTube { get; set; }
+    public int? ContentPageId { get; set; }
+    public bool? IsActive { get; set; }
+}
+
+// ProgramContent DTOs
+public class ProgramContentDto
+{
+    public int ContentId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Slug { get; set; }
+    public string ContentType { get; set; } = "General";
+    public string? Content { get; set; }
+    public string? FeaturedImageUrl { get; set; }
+    public List<string>? GalleryImages { get; set; }
+    public List<string>? Videos { get; set; }
+    public int? SlideShowId { get; set; }
+    public string Status { get; set; } = "Draft";
+    public string? MetaTitle { get; set; }
+    public string? MetaDescription { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class CreateProgramContentRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string? Slug { get; set; }
+    public string ContentType { get; set; } = "General";
+    public string? Content { get; set; }
+    public string? FeaturedImageUrl { get; set; }
+    public List<string>? GalleryImages { get; set; }
+    public List<string>? Videos { get; set; }
+    public int? SlideShowId { get; set; }
+    public string? MetaTitle { get; set; }
+    public string? MetaDescription { get; set; }
+}
+
+public class UpdateProgramContentRequest
+{
+    public string? Title { get; set; }
+    public string? Slug { get; set; }
+    public string? ContentType { get; set; }
+    public string? Content { get; set; }
+    public string? FeaturedImageUrl { get; set; }
+    public List<string>? GalleryImages { get; set; }
+    public List<string>? Videos { get; set; }
+    public int? SlideShowId { get; set; }
+    public string? Status { get; set; }
+    public string? MetaTitle { get; set; }
+    public string? MetaDescription { get; set; }
+}
