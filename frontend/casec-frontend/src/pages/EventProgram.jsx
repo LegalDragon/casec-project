@@ -34,21 +34,29 @@ export default function EventProgram() {
 
         // Load slideshows if any
         if (response.data.slideShowIds?.length > 0) {
+          console.log("[EventProgram] Loading slideshows for IDs:", response.data.slideShowIds);
           try {
             const slideshowPromises = response.data.slideShowIds.map((id) =>
-              slideShowsAPI.getById(id).catch(() => null)
+              slideShowsAPI.getById(id).catch((err) => {
+                console.warn(`[EventProgram] Failed to load slideshow ${id}:`, err);
+                return null;
+              })
             );
             const results = await Promise.all(slideshowPromises);
+            console.log("[EventProgram] Slideshow API results:", results);
             const programSlideshows = results
               .filter((r) => r?.success)
               .map((r) => r.data);
+            console.log("[EventProgram] Loaded slideshows:", programSlideshows);
             setSlideshows(programSlideshows);
             if (programSlideshows.length > 0) {
               setCurrentSlideshow(programSlideshows[0]);
             }
           } catch (err) {
-            console.error("Error loading slideshows:", err);
+            console.error("[EventProgram] Error loading slideshows:", err);
           }
+        } else {
+          console.log("[EventProgram] No slideshow IDs in program data");
         }
       } else {
         setError(response.message || "Program not found");

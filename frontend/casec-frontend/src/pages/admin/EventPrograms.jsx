@@ -16,8 +16,104 @@ import {
   GripVertical,
   ExternalLink,
   Star,
+  Copy,
+  Check,
 } from "lucide-react";
 import { eventProgramsAPI, slideShowsAPI, getAssetUrl } from "../../services/api";
+
+// Inline URL Copy Component for card view
+function ProgramUrlCopy({ slug }) {
+  const [copied, setCopied] = useState(false);
+  const fullUrl = `${window.location.origin}/program/${slug}`;
+
+  const handleCopy = async (e) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      const textArea = document.createElement("textarea");
+      textArea.value = fullUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1 text-xs">
+      <span className="text-gray-400 font-mono truncate max-w-[200px]">
+        /program/{slug}
+      </span>
+      <button
+        onClick={handleCopy}
+        className={`p-0.5 rounded transition-colors ${
+          copied ? "text-green-600" : "text-gray-400 hover:text-gray-600"
+        }`}
+        title={copied ? "Copied!" : "Copy full URL"}
+      >
+        {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+      </button>
+    </div>
+  );
+}
+
+// Copyable URL Component
+function CopyableUrl({ slug }) {
+  const [copied, setCopied] = useState(false);
+  const fullUrl = `${window.location.origin}/program/${slug}`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = fullUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="mt-2 flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+      <span className="text-sm text-gray-600 truncate flex-1 font-mono">
+        {fullUrl}
+      </span>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className={`p-1.5 rounded-md transition-colors ${
+          copied
+            ? "bg-green-100 text-green-600"
+            : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+        }`}
+        title="Copy URL"
+      >
+        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+      </button>
+      <a
+        href={fullUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="p-1.5 rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300"
+        title="Open in new tab"
+      >
+        <ExternalLink className="w-4 h-4" />
+      </a>
+    </div>
+  );
+}
 
 export default function AdminEventPrograms() {
   const [programs, setPrograms] = useState([]);
@@ -369,6 +465,9 @@ export default function AdminEventPrograms() {
                   className="w-full border rounded-lg px-3 py-2"
                   placeholder="e.g., 2026-spring-gala"
                 />
+                {(editingProgram || formData.slug) && (
+                  <CopyableUrl slug={formData.slug || editingProgram?.programId} />
+                )}
               </div>
 
               <div>
@@ -552,6 +651,9 @@ function ProgramCard({
             )}
             <span>{program.sectionCount} sections</span>
             <span>{program.itemCount} items</span>
+          </div>
+          <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+            <ProgramUrlCopy slug={program.slug || program.programId} />
           </div>
         </div>
 
