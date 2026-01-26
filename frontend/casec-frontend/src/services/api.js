@@ -393,6 +393,7 @@ export const rafflesAPI = {
 
   // Drawing management
   startDrawing: (id) => api.post(`/raffles/${id}/start-drawing`),
+  revealNext: (id) => api.post(`/raffles/${id}/reveal-next`),
   revealDigit: (id, digit) =>
     api.post(`/raffles/${id}/reveal-digit`, { digit }),
   resetDrawing: (id) => api.post(`/raffles/${id}/reset-drawing`),

@@ -141,6 +141,9 @@ public class RafflesController : ControllerBase
                 });
             }
 
+            // Only show winning number if all digits have been revealed
+            var allDigitsRevealed = raffle.RevealedDigits?.Length >= raffle.TicketDigits;
+
             var dto = new RaffleDrawingDto
             {
                 RaffleId = raffle.RaffleId,
@@ -148,7 +151,7 @@ public class RafflesController : ControllerBase
                 Description = raffle.Description,
                 ImageUrl = raffle.ImageUrl,
                 Status = raffle.Status,
-                WinningNumber = raffle.WinningNumber,
+                WinningNumber = allDigitsRevealed ? raffle.WinningNumber : null, // Hide until fully revealed
                 RevealedDigits = raffle.RevealedDigits,
                 TicketDigits = raffle.TicketDigits,
                 TotalTicketsSold = raffle.TotalTicketsSold,
@@ -803,10 +806,36 @@ public class RafflesController : ControllerBase
                 });
             }
 
+            // Get all valid ticket numbers from confirmed participants
+            var validTickets = new List<int>();
+            foreach (var participant in raffle.Participants.Where(p => p.IsVerified && p.PaymentStatus == "Confirmed" && p.TicketStart.HasValue && p.TicketEnd.HasValue))
+            {
+                for (int t = participant.TicketStart!.Value; t <= participant.TicketEnd!.Value; t++)
+                {
+                    validTickets.Add(t);
+                }
+            }
+
+            if (validTickets.Count == 0)
+            {
+                return BadRequest(new ApiResponse<RaffleDrawingDto>
+                {
+                    Success = false,
+                    Message = "No valid tickets found for drawing"
+                });
+            }
+
+            // Randomly select a winning ticket
+            var random = new Random();
+            var winningNumber = validTickets[random.Next(validTickets.Count)];
+
             raffle.Status = "Drawing";
             raffle.RevealedDigits = "";
+            raffle.WinningNumber = winningNumber; // Store the pre-selected winner (hidden from frontend until fully revealed)
             raffle.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Drawing started for raffle {RaffleId}, winning number pre-selected: {WinningNumber}", id, winningNumber);
 
             return await GetDrawingData(id);
         }
@@ -821,7 +850,116 @@ public class RafflesController : ControllerBase
         }
     }
 
-    // POST: /Raffles/{id}/reveal-digit - Reveal the next digit
+    // POST: /Raffles/{id}/reveal-next - Reveal the next digit of pre-selected winning number
+    [Authorize(Roles = "Admin")]
+    [HttpPost("{id}/reveal-next")]
+    public async Task<ActionResult<ApiResponse<RaffleDrawingDto>>> RevealNextDigit(int id)
+    {
+        try
+        {
+            var raffle = await _context.Raffles
+                .Include(r => r.Prizes)
+                .Include(r => r.Participants)
+                .FirstOrDefaultAsync(r => r.RaffleId == id);
+
+            if (raffle == null)
+            {
+                return NotFound(new ApiResponse<RaffleDrawingDto>
+                {
+                    Success = false,
+                    Message = "Raffle not found"
+                });
+            }
+
+            if (raffle.Status != "Drawing")
+            {
+                return BadRequest(new ApiResponse<RaffleDrawingDto>
+                {
+                    Success = false,
+                    Message = "Raffle must be in Drawing status"
+                });
+            }
+
+            if (!raffle.WinningNumber.HasValue)
+            {
+                return BadRequest(new ApiResponse<RaffleDrawingDto>
+                {
+                    Success = false,
+                    Message = "No winning number has been selected. Please restart the drawing."
+                });
+            }
+
+            var currentDigits = raffle.RevealedDigits ?? "";
+            if (currentDigits.Length >= raffle.TicketDigits)
+            {
+                return BadRequest(new ApiResponse<RaffleDrawingDto>
+                {
+                    Success = false,
+                    Message = "All digits have been revealed"
+                });
+            }
+
+            // Get the next digit from the pre-selected winning number
+            var winningNumberStr = raffle.WinningNumber.Value.ToString().PadLeft(raffle.TicketDigits, '0');
+            var nextDigit = winningNumberStr[currentDigits.Length];
+
+            raffle.RevealedDigits = currentDigits + nextDigit;
+            raffle.UpdatedAt = DateTime.UtcNow;
+
+            // Check if all digits revealed - mark winner
+            if (raffle.RevealedDigits.Length == raffle.TicketDigits)
+            {
+                raffle.Status = "Completed";
+
+                // Find and mark the winner
+                var winner = raffle.Participants.FirstOrDefault(p =>
+                    p.IsVerified &&
+                    p.PaymentStatus == "Confirmed" &&
+                    p.TicketStart.HasValue &&
+                    p.TicketEnd.HasValue &&
+                    raffle.WinningNumber >= p.TicketStart.Value &&
+                    raffle.WinningNumber <= p.TicketEnd.Value);
+
+                if (winner != null)
+                {
+                    winner.IsWinner = true;
+
+                    // Queue winner notification SMS (shown on screen, not sent yet in dev mode)
+                    try
+                    {
+                        var grandPrize = raffle.Prizes.FirstOrDefault(p => p.IsGrandPrize)
+                            ?? raffle.Prizes.FirstOrDefault();
+                        var prizeName = grandPrize?.Name ?? "Prize";
+
+                        var smsMessage = CasecEmailTemplates.RaffleWinnerSms(raffle.Name, prizeName);
+                        await _notificationService.SendSmsAsync(null, winner.PhoneNumber, smsMessage);
+                        _logger.LogInformation(
+                            "Winner notification SMS queued for {Phone} for raffle {RaffleId}, winning number {WinningNumber}",
+                            winner.PhoneNumber, id, raffle.WinningNumber);
+                    }
+                    catch (Exception notifyEx)
+                    {
+                        _logger.LogError(notifyEx, "Failed to queue winner notification SMS to {Phone}", winner.PhoneNumber);
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return await GetDrawingData(id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error revealing next digit for raffle {RaffleId}", id);
+            return StatusCode(500, new ApiResponse<RaffleDrawingDto>
+            {
+                Success = false,
+                Message = "An error occurred while revealing digit"
+            });
+        }
+    }
+
+    // POST: /Raffles/{id}/reveal-digit - Reveal a specific digit (legacy, kept for compatibility)
     [Authorize(Roles = "Admin")]
     [HttpPost("{id}/reveal-digit")]
     public async Task<ActionResult<ApiResponse<RaffleDrawingDto>>> RevealDigit(int id, [FromBody] RaffleRevealDigitRequest request)

@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Users,
   Star,
+  Sparkles,
 } from "lucide-react";
 import { rafflesAPI, getAssetUrl } from "../services/api";
 
@@ -20,8 +21,11 @@ function FlipPanel({ digit, isRevealing, onRevealComplete }) {
   const [flipDigit, setFlipDigit] = useState(0);
 
   useEffect(() => {
-    if (isRevealing && digit !== null) {
+    if (isRevealing && digit !== null && digit !== currentDigit) {
       animateFlip(digit);
+    } else if (digit !== null && currentDigit === null) {
+      // Already revealed digit, just show it
+      setCurrentDigit(digit);
     }
   }, [isRevealing, digit]);
 
@@ -83,8 +87,8 @@ function FlipPanel({ digit, isRevealing, onRevealComplete }) {
   );
 }
 
-// Participant Avatar Component
-function ParticipantAvatar({ participant, isEliminated, size = "md" }) {
+// Participant Avatar Component with elimination animation
+function ParticipantAvatar({ participant, isEliminated, isJustEliminated, size = "md" }) {
   const sizeClasses = {
     sm: "w-12 h-12 text-xs",
     md: "w-16 h-16 text-sm",
@@ -93,8 +97,12 @@ function ParticipantAvatar({ participant, isEliminated, size = "md" }) {
 
   return (
     <div
-      className={`relative ${sizeClasses[size]} transition-all duration-500 ${
-        isEliminated ? "opacity-30 grayscale scale-90" : "opacity-100"
+      className={`relative ${sizeClasses[size]} transition-all duration-700 ${
+        isJustEliminated
+          ? "animate-bounce opacity-0 scale-50 translate-y-4"
+          : isEliminated
+          ? "opacity-30 grayscale scale-90"
+          : "opacity-100"
       }`}
     >
       {participant.avatarUrl ? (
@@ -118,6 +126,12 @@ function ParticipantAvatar({ participant, isEliminated, size = "md" }) {
           <Trophy className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-bounce" />
         </div>
       )}
+      {/* Elimination X */}
+      {isJustEliminated && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-4xl text-red-500 font-bold animate-ping">✕</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -129,6 +143,8 @@ export default function RaffleDrawing() {
   const [error, setError] = useState(null);
   const [revealingIndex, setRevealingIndex] = useState(-1);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [justEliminatedIds, setJustEliminatedIds] = useState(new Set());
+  const [previousEligibleIds, setPreviousEligibleIds] = useState(new Set());
   const pollInterval = useRef(null);
 
   useEffect(() => {
@@ -140,10 +156,39 @@ export default function RaffleDrawing() {
       setIsAdmin(user?.isAdmin);
     }
 
-    // Poll for updates
-    pollInterval.current = setInterval(loadDrawingData, 3000);
+    // Poll for updates (less frequent during drawing to not interfere with animations)
+    pollInterval.current = setInterval(loadDrawingData, 5000);
     return () => clearInterval(pollInterval.current);
   }, [raffleId]);
+
+  // Track eliminated participants for animation
+  useEffect(() => {
+    if (drawingData?.participants) {
+      const currentEligibleIds = new Set(
+        drawingData.participants
+          .filter((p) => p.isStillEligible)
+          .map((p) => p.participantId)
+      );
+
+      // Find newly eliminated (were eligible before, not eligible now)
+      const newlyEliminated = new Set();
+      previousEligibleIds.forEach((id) => {
+        if (!currentEligibleIds.has(id)) {
+          newlyEliminated.add(id);
+        }
+      });
+
+      if (newlyEliminated.size > 0) {
+        setJustEliminatedIds(newlyEliminated);
+        // Clear the animation after delay
+        setTimeout(() => {
+          setJustEliminatedIds(new Set());
+        }, 1500);
+      }
+
+      setPreviousEligibleIds(currentEligibleIds);
+    }
+  }, [drawingData?.revealedDigits]);
 
   const loadDrawingData = async () => {
     try {
@@ -164,34 +209,44 @@ export default function RaffleDrawing() {
     try {
       const response = await rafflesAPI.startDrawing(raffleId);
       if (response.success) {
-        loadDrawingData();
+        // Initialize eligible tracking
+        if (response.data?.participants) {
+          setPreviousEligibleIds(
+            new Set(
+              response.data.participants
+                .filter((p) => p.isStillEligible)
+                .map((p) => p.participantId)
+            )
+          );
+        }
+        setDrawingData(response.data);
       } else {
         setError(response.message || "Failed to start drawing");
       }
     } catch (err) {
-      // err is already error.response?.data from the axios interceptor
-      const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to start drawing");
+      const errorMsg = typeof err === "string" ? err : err?.message || "Failed to start drawing";
       setError(errorMsg);
     }
   };
 
-  const handleRevealDigit = async (digit) => {
+  const handleRevealNext = async () => {
     const currentIndex = drawingData?.revealedDigits?.length || 0;
     setRevealingIndex(currentIndex);
+
     try {
-      const response = await rafflesAPI.revealDigit(raffleId, digit);
+      const response = await rafflesAPI.revealNext(raffleId);
       if (response.success) {
-        // Small delay to let animation complete
+        // Small delay to let flip animation start, then update data
         setTimeout(() => {
-          loadDrawingData();
+          setDrawingData(response.data);
           setRevealingIndex(-1);
-        }, 2000);
+        }, 1500);
       } else {
         setError(response.message || "Failed to reveal digit");
         setRevealingIndex(-1);
       }
     } catch (err) {
-      const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to reveal digit");
+      const errorMsg = typeof err === "string" ? err : err?.message || "Failed to reveal digit";
       setError(errorMsg);
       setRevealingIndex(-1);
     }
@@ -202,12 +257,14 @@ export default function RaffleDrawing() {
     try {
       const response = await rafflesAPI.resetDrawing(raffleId);
       if (response.success) {
+        setJustEliminatedIds(new Set());
+        setPreviousEligibleIds(new Set());
         loadDrawingData();
       } else {
         setError(response.message || "Failed to reset drawing");
       }
     } catch (err) {
-      const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to reset drawing");
+      const errorMsg = typeof err === "string" ? err : err?.message || "Failed to reset drawing";
       setError(errorMsg);
     }
   };
@@ -222,12 +279,14 @@ export default function RaffleDrawing() {
     return digits;
   };
 
-  const eligibleParticipants = drawingData?.participants?.filter(
-    (p) => p.isStillEligible
-  ) || [];
-  const eliminatedParticipants = drawingData?.participants?.filter(
-    (p) => !p.isStillEligible
-  ) || [];
+  const eligibleParticipants =
+    drawingData?.participants?.filter((p) => p.isStillEligible) || [];
+  const eliminatedParticipants =
+    drawingData?.participants?.filter((p) => !p.isStillEligible) || [];
+
+  const digitsRevealed = drawingData?.revealedDigits?.length || 0;
+  const totalDigits = drawingData?.ticketDigits || 6;
+  const allDigitsRevealed = digitsRevealed >= totalDigits;
 
   if (loading) {
     return (
@@ -250,7 +309,8 @@ export default function RaffleDrawing() {
   }
 
   const winner = drawingData?.participants?.find((p) => p.isWinner);
-  const grandPrize = drawingData?.prizes?.find((p) => p.isGrandPrize) || drawingData?.prizes?.[0];
+  const grandPrize =
+    drawingData?.prizes?.find((p) => p.isGrandPrize) || drawingData?.prizes?.[0];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900">
@@ -326,19 +386,34 @@ export default function RaffleDrawing() {
           ))}
         </div>
 
+        {/* Progress indicator */}
+        {drawingData?.status === "Drawing" && (
+          <div className="text-center mb-6">
+            <p className="text-gray-400 text-sm">
+              Digit {digitsRevealed} of {totalDigits} revealed
+            </p>
+            <div className="w-full max-w-xs mx-auto h-2 bg-gray-700 rounded-full mt-2 overflow-hidden">
+              <div
+                className="h-full bg-yellow-400 transition-all duration-500"
+                style={{ width: `${(digitsRevealed / totalDigits) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Winner Announcement */}
         {drawingData?.status === "Completed" && winner && (
           <div className="bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-500 rounded-2xl p-8 mb-8 text-center animate-pulse">
             <Trophy className="w-16 h-16 mx-auto text-yellow-900 mb-4" />
             <h3 className="text-3xl font-bold text-yellow-900 mb-2">
-              WINNER!
+              🎉 WINNER! 🎉
             </h3>
             <div className="flex justify-center mb-4">
               <ParticipantAvatar participant={winner} size="lg" />
             </div>
             <p className="text-2xl font-bold text-yellow-900">{winner.name}</p>
             <p className="text-yellow-800">
-              Ticket #{drawingData.winningNumber?.toString().padStart(6, "0")}
+              Ticket #{drawingData.winningNumber?.toString().padStart(totalDigits, "0")}
             </p>
           </div>
         )}
@@ -354,30 +429,29 @@ export default function RaffleDrawing() {
             {drawingData?.status === "Active" && (
               <button
                 onClick={handleStartDrawing}
-                className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 flex items-center gap-2"
+                className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 flex items-center gap-2 transition-colors"
               >
                 <Play className="w-5 h-5" />
                 Start Drawing
               </button>
             )}
 
-            {drawingData?.status === "Drawing" && (
+            {drawingData?.status === "Drawing" && !allDigitsRevealed && (
               <div className="space-y-4">
                 <p className="text-gray-400 text-sm mb-2">
-                  Select the next digit to reveal:
+                  Click to reveal the next digit of the winning number:
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
-                    <button
-                      key={digit}
-                      onClick={() => handleRevealDigit(digit)}
-                      disabled={revealingIndex !== -1}
-                      className="w-12 h-12 bg-yellow-400 text-black font-bold text-xl rounded-lg hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {digit}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  onClick={handleRevealNext}
+                  disabled={revealingIndex !== -1}
+                  className="bg-yellow-400 text-black px-8 py-4 rounded-xl font-bold text-lg hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3 shadow-lg hover:shadow-yellow-400/30"
+                >
+                  <Sparkles className="w-6 h-6" />
+                  Reveal Next Digit
+                  {revealingIndex !== -1 && (
+                    <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                  )}
+                </button>
               </div>
             )}
 
@@ -385,7 +459,7 @@ export default function RaffleDrawing() {
               drawingData?.status === "Completed") && (
               <button
                 onClick={handleResetDrawing}
-                className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 flex items-center gap-2"
+                className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 flex items-center gap-2 transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
                 Reset Drawing
@@ -406,21 +480,31 @@ export default function RaffleDrawing() {
           {eligibleParticipants.length > 0 && (
             <div className="mb-6">
               <p className="text-green-400 text-sm font-medium mb-3">
-                Still Eligible
+                ✓ Still Eligible
               </p>
               <div className="flex flex-wrap gap-4">
                 {eligibleParticipants.map((participant) => (
                   <div
                     key={participant.participantId}
-                    className="flex flex-col items-center gap-1"
+                    className="flex flex-col items-center gap-1 transition-all duration-500"
                   >
-                    <ParticipantAvatar participant={participant} />
+                    <ParticipantAvatar
+                      participant={participant}
+                      isJustEliminated={justEliminatedIds.has(
+                        participant.participantId
+                      )}
+                    />
                     <span className="text-white text-xs font-medium truncate max-w-16">
                       {participant.name.split(" ")[0]}
                     </span>
-                    <span className="text-gray-500 text-xs">
-                      {participant.ticketStart?.toString().padStart(6, "0")}-
-                      {participant.ticketEnd?.toString().padStart(6, "0")}
+                    <span className="text-gray-500 text-xs font-mono">
+                      {participant.ticketStart
+                        ?.toString()
+                        .padStart(totalDigits, "0")}
+                      -
+                      {participant.ticketEnd
+                        ?.toString()
+                        .padStart(totalDigits, "0")}
                     </span>
                   </div>
                 ))}
@@ -432,7 +516,7 @@ export default function RaffleDrawing() {
           {eliminatedParticipants.length > 0 && (
             <div>
               <p className="text-gray-500 text-sm font-medium mb-3">
-                Eliminated
+                ✕ Eliminated
               </p>
               <div className="flex flex-wrap gap-4">
                 {eliminatedParticipants.map((participant) => (
@@ -440,7 +524,13 @@ export default function RaffleDrawing() {
                     key={participant.participantId}
                     className="flex flex-col items-center gap-1"
                   >
-                    <ParticipantAvatar participant={participant} isEliminated />
+                    <ParticipantAvatar
+                      participant={participant}
+                      isEliminated
+                      isJustEliminated={justEliminatedIds.has(
+                        participant.participantId
+                      )}
+                    />
                     <span className="text-gray-500 text-xs font-medium truncate max-w-16">
                       {participant.name.split(" ")[0]}
                     </span>
