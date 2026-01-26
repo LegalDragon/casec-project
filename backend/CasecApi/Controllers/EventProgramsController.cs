@@ -56,7 +56,7 @@ public class EventProgramsController : ControllerBase
                     IsFeatured = p.IsFeatured,
                     Slug = p.Slug,
                     SectionCount = p.Sections.Count,
-                    ItemCount = p.Sections.Sum(s => s.Items.Count),
+                    ItemCount = p.Sections.SelectMany(s => s.Items).Count(),
                     CreatedAt = p.CreatedAt
                 })
                 .ToListAsync();
