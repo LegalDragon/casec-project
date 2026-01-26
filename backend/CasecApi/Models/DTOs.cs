@@ -978,10 +978,16 @@ public class SlideShowDto
     public bool IsActive { get; set; }
     public string TransitionType { get; set; } = "fade";
     public int TransitionDuration { get; set; }
+    public int DefaultSlideInterval { get; set; }
     public bool ShowProgress { get; set; }
     public bool AllowSkip { get; set; }
     public bool Loop { get; set; }
     public bool AutoPlay { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public List<SlideDto> Slides { get; set; } = new();
+}
+
 // ============ RAFFLE DTOs ============
 
 // Raffle DTO - Full raffle info

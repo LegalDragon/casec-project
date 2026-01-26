@@ -445,6 +445,8 @@ public class CasecDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasIndex(e => e.IsActive);
+        });
+
         // Raffle entity configuration
         modelBuilder.Entity<Raffle>(entity =>
         {

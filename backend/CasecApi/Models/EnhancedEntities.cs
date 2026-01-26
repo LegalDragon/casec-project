@@ -1202,6 +1202,37 @@ public class SlideShow
     [Required]
     [MaxLength(50)]
     public string Code { get; set; } = string.Empty; // Unique identifier, e.g., "home-intro"
+
+    [Required]
+    [MaxLength(200)]
+    public string Name { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    [MaxLength(50)]
+    public string TransitionType { get; set; } = "fade"; // fade, slide, zoom, etc.
+
+    public int TransitionDuration { get; set; } = 500; // milliseconds
+
+    public int DefaultSlideInterval { get; set; } = 5000; // milliseconds
+
+    public bool AllowSkip { get; set; } = true;
+
+    public bool Loop { get; set; } = false;
+
+    public bool AutoPlay { get; set; } = true;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public virtual ICollection<Slide> Slides { get; set; } = new List<Slide>();
+}
+
 // ============ RAFFLE ENTITIES ============
 
 // Raffle Entity - Main raffle configuration
