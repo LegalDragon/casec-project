@@ -49,7 +49,7 @@ export default function AdminEventPrograms() {
       setLoading(true);
       const [programsRes, slideshowsRes] = await Promise.all([
         eventProgramsAPI.getAll(true),
-        slideShowsAPI.getAll(),
+        slideShowsAPI.getAllAdmin(),
       ]);
 
       if (programsRes.success) {

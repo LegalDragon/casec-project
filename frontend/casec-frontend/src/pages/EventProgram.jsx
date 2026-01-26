@@ -35,15 +35,16 @@ export default function EventProgram() {
         // Load slideshows if any
         if (response.data.slideShowIds?.length > 0) {
           try {
-            const allSlideshows = await slideShowsAPI.getAll();
-            if (allSlideshows.success) {
-              const programSlideshows = allSlideshows.data.filter((s) =>
-                response.data.slideShowIds.includes(s.slideShowId)
-              );
-              setSlideshows(programSlideshows);
-              if (programSlideshows.length > 0) {
-                setCurrentSlideshow(programSlideshows[0]);
-              }
+            const slideshowPromises = response.data.slideShowIds.map((id) =>
+              slideShowsAPI.getById(id).catch(() => null)
+            );
+            const results = await Promise.all(slideshowPromises);
+            const programSlideshows = results
+              .filter((r) => r?.success)
+              .map((r) => r.data);
+            setSlideshows(programSlideshows);
+            if (programSlideshows.length > 0) {
+              setCurrentSlideshow(programSlideshows[0]);
             }
           } catch (err) {
             console.error("Error loading slideshows:", err);
