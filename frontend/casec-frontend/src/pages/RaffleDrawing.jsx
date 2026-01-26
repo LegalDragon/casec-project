@@ -11,6 +11,7 @@ import {
   Users,
   Star,
   Sparkles,
+  XCircle,
 } from "lucide-react";
 import { rafflesAPI, getAssetUrl } from "../services/api";
 
@@ -43,7 +44,7 @@ function FlipPanel({ digit, isRevealing, onRevealComplete }) {
   const animateFlip = async (targetDigit) => {
     setIsFlipping(true);
     const startDigit = currentDigit ?? 0;
-    const steps = 20 + Math.floor(Math.random() * 10); // Random number of flips for effect
+    const steps = 20 + Math.floor(Math.random() * 10);
     const baseDelay = 40;
 
     for (let i = 0; i <= steps; i++) {
@@ -64,9 +65,7 @@ function FlipPanel({ digit, isRevealing, onRevealComplete }) {
 
   return (
     <div className="relative w-16 h-24 md:w-24 md:h-36 perspective-1000">
-      {/* Background panel */}
       <div className="absolute inset-0 bg-gray-900 rounded-lg shadow-2xl overflow-hidden">
-        {/* Top half */}
         <div className="absolute top-0 left-0 right-0 h-1/2 bg-gray-800 flex items-end justify-center overflow-hidden border-b border-gray-700">
           <span
             className={`text-5xl md:text-7xl font-mono font-bold text-yellow-400 transform translate-y-1/2 ${
@@ -76,7 +75,6 @@ function FlipPanel({ digit, isRevealing, onRevealComplete }) {
             {displayDigit !== null ? displayDigit : "?"}
           </span>
         </div>
-        {/* Bottom half */}
         <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gray-900 flex items-start justify-center overflow-hidden">
           <span
             className={`text-5xl md:text-7xl font-mono font-bold text-yellow-400 transform -translate-y-1/2 ${
@@ -86,9 +84,7 @@ function FlipPanel({ digit, isRevealing, onRevealComplete }) {
             {displayDigit !== null ? displayDigit : "?"}
           </span>
         </div>
-        {/* Center line */}
         <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-700 transform -translate-y-1/2" />
-        {/* Screws */}
         <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-gray-600" />
         <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-gray-600" />
         <div className="absolute bottom-2 left-2 w-2 h-2 rounded-full bg-gray-600" />
@@ -98,50 +94,87 @@ function FlipPanel({ digit, isRevealing, onRevealComplete }) {
   );
 }
 
-// Participant Avatar Component with elimination animation
-function ParticipantAvatar({ participant, isEliminated, isJustEliminated, size = "md" }) {
-  const sizeClasses = {
-    sm: "w-12 h-12 text-xs",
-    md: "w-16 h-16 text-sm",
-    lg: "w-20 h-20 text-base",
+// Participant Card Component with multi-stage elimination animation
+function ParticipantCard({
+  participant,
+  animationStage, // null, "shake", "shrink", "exit", "entered"
+  isInEliminatedSection,
+  totalDigits,
+}) {
+  const getAnimationClasses = () => {
+    if (animationStage === "shake") {
+      return "animate-shake grayscale";
+    }
+    if (animationStage === "shrink") {
+      return "scale-50 opacity-0 grayscale";
+    }
+    if (animationStage === "exit") {
+      return "scale-0 opacity-0";
+    }
+    if (animationStage === "entered") {
+      return "animate-pop-in";
+    }
+    if (isInEliminatedSection) {
+      return "opacity-50 grayscale scale-90";
+    }
+    return "";
   };
 
   return (
     <div
-      className={`relative ${sizeClasses[size]} transition-all duration-700 ${
-        isJustEliminated
-          ? "animate-bounce opacity-0 scale-50 translate-y-4"
-          : isEliminated
-          ? "opacity-30 grayscale scale-90"
-          : "opacity-100"
-      }`}
+      className={`flex flex-col items-center gap-1 transition-all duration-500 ${getAnimationClasses()}`}
     >
-      {participant.avatarUrl ? (
-        <img
-          src={getAssetUrl(participant.avatarUrl)}
-          alt={participant.name}
-          className="w-full h-full rounded-full object-cover border-2 border-white shadow-lg"
-        />
-      ) : (
-        <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold border-2 border-white shadow-lg">
-          {participant.name.charAt(0).toUpperCase()}
+      <div className="relative">
+        {/* Avatar */}
+        <div className="w-16 h-16 relative">
+          {participant.avatarUrl ? (
+            <img
+              src={getAssetUrl(participant.avatarUrl)}
+              alt={participant.name}
+              className="w-full h-full rounded-full object-cover border-2 border-white shadow-lg"
+            />
+          ) : (
+            <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow-lg">
+              {participant.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+
+          {/* Ticket count badge */}
+          <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.5rem] text-center">
+            {participant.totalTickets}
+          </div>
+
+          {/* Winner crown */}
+          {participant.isWinner && (
+            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+              <Trophy className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-bounce" />
+            </div>
+          )}
+
+          {/* Elimination overlay */}
+          {animationStage === "shake" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-500/30 rounded-full">
+              <XCircle className="w-10 h-10 text-red-500 animate-pulse" />
+            </div>
+          )}
         </div>
-      )}
-      {/* Ticket count badge */}
-      <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.5rem] text-center">
-        {participant.totalTickets}
       </div>
-      {/* Winner crown */}
-      {participant.isWinner && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-          <Trophy className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-bounce" />
-        </div>
-      )}
-      {/* Elimination X */}
-      {isJustEliminated && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-4xl text-red-500 font-bold animate-ping">✕</div>
-        </div>
+
+      {/* Name */}
+      <span
+        className={`text-xs font-medium truncate max-w-16 ${
+          isInEliminatedSection ? "text-gray-500" : "text-white"
+        }`}
+      >
+        {participant.name.split(" ")[0]}
+      </span>
+
+      {/* Ticket range - only show if not in eliminated section */}
+      {!isInEliminatedSection && (
+        <span className="text-gray-500 text-xs font-mono">
+          {participant.ticketStart?.toString().padStart(totalDigits, "0")}-
+          {participant.ticketEnd?.toString().padStart(totalDigits, "0")}
+        </span>
       )}
     </div>
   );
@@ -154,25 +187,27 @@ export default function RaffleDrawing() {
   const [error, setError] = useState(null);
   const [revealingIndex, setRevealingIndex] = useState(-1);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [justEliminatedIds, setJustEliminatedIds] = useState(new Set());
+
+  // Animation tracking
+  const [animatingParticipants, setAnimatingParticipants] = useState({}); // {participantId: stage}
   const [previousEligibleIds, setPreviousEligibleIds] = useState(new Set());
+  const [recentlyMovedIds, setRecentlyMovedIds] = useState(new Set()); // For "pop in" animation
+
   const pollInterval = useRef(null);
 
   useEffect(() => {
     loadDrawingData();
-    // Check if user is admin
     const authData = localStorage.getItem("casec-auth");
     if (authData) {
       const { user } = JSON.parse(authData).state;
       setIsAdmin(user?.isAdmin);
     }
 
-    // Poll for updates (less frequent during drawing to not interfere with animations)
     pollInterval.current = setInterval(loadDrawingData, 5000);
     return () => clearInterval(pollInterval.current);
   }, [raffleId]);
 
-  // Track eliminated participants for animation
+  // Track eliminated participants for multi-stage animation
   useEffect(() => {
     if (drawingData?.participants) {
       const currentEligibleIds = new Set(
@@ -181,25 +216,57 @@ export default function RaffleDrawing() {
           .map((p) => p.participantId)
       );
 
-      // Find newly eliminated (were eligible before, not eligible now)
-      const newlyEliminated = new Set();
+      // Find newly eliminated
+      const newlyEliminated = [];
       previousEligibleIds.forEach((id) => {
         if (!currentEligibleIds.has(id)) {
-          newlyEliminated.add(id);
+          newlyEliminated.push(id);
         }
       });
 
-      if (newlyEliminated.size > 0) {
-        setJustEliminatedIds(newlyEliminated);
-        // Clear the animation after delay
-        setTimeout(() => {
-          setJustEliminatedIds(new Set());
-        }, 1500);
+      if (newlyEliminated.length > 0) {
+        // Start animation sequence
+        runEliminationAnimation(newlyEliminated);
       }
 
       setPreviousEligibleIds(currentEligibleIds);
     }
   }, [drawingData?.revealedDigits]);
+
+  const runEliminationAnimation = async (participantIds) => {
+    // Stage 1: Shake + gray (1 second)
+    setAnimatingParticipants((prev) => {
+      const next = { ...prev };
+      participantIds.forEach((id) => (next[id] = "shake"));
+      return next;
+    });
+
+    await new Promise((r) => setTimeout(r, 1000));
+
+    // Stage 2: Shrink (0.5 seconds)
+    setAnimatingParticipants((prev) => {
+      const next = { ...prev };
+      participantIds.forEach((id) => (next[id] = "shrink"));
+      return next;
+    });
+
+    await new Promise((r) => setTimeout(r, 500));
+
+    // Stage 3: Exit (remove from animating, they're now in eliminated section)
+    setAnimatingParticipants((prev) => {
+      const next = { ...prev };
+      participantIds.forEach((id) => delete next[id]);
+      return next;
+    });
+
+    // Mark as recently moved for pop-in animation in eliminated section
+    setRecentlyMovedIds(new Set(participantIds));
+
+    // Clear the pop-in animation after it completes
+    setTimeout(() => {
+      setRecentlyMovedIds(new Set());
+    }, 500);
+  };
 
   const loadDrawingData = async () => {
     try {
@@ -220,7 +287,6 @@ export default function RaffleDrawing() {
     try {
       const response = await rafflesAPI.startDrawing(raffleId);
       if (response.success) {
-        // Initialize eligible tracking
         if (response.data?.participants) {
           setPreviousEligibleIds(
             new Set(
@@ -230,12 +296,15 @@ export default function RaffleDrawing() {
             )
           );
         }
+        setAnimatingParticipants({});
+        setRecentlyMovedIds(new Set());
         setDrawingData(response.data);
       } else {
         setError(response.message || "Failed to start drawing");
       }
     } catch (err) {
-      const errorMsg = typeof err === "string" ? err : err?.message || "Failed to start drawing";
+      const errorMsg =
+        typeof err === "string" ? err : err?.message || "Failed to start drawing";
       setError(errorMsg);
     }
   };
@@ -247,9 +316,7 @@ export default function RaffleDrawing() {
     try {
       const response = await rafflesAPI.revealNext(raffleId);
       if (response.success) {
-        // Update data immediately so the digit is available for the FlipPanel animation
         setDrawingData(response.data);
-        // Clear revealingIndex after animation completes (about 2 seconds for flip animation)
         setTimeout(() => {
           setRevealingIndex(-1);
         }, 2500);
@@ -258,7 +325,8 @@ export default function RaffleDrawing() {
         setRevealingIndex(-1);
       }
     } catch (err) {
-      const errorMsg = typeof err === "string" ? err : err?.message || "Failed to reveal digit";
+      const errorMsg =
+        typeof err === "string" ? err : err?.message || "Failed to reveal digit";
       setError(errorMsg);
       setRevealingIndex(-1);
     }
@@ -269,14 +337,16 @@ export default function RaffleDrawing() {
     try {
       const response = await rafflesAPI.resetDrawing(raffleId);
       if (response.success) {
-        setJustEliminatedIds(new Set());
+        setAnimatingParticipants({});
+        setRecentlyMovedIds(new Set());
         setPreviousEligibleIds(new Set());
         loadDrawingData();
       } else {
         setError(response.message || "Failed to reset drawing");
       }
     } catch (err) {
-      const errorMsg = typeof err === "string" ? err : err?.message || "Failed to reset drawing";
+      const errorMsg =
+        typeof err === "string" ? err : err?.message || "Failed to reset drawing";
       setError(errorMsg);
     }
   };
@@ -291,10 +361,17 @@ export default function RaffleDrawing() {
     return digits;
   };
 
+  // Participants currently eligible OR animating out (still shown in eligible section during animation)
   const eligibleParticipants =
-    drawingData?.participants?.filter((p) => p.isStillEligible) || [];
+    drawingData?.participants?.filter(
+      (p) => p.isStillEligible || animatingParticipants[p.participantId]
+    ) || [];
+
+  // Participants that are eliminated AND not currently animating
   const eliminatedParticipants =
-    drawingData?.participants?.filter((p) => !p.isStillEligible) || [];
+    drawingData?.participants?.filter(
+      (p) => !p.isStillEligible && !animatingParticipants[p.participantId]
+    ) || [];
 
   const digitsRevealed = drawingData?.revealedDigits?.length || 0;
   const totalDigits = drawingData?.ticketDigits || 6;
@@ -326,9 +403,29 @@ export default function RaffleDrawing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900">
+      {/* Custom animation styles */}
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out 2;
+        }
+        @keyframes pop-in {
+          0% { transform: scale(0); opacity: 0; }
+          70% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(1); opacity: 0.5; }
+        }
+        .animate-pop-in {
+          animation: pop-in 0.4s ease-out forwards;
+        }
+      `}</style>
+
       {/* Error Toast */}
       {error && drawingData && (
-        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg max-w-sm animate-pulse">
+        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg max-w-sm">
           <div className="flex items-start gap-3">
             <div className="text-lg">⚠️</div>
             <div>
@@ -421,7 +518,11 @@ export default function RaffleDrawing() {
               🎉 WINNER! 🎉
             </h3>
             <div className="flex justify-center mb-4">
-              <ParticipantAvatar participant={winner} size="lg" />
+              <ParticipantCard
+                participant={winner}
+                totalDigits={totalDigits}
+                isInEliminatedSection={false}
+              />
             </div>
             <p className="text-2xl font-bold text-yellow-900">{winner.name}</p>
             <p className="text-yellow-800">
@@ -455,12 +556,12 @@ export default function RaffleDrawing() {
                 </p>
                 <button
                   onClick={handleRevealNext}
-                  disabled={revealingIndex !== -1}
+                  disabled={revealingIndex !== -1 || Object.keys(animatingParticipants).length > 0}
                   className="bg-yellow-400 text-black px-8 py-4 rounded-xl font-bold text-lg hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3 shadow-lg hover:shadow-yellow-400/30"
                 >
                   <Sparkles className="w-6 h-6" />
                   Reveal Next Digit
-                  {revealingIndex !== -1 && (
+                  {(revealingIndex !== -1 || Object.keys(animatingParticipants).length > 0) && (
                     <Loader2 className="w-5 h-5 animate-spin ml-2" />
                   )}
                 </button>
@@ -480,77 +581,55 @@ export default function RaffleDrawing() {
           </div>
         )}
 
-        {/* Participants Grid */}
-        <div className="bg-gray-800/50 rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-yellow-400" />
-            Participants ({eligibleParticipants.length} still in /{" "}
-            {drawingData?.participants?.length || 0} total)
-          </h3>
-
+        {/* Participants Section */}
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Still Eligible */}
-          {eligibleParticipants.length > 0 && (
-            <div className="mb-6">
-              <p className="text-green-400 text-sm font-medium mb-3">
-                ✓ Still Eligible
-              </p>
-              <div className="flex flex-wrap gap-4">
-                {eligibleParticipants.map((participant) => (
-                  <div
-                    key={participant.participantId}
-                    className="flex flex-col items-center gap-1 transition-all duration-500"
-                  >
-                    <ParticipantAvatar
-                      participant={participant}
-                      isJustEliminated={justEliminatedIds.has(
-                        participant.participantId
-                      )}
-                    />
-                    <span className="text-white text-xs font-medium truncate max-w-16">
-                      {participant.name.split(" ")[0]}
-                    </span>
-                    <span className="text-gray-500 text-xs font-mono">
-                      {participant.ticketStart
-                        ?.toString()
-                        .padStart(totalDigits, "0")}
-                      -
-                      {participant.ticketEnd
-                        ?.toString()
-                        .padStart(totalDigits, "0")}
-                    </span>
-                  </div>
-                ))}
-              </div>
+          <div className="bg-green-900/20 border border-green-500/30 rounded-2xl p-6">
+            <h3 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
+              <Ticket className="w-5 h-5" />
+              Still in the Running ({eligibleParticipants.filter(p => p.isStillEligible).length})
+            </h3>
+            <div className="flex flex-wrap gap-4 min-h-[100px]">
+              {eligibleParticipants.map((participant) => (
+                <ParticipantCard
+                  key={participant.participantId}
+                  participant={participant}
+                  animationStage={animatingParticipants[participant.participantId]}
+                  isInEliminatedSection={false}
+                  totalDigits={totalDigits}
+                />
+              ))}
+              {eligibleParticipants.length === 0 && (
+                <p className="text-gray-500 text-sm">No participants yet</p>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Eliminated */}
-          {eliminatedParticipants.length > 0 && (
-            <div>
-              <p className="text-gray-500 text-sm font-medium mb-3">
-                ✕ Eliminated
-              </p>
-              <div className="flex flex-wrap gap-4">
-                {eliminatedParticipants.map((participant) => (
-                  <div
-                    key={participant.participantId}
-                    className="flex flex-col items-center gap-1"
-                  >
-                    <ParticipantAvatar
-                      participant={participant}
-                      isEliminated
-                      isJustEliminated={justEliminatedIds.has(
-                        participant.participantId
-                      )}
-                    />
-                    <span className="text-gray-500 text-xs font-medium truncate max-w-16">
-                      {participant.name.split(" ")[0]}
-                    </span>
-                  </div>
-                ))}
-              </div>
+          <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-6">
+            <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+              <XCircle className="w-5 h-5" />
+              Eliminated ({eliminatedParticipants.length})
+            </h3>
+            <div className="flex flex-wrap gap-3 min-h-[100px]">
+              {eliminatedParticipants.map((participant) => (
+                <ParticipantCard
+                  key={participant.participantId}
+                  participant={participant}
+                  animationStage={
+                    recentlyMovedIds.has(participant.participantId)
+                      ? "entered"
+                      : null
+                  }
+                  isInEliminatedSection={true}
+                  totalDigits={totalDigits}
+                />
+              ))}
+              {eliminatedParticipants.length === 0 && (
+                <p className="text-gray-500 text-sm">No one eliminated yet</p>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* All Prizes */}
