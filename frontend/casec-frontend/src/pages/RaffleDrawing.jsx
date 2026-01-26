@@ -97,7 +97,7 @@ function FlipPanel({ digit, isRevealing, onRevealComplete }) {
 // Participant Card Component with multi-stage elimination animation
 function ParticipantCard({
   participant,
-  animationStage, // null, "shake", "shrink", "exit", "entered"
+  animationStage, // null, "pending", "shake", "shrink", "exit", "entered"
   isInEliminatedSection,
   totalDigits,
   size = "normal", // "normal" or "small"
@@ -105,6 +105,10 @@ function ParticipantCard({
   const isSmall = size === "small";
 
   const getAnimationClasses = () => {
+    if (animationStage === "pending") {
+      // Waiting for flip animation to complete - show normally
+      return "";
+    }
     if (animationStage === "shake") {
       return "animate-shake grayscale";
     }
@@ -294,7 +298,15 @@ export default function RaffleDrawing() {
           },
         ]);
 
-        // Store elimination IDs - will be triggered after flip animation completes
+        // Add eliminated participants to animatingParticipants with "pending" stage immediately
+        // This keeps them visible while the flip animation plays
+        setAnimatingParticipants((prev) => {
+          const next = { ...prev };
+          newlyEliminated.forEach((id) => (next[id] = "pending"));
+          return next;
+        });
+
+        // Store elimination IDs - will transition to "shake" after flip animation completes
         pendingEliminationIds.current = newlyEliminated;
         setFlipAnimationComplete(false);
       }
