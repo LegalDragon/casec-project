@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Palette, Upload, RotateCcw, Save, Eye, Sparkles, Video, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { Palette, Upload, RotateCcw, Save, Eye, Sparkles, Video, Plus, Trash2, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react';
 import { themeAPI, getAssetUrl } from '../../services/api';
 
 export default function ThemeCustomization() {
@@ -11,6 +11,10 @@ export default function ThemeCustomization() {
   const [faviconFile, setFaviconFile] = useState(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [videoInputMode, setVideoInputMode] = useState('url'); // 'url' or 'upload'
+  const [selectedVideoFile, setSelectedVideoFile] = useState(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   // Parse hero video URLs from JSON string
   const getHeroVideos = () => {
@@ -48,6 +52,42 @@ export default function ThemeCustomization() {
 
     setHeroVideos([...videos, newVideoUrl.trim()]);
     setNewVideoUrl('');
+    setShowVideoModal(false);
+  };
+
+  // Handle video file selection
+  const handleVideoFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedVideoFile(file);
+    }
+  };
+
+  // Upload video file
+  const uploadVideoFile = async () => {
+    if (!selectedVideoFile) return;
+
+    setUploadingVideo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedVideoFile);
+
+      const response = await themeAPI.uploadHeroVideo(formData);
+      if (response.success) {
+        // Add the uploaded video URL to the list
+        const videos = getHeroVideos();
+        setHeroVideos([...videos, response.data.url]);
+        setSelectedVideoFile(null);
+        setVideoInputMode('url');
+        setShowVideoModal(false);
+      } else {
+        alert(response.message || 'Failed to upload video');
+      }
+    } catch (err) {
+      alert('Error uploading video: ' + (err.message || 'Please try again'));
+    } finally {
+      setUploadingVideo(false);
+    }
   };
 
   // Remove a video URL
@@ -57,12 +97,32 @@ export default function ThemeCustomization() {
     setHeroVideos([...videos]);
   };
 
+  // Move video up in order
+  const moveVideoUp = (index) => {
+    if (index === 0) return;
+    const videos = getHeroVideos();
+    [videos[index - 1], videos[index]] = [videos[index], videos[index - 1]];
+    setHeroVideos([...videos]);
+  };
+
+  // Move video down in order
+  const moveVideoDown = (index) => {
+    const videos = getHeroVideos();
+    if (index >= videos.length - 1) return;
+    [videos[index], videos[index + 1]] = [videos[index + 1], videos[index]];
+    setHeroVideos([...videos]);
+  };
+
   // Get video type from URL
   const getVideoType = (url) => {
     if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
     if (url.includes('tiktok.com')) return 'TikTok';
+    if (url.startsWith('/asset/')) return 'Uploaded';
     return 'Video';
   };
+
+  // Check if URL is an uploaded asset
+  const isAssetUrl = (url) => url.startsWith('/asset/');
 
   useEffect(() => {
     loadTheme();
@@ -341,23 +401,19 @@ export default function ThemeCustomization() {
           <span>Hero Background Videos</span>
         </h2>
 
-        <p className="text-gray-600 mb-4">
-          Add YouTube or TikTok video URLs to display as background videos on the home page hero section.
-          A random video will be selected each time the page loads.
-        </p>
-
-        {/* Add new video URL */}
-        <div className="flex gap-3 mb-4">
-          <input
-            type="url"
-            value={newVideoUrl}
-            onChange={(e) => setNewVideoUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addVideoUrl()}
-            className="input flex-1"
-            placeholder="Paste YouTube or TikTok URL..."
-          />
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-gray-600">
+            Add videos to display as background on the home page hero section.
+            Videos will <strong>play in order</strong> from top to bottom, then loop back to the first video.
+          </p>
           <button
-            onClick={addVideoUrl}
+            type="button"
+            onClick={() => {
+              setVideoInputMode('url');
+              setNewVideoUrl('');
+              setSelectedVideoFile(null);
+              setShowVideoModal(true);
+            }}
             className="btn btn-primary flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -379,10 +435,41 @@ export default function ThemeCustomization() {
                 key={index}
                 className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
               >
+                {/* Order number */}
+                <div className="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm">
+                  {index + 1}
+                </div>
+
+                {/* Reorder buttons */}
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    onClick={() => moveVideoUp(index)}
+                    disabled={index === 0}
+                    className={`p-1 rounded transition-colors ${
+                      index === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-primary hover:bg-gray-200'
+                    }`}
+                    title="Move up"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => moveVideoDown(index)}
+                    disabled={index === getHeroVideos().length - 1}
+                    className={`p-1 rounded transition-colors ${
+                      index === getHeroVideos().length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-primary hover:bg-gray-200'
+                    }`}
+                    title="Move down"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+
                 <div className="flex-shrink-0">
                   <span className={`px-2 py-1 text-xs font-medium rounded ${
                     getVideoType(url) === 'YouTube'
                       ? 'bg-red-100 text-red-700'
+                      : getVideoType(url) === 'Uploaded'
+                      ? 'bg-green-100 text-green-700'
                       : 'bg-black text-white'
                   }`}>
                     {getVideoType(url)}
@@ -413,8 +500,7 @@ export default function ThemeCustomization() {
         </div>
 
         <p className="text-xs text-gray-500 mt-4">
-          Tip: For best results, use videos that work well as muted background content.
-          Videos will play automatically, muted, and loop continuously.
+          Tip: Use the arrows to reorder videos. Videos play automatically, muted, and will transition to the next video when each finishes.
         </p>
       </div>
 
@@ -642,6 +728,112 @@ export default function ThemeCustomization() {
           {saving ? 'Saving...' : 'Save All Changes'}
         </button>
       </div>
+
+      {/* Add Video Modal */}
+      {showVideoModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4">Add Hero Video</h2>
+
+              {/* Input Mode Toggle */}
+              <div className="flex mb-4 bg-gray-100 rounded-lg p-1">
+                <button
+                  type="button"
+                  onClick={() => setVideoInputMode('url')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    videoInputMode === 'url'
+                      ? 'bg-white shadow text-primary'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  YouTube/TikTok URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVideoInputMode('upload')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    videoInputMode === 'upload'
+                      ? 'bg-white shadow text-primary'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Upload Video
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* URL Input Mode */}
+                {videoInputMode === 'url' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Video URL *</label>
+                    <input
+                      type="text"
+                      value={newVideoUrl}
+                      onChange={(e) => setNewVideoUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addVideoUrl();
+                        }
+                      }}
+                      className="input w-full"
+                      placeholder="Paste YouTube or TikTok URL..."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Supports YouTube and TikTok URLs</p>
+                  </div>
+                ) : (
+                  /* Upload Mode */
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Video File *</label>
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-primary transition-colors">
+                      <div className="space-y-1 text-center">
+                        <Video className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="flex text-sm text-gray-600">
+                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary-dark">
+                            <span>Choose a video file</span>
+                            <input
+                              type="file"
+                              className="sr-only"
+                              accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                              onChange={handleVideoFileSelect}
+                            />
+                          </label>
+                          <p className="pl-1">or drag and drop</p>
+                        </div>
+                        <p className="text-xs text-gray-500">MP4, WebM, OGG, MOV (max 100MB)</p>
+                        {selectedVideoFile && (
+                          <p className="text-sm text-green-600 font-medium mt-2">
+                            Selected: {selectedVideoFile.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowVideoModal(false)}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={videoInputMode === 'url' ? addVideoUrl : uploadVideoFile}
+                  disabled={uploadingVideo || (videoInputMode === 'url' ? !newVideoUrl.trim() : !selectedVideoFile)}
+                  className="btn btn-primary"
+                >
+                  {uploadingVideo ? 'Uploading...' : (videoInputMode === 'upload' ? 'Upload' : 'Add Video')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

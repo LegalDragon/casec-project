@@ -400,6 +400,88 @@ public class ThemeController : ControllerBase
         }
     }
 
+    // POST: api/Theme/hero-video (Admin only)
+    // Upload a hero video file and return the asset URL
+    [Authorize(Roles = "Admin")]
+    [HttpPost("hero-video")]
+    public async Task<ActionResult<ApiResponse<UploadResponse>>> UploadHeroVideo(IFormFile file)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = "No file provided"
+                });
+            }
+
+            // Validate file type
+            var allowedTypes = new[] { "video/mp4", "video/webm", "video/ogg", "video/quicktime" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = "Invalid file type. Allowed types: MP4, WebM, OGG, MOV"
+                });
+            }
+
+            var currentUserId = GetCurrentUserId();
+
+            // Get current theme
+            var theme = await _context.ThemeSettings
+                .Where(t => t.IsActive)
+                .OrderByDescending(t => t.ThemeId)
+                .FirstOrDefaultAsync();
+
+            // Upload video using asset service
+            var uploadResult = await _assetService.UploadAssetAsync(
+                file,
+                "theme/hero-videos",
+                objectType: "ThemeHeroVideo",
+                objectId: theme?.ThemeId,
+                uploadedBy: currentUserId
+            );
+
+            if (!uploadResult.Success)
+            {
+                return BadRequest(new ApiResponse<UploadResponse>
+                {
+                    Success = false,
+                    Message = uploadResult.Error ?? "Failed to upload file"
+                });
+            }
+
+            // Log activity
+            var log = new ActivityLog
+            {
+                UserId = currentUserId,
+                ActivityType = "HeroVideoUploaded",
+                Description = $"Uploaded hero video: {file.FileName}"
+            };
+            _context.ActivityLogs.Add(log);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<UploadResponse>
+            {
+                Success = true,
+                Message = "Hero video uploaded successfully",
+                Data = new UploadResponse { Url = uploadResult.Url }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading hero video");
+            return StatusCode(500, new ApiResponse<UploadResponse>
+            {
+                Success = false,
+                Message = "An error occurred while uploading hero video"
+            });
+        }
+    }
+
     // GET: api/Theme/presets (Admin only)
     [Authorize(Roles = "Admin")]
     [HttpGet("presets")]

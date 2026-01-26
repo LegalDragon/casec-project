@@ -10,20 +10,29 @@ if (API_BASE_URL.endsWith("/")) {
   API_BASE_URL = API_BASE_URL.slice(0, -1);
 }
 
+// Debug logging for API configuration
+console.log('[API] Configuration:', {
+  API_BASE_URL,
+  fromConfig: window.APP_CONFIG?.API_URL,
+  fromEnv: import.meta.env.VITE_API_URL
+});
+
 // Helper function to get full asset URL (for avatars, images, etc.)
+// Uses VITE_API_URL (stored in API_BASE_URL) to construct full URLs
+// Rule: If path starts with /api, strip it, then prepend VITE_API_URL
 export const getAssetUrl = (path) => {
   if (!path) return null;
   // If path is already a full URL, return as-is
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
-  // If path starts with /api, replace with API_BASE_URL
-  // keep backwards compatibility
+  // If path starts with /api, strip the /api prefix and prepend VITE_API_URL
+  // e.g., "/api/uploads/image.jpg" -> "{VITE_API_URL}/uploads/image.jpg"
   if (path.startsWith("/api")) {
     return `${API_BASE_URL}${path.substring(4)}`;
   }
-
-  // If path starts with /, prepend API_BASE_URL
+  // If path starts with /, prepend VITE_API_URL
+  // e.g., "/uploads/image.jpg" -> "{VITE_API_URL}/uploads/image.jpg"
   if (path.startsWith("/")) {
     return `${API_BASE_URL}${path}`;
   }
@@ -183,6 +192,11 @@ export const themeAPI = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+  uploadHeroVideo: (formData) => {
+    return api.post("/theme/hero-video", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
   getPresets: () => api.get("/theme/presets"),
   applyPreset: (presetId) => api.post(`/theme/apply-preset/${presetId}`),
   reset: () => api.post("/theme/reset"),
@@ -279,6 +293,79 @@ export const utilityAPI = {
   fetchUrlMetadata: (url) => api.post("/utility/fetch-url-metadata", { url }),
 };
 
+// SlideShow APIs
+export const slideShowsAPI = {
+  // Public endpoints
+  getByCode: (code) => api.get(`/slideshows/code/${code}`),
+  getById: (id) => api.get(`/slideshows/${id}`),
+  getVideos: (category) =>
+    api.get("/slideshows/videos", { params: category ? { category } : {} }),
+  getImages: (category) =>
+    api.get("/slideshows/images", { params: category ? { category } : {} }),
+
+  // Admin slideshow endpoints
+  getAllAdmin: () => api.get("/slideshows/admin/all"),
+  getAdmin: (id) => api.get(`/slideshows/admin/${id}`),
+  create: (data) => api.post("/slideshows/admin", data),
+  update: (id, data) => api.put(`/slideshows/admin/${id}`, data),
+  delete: (id) => api.delete(`/slideshows/admin/${id}`),
+
+  // Admin slide endpoints
+  createSlide: (data) => api.post("/slideshows/admin/slides", data),
+  updateSlide: (id, data) => api.put(`/slideshows/admin/slides/${id}`, data),
+  deleteSlide: (id) => api.delete(`/slideshows/admin/slides/${id}`),
+  reorderSlides: (slideIds) =>
+    api.put("/slideshows/admin/slides/reorder", slideIds),
+
+  // Admin slide image endpoints
+  createSlideImage: (data) => api.post("/slideshows/admin/slide-images", data),
+  updateSlideImage: (id, data) =>
+    api.put(`/slideshows/admin/slide-images/${id}`, data),
+  deleteSlideImage: (id) => api.delete(`/slideshows/admin/slide-images/${id}`),
+
+  // Admin slide text endpoints
+  createSlideText: (data) => api.post("/slideshows/admin/slide-texts", data),
+  updateSlideText: (id, data) =>
+    api.put(`/slideshows/admin/slide-texts/${id}`, data),
+  deleteSlideText: (id) => api.delete(`/slideshows/admin/slide-texts/${id}`),
+
+  // NEW: Admin slide object endpoints (object-oriented system)
+  createSlideObject: (data) => api.post("/slideshows/admin/slide-objects", data),
+  updateSlideObject: (id, data) =>
+    api.put(`/slideshows/admin/slide-objects/${id}`, data),
+  deleteSlideObject: (id) => api.delete(`/slideshows/admin/slide-objects/${id}`),
+  reorderSlideObjects: (objectIds) =>
+    api.put("/slideshows/admin/slide-objects/reorder", objectIds),
+
+  // NEW: Admin slide background video endpoints
+  createSlideBackgroundVideo: (data) =>
+    api.post("/slideshows/admin/slide-background-videos", data),
+  updateSlideBackgroundVideo: (id, data) =>
+    api.put(`/slideshows/admin/slide-background-videos/${id}`, data),
+  deleteSlideBackgroundVideo: (id) =>
+    api.delete(`/slideshows/admin/slide-background-videos/${id}`),
+  reorderSlideBackgroundVideos: (videoIds) =>
+    api.put("/slideshows/admin/slide-background-videos/reorder", videoIds),
+
+  // Admin shared video endpoints
+  getAllVideosAdmin: () => api.get("/slideshows/admin/videos"),
+  createVideo: (data) => api.post("/slideshows/admin/videos", data),
+  updateVideo: (id, data) => api.put(`/slideshows/admin/videos/${id}`, data),
+  deleteVideo: (id) => api.delete(`/slideshows/admin/videos/${id}`),
+  uploadVideo: (formData) =>
+    api.post("/slideshows/admin/videos/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+
+  // Admin shared image endpoints
+  getAllImagesAdmin: () => api.get("/slideshows/admin/images"),
+  createImage: (data) => api.post("/slideshows/admin/images", data),
+  updateImage: (id, data) => api.put(`/slideshows/admin/images/${id}`, data),
+  deleteImage: (id) => api.delete(`/slideshows/admin/images/${id}`),
+  uploadImage: (formData) =>
+    api.post("/slideshows/admin/images/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
 // Raffle APIs
 export const rafflesAPI = {
   // Public endpoints

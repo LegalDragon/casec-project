@@ -401,6 +401,10 @@ public class Event
     [MaxLength(500)]
     public string? ThumbnailUrl { get; set; }
 
+    // Focus point for thumbnail cropping (0-100 percentage, default 50,50 = center)
+    public int? ThumbnailFocusX { get; set; } = 50;
+    public int? ThumbnailFocusY { get; set; } = 50;
+
     [MaxLength(1000)]
     public string? SourceUrl { get; set; }
 
@@ -1187,6 +1191,17 @@ public class SurveyAnswer
     public virtual SurveyQuestion? Question { get; set; }
 }
 
+// ============ SLIDESHOW ENTITIES ============
+
+// SlideShow Entity - A collection of slides that can be played as an intro/presentation
+public class SlideShow
+{
+    [Key]
+    public int SlideShowId { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string Code { get; set; } = string.Empty; // Unique identifier, e.g., "home-intro"
 // ============ RAFFLE ENTITIES ============
 
 // Raffle Entity - Main raffle configuration
@@ -1199,6 +1214,125 @@ public class Raffle
     [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
 
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    // Transition settings
+    [MaxLength(20)]
+    public string TransitionType { get; set; } = "fade"; // fade, slide, none
+
+    public int TransitionDuration { get; set; } = 500; // ms
+
+    // Playback settings
+    public bool ShowProgress { get; set; } = true; // Show progress dots/bar
+    public bool AllowSkip { get; set; } = true; // Allow skipping intro
+    public bool Loop { get; set; } = false; // Loop after completion
+    public bool AutoPlay { get; set; } = true; // Auto-start on load
+
+    public int? CreatedBy { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("CreatedBy")]
+    public virtual User? CreatedByUser { get; set; }
+
+    public virtual ICollection<Slide> Slides { get; set; } = new List<Slide>();
+}
+
+// Slide Entity - Individual slide within a slideshow
+public class Slide
+{
+    [Key]
+    public int SlideId { get; set; }
+
+    [Required]
+    public int SlideShowId { get; set; }
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public int Duration { get; set; } = 5000; // Total slide duration in ms
+
+    // ========== NEW: Background Settings (Object-Oriented Approach) ==========
+    // Background type: none, color, image, heroVideos
+    [MaxLength(20)]
+    public string BackgroundType { get; set; } = "heroVideos";
+
+    [MaxLength(50)]
+    public string? BackgroundColor { get; set; } // Used when BackgroundType = "color"
+
+    [MaxLength(500)]
+    public string? BackgroundImageUrl { get; set; } // Used when BackgroundType = "image"
+
+    // If true, ignore SlideBackgroundVideos and pick random videos from shared pool
+    public bool UseRandomHeroVideos { get; set; } = false;
+
+    // ========== LEGACY: Video background (kept for backwards compatibility) ==========
+    [MaxLength(500)]
+    public string? VideoUrl { get; set; } // Specific video URL, or null to use random from pool
+
+    public bool UseRandomVideo { get; set; } = false; // If true, pick random from shared pool
+
+    // Layout & styling
+    [MaxLength(20)]
+    public string Layout { get; set; } = "center"; // center, left, right, split
+
+    [MaxLength(20)]
+    public string OverlayType { get; set; } = "dark"; // dark, light, gradient, none
+
+    [MaxLength(50)]
+    public string? OverlayColor { get; set; } // Custom overlay color (optional)
+
+    public int OverlayOpacity { get; set; } = 50; // 0-100
+
+    // ========== LEGACY: Title/Subtitle (use SlideObjects with ObjectType="text" instead) ==========
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    [MaxLength(500)]
+    public string? TitleText { get; set; }
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    [MaxLength(50)]
+    public string TitleAnimation { get; set; } = "fadeIn";
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    public int TitleDuration { get; set; } = 800;
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    public int TitleDelay { get; set; } = 500;
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    [MaxLength(20)]
+    public string? TitleSize { get; set; } = "large";
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    [MaxLength(50)]
+    public string? TitleColor { get; set; }
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    [MaxLength(500)]
+    public string? SubtitleText { get; set; }
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    [MaxLength(50)]
+    public string SubtitleAnimation { get; set; } = "fadeIn";
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    public int SubtitleDuration { get; set; } = 600;
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    public int SubtitleDelay { get; set; } = 1200;
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    [MaxLength(20)]
+    public string? SubtitleSize { get; set; } = "medium";
+
+    [Obsolete("Use SlideObjects with ObjectType='text' instead")]
+    [MaxLength(50)]
+    public string? SubtitleColor { get; set; }
     [MaxLength(2000)]
     public string? Description { get; set; }
 
@@ -1243,6 +1377,59 @@ public class Raffle
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
+    [ForeignKey("SlideShowId")]
+    public virtual SlideShow? SlideShow { get; set; }
+
+    // Legacy collections (kept for backwards compatibility)
+    public virtual ICollection<SlideImage> Images { get; set; } = new List<SlideImage>();
+    public virtual ICollection<SlideText> Texts { get; set; } = new List<SlideText>();
+
+    // NEW: Object-oriented collections
+    public virtual ICollection<SlideObject> Objects { get; set; } = new List<SlideObject>();
+    public virtual ICollection<SlideBackgroundVideo> BackgroundVideos { get; set; } = new List<SlideBackgroundVideo>();
+}
+
+// SlideImage Entity - Images displayed within a slide
+public class SlideImage
+{
+    [Key]
+    public int SlideImageId { get; set; }
+
+    [Required]
+    public int SlideId { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string ImageUrl { get; set; } = string.Empty; // Can be from shared pool or direct URL
+
+    public int DisplayOrder { get; set; } = 0;
+
+    // Position & size
+    [MaxLength(30)]
+    public string Position { get; set; } = "center"; // center, left, right, bottom-left, bottom-right, top-left, top-right
+
+    [MaxLength(20)]
+    public string Size { get; set; } = "medium"; // small, medium, large, full, maximum
+
+    [MaxLength(20)]
+    public string Orientation { get; set; } = "auto"; // auto, portrait, landscape
+
+    // Animation
+    [MaxLength(50)]
+    public string Animation { get; set; } = "fadeIn"; // fadeIn, zoomIn, slideInLeft, slideInRight, bounce
+
+    public int Duration { get; set; } = 500; // Animation duration in ms
+
+    public int Delay { get; set; } = 1500; // Delay before animation starts
+
+    // Optional styling
+    [MaxLength(50)]
+    public string? BorderRadius { get; set; } // e.g., "rounded-lg", "rounded-full"
+
+    [MaxLength(50)]
+    public string? Shadow { get; set; } // e.g., "shadow-lg", "shadow-2xl"
+
+    public int? Opacity { get; set; } // 0-100
     [ForeignKey("CreatedBy")]
     public virtual User? CreatedByUser { get; set; }
 
@@ -1281,6 +1468,168 @@ public class RafflePrize
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
+    [ForeignKey("SlideId")]
+    public virtual Slide? Slide { get; set; }
+}
+
+// SlideText Entity - Text elements displayed within a slide
+public class SlideText
+{
+    [Key]
+    public int SlideTextId { get; set; }
+
+    [Required]
+    public int SlideId { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string Text { get; set; } = string.Empty;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    // Position - split into horizontal and vertical
+    [MaxLength(20)]
+    public string HorizontalPosition { get; set; } = "center"; // left, center, right
+
+    [MaxLength(20)]
+    public string VerticalPosition { get; set; } = "center"; // top, center, bottom
+
+    // Text styling
+    [MaxLength(20)]
+    public string Size { get; set; } = "large"; // small, medium, large, xlarge
+
+    [MaxLength(50)]
+    public string? Color { get; set; } = "#ffffff";
+
+    [MaxLength(100)]
+    public string? FontFamily { get; set; }
+
+    // Animation
+    [MaxLength(50)]
+    public string Animation { get; set; } = "fadeIn"; // fadeIn, slideUp, slideDown, zoomIn, typewriter
+
+    public int Duration { get; set; } = 800; // Animation duration in ms
+
+    public int Delay { get; set; } = 500; // Delay before animation starts
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("SlideId")]
+    public virtual Slide? Slide { get; set; }
+}
+
+// SharedVideo Entity - Pool of videos that can be used across slideshows
+public class SharedVideo
+{
+    [Key]
+    public int VideoId { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string Url { get; set; } = string.Empty;
+
+    [MaxLength(200)]
+    public string? Title { get; set; }
+
+    [MaxLength(500)]
+    public string? ThumbnailUrl { get; set; }
+
+    [MaxLength(100)]
+    public string? Category { get; set; } // For grouping/filtering
+
+    public bool IsActive { get; set; } = true;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// SharedImage Entity - Pool of images that can be used across slideshows
+public class SharedImage
+{
+    [Key]
+    public int ImageId { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string Url { get; set; } = string.Empty;
+
+    [MaxLength(200)]
+    public string? Title { get; set; }
+
+    [MaxLength(500)]
+    public string? ThumbnailUrl { get; set; }
+
+    [MaxLength(100)]
+    public string? Category { get; set; } // For grouping/filtering
+
+    public bool IsActive { get; set; } = true;
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// SlideObject Entity - Unified object for Text, Image, or Video on a slide
+// This is the new object-oriented approach for slide content
+public class SlideObject
+{
+    [Key]
+    public int SlideObjectId { get; set; }
+
+    [Required]
+    public int SlideId { get; set; }
+
+    // Object type: "text", "image", "video"
+    [Required]
+    [MaxLength(20)]
+    public string ObjectType { get; set; } = "text";
+
+    public int SortOrder { get; set; } = 0;
+
+    // Name/Code for identification in the admin UI
+    [MaxLength(100)]
+    public string? Name { get; set; }
+
+    // Position - horizontal and vertical alignment
+    [MaxLength(20)]
+    public string HorizontalAlign { get; set; } = "center"; // left, center, right
+
+    [MaxLength(20)]
+    public string VerticalAlign { get; set; } = "middle"; // top, middle, bottom
+
+    // Position offsets in pixels (can be negative)
+    public int OffsetX { get; set; } = 0;
+    public int OffsetY { get; set; } = 0;
+
+    // Animation In (entry animation)
+    [MaxLength(50)]
+    public string AnimationIn { get; set; } = "fadeIn";
+
+    public int AnimationInDelay { get; set; } = 0; // ms from slide start
+
+    public int AnimationInDuration { get; set; } = 500; // ms
+
+    // Animation Out (exit animation) - null means stay on screen
+    [MaxLength(50)]
+    public string? AnimationOut { get; set; }
+
+    public int? AnimationOutDelay { get; set; } // ms from slide start when exit begins
+
+    public int? AnimationOutDuration { get; set; } // ms
+
+    public bool StayOnScreen { get; set; } = true; // if true, no exit animation
+
+    // Type-specific properties stored as JSON
+    // Text: { "content": "", "fontSize": "large", "fontWeight": "bold", "fontFamily": "", "color": "#fff", "backgroundColor": "", "textAlign": "center", "maxWidth": 800 }
+    // Image: { "imageUrl": "", "size": "medium", "objectFit": "cover", "borderRadius": "rounded-lg", "shadow": "", "opacity": 100 }
+    // Video: { "videoUrl": "", "size": "medium", "autoPlay": true, "muted": true, "loop": true, "showControls": false, "borderRadius": "rounded-lg" }
+    public string? Properties { get; set; }
     [ForeignKey("RaffleId")]
     public virtual Raffle? Raffle { get; set; }
 }
@@ -1387,6 +1736,42 @@ public class RaffleParticipant
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
+    [ForeignKey("SlideId")]
+    public virtual Slide? Slide { get; set; }
+}
+
+// SlideBackgroundVideo Entity - Hero videos for a slide's background sequence
+public class SlideBackgroundVideo
+{
+    [Key]
+    public int SlideBackgroundVideoId { get; set; }
+
+    [Required]
+    public int SlideId { get; set; }
+
+    // Reference to SharedVideo (optional - can use direct URL instead)
+    public int? VideoId { get; set; }
+
+    // Direct video URL if not using SharedVideo reference
+    [MaxLength(500)]
+    public string? VideoUrl { get; set; }
+
+    // How long to display this video before moving to next (in ms)
+    public int Duration { get; set; } = 5000;
+
+    public int SortOrder { get; set; } = 0;
+
+    // If true, pick a random video from the shared pool for this slot
+    public bool UseRandom { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("SlideId")]
+    public virtual Slide? Slide { get; set; }
+
+    [ForeignKey("VideoId")]
+    public virtual SharedVideo? Video { get; set; }
     [ForeignKey("RaffleId")]
     public virtual Raffle? Raffle { get; set; }
 }

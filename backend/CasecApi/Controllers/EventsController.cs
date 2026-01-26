@@ -106,6 +106,8 @@ public class EventsController : ControllerBase
                     IsRegistrationRequired = e.IsRegistrationRequired,
                     IsFeatured = e.IsFeatured,
                     ThumbnailUrl = e.ThumbnailUrl,
+                    ThumbnailFocusX = e.ThumbnailFocusX,
+                    ThumbnailFocusY = e.ThumbnailFocusY,
                     SourceUrl = e.SourceUrl,
                     TotalRegistrations = _context.EventRegistrations.Count(er => er.EventId == e.EventId),
                     SpotsRemaining = (e.MaxCapacity ?? 0) - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
@@ -214,6 +216,8 @@ public class EventsController : ControllerBase
                     IsRegistrationRequired = e.IsRegistrationRequired,
                     IsFeatured = e.IsFeatured,
                     ThumbnailUrl = e.ThumbnailUrl,
+                    ThumbnailFocusX = e.ThumbnailFocusX,
+                    ThumbnailFocusY = e.ThumbnailFocusY,
                     SourceUrl = e.SourceUrl,
                     TotalRegistrations = _context.EventRegistrations.Count(er => er.EventId == e.EventId),
                     SpotsRemaining = (e.MaxCapacity ?? 0) - _context.EventRegistrations.Count(er => er.EventId == e.EventId),
@@ -277,6 +281,8 @@ public class EventsController : ControllerBase
                 IsRegistrationRequired = eventItem.IsRegistrationRequired,
                 IsFeatured = eventItem.IsFeatured,
                 ThumbnailUrl = eventItem.ThumbnailUrl,
+                ThumbnailFocusX = eventItem.ThumbnailFocusX,
+                ThumbnailFocusY = eventItem.ThumbnailFocusY,
                 TotalRegistrations = await _context.EventRegistrations.CountAsync(er => er.EventId == id),
                 SpotsRemaining = (eventItem.MaxCapacity ?? 0) - await _context.EventRegistrations.CountAsync(er => er.EventId == id),
                 IsUserRegistered = currentUserId > 0 &&
@@ -346,6 +352,8 @@ public class EventsController : ControllerBase
                 IsRegistrationRequired = request.IsRegistrationRequired ?? true,
                 IsFeatured = request.IsFeatured ?? false,
                 ThumbnailUrl = request.ThumbnailUrl,
+                ThumbnailFocusX = request.ThumbnailFocusX ?? 50,
+                ThumbnailFocusY = request.ThumbnailFocusY ?? 50,
                 SourceUrl = request.SourceUrl
             };
 
@@ -422,6 +430,10 @@ public class EventsController : ControllerBase
             eventItem.IsFeatured = request.IsFeatured ?? eventItem.IsFeatured;
             if (request.ThumbnailUrl != null)
                 eventItem.ThumbnailUrl = request.ThumbnailUrl;
+            if (request.ThumbnailFocusX != null)
+                eventItem.ThumbnailFocusX = request.ThumbnailFocusX;
+            if (request.ThumbnailFocusY != null)
+                eventItem.ThumbnailFocusY = request.ThumbnailFocusY;
             if (request.SourceUrl != null)
                 eventItem.SourceUrl = request.SourceUrl;
 
@@ -596,9 +608,12 @@ public class EventsController : ControllerBase
             httpClient.Timeout = TimeSpan.FromSeconds(30);
             httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
             httpClient.DefaultRequestHeaders.Add("Accept", "image/webp,image/apng,image/*,*/*;q=0.8");
-            httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
-            // Set Referer to the image's own domain to bypass referrer checks
-            httpClient.DefaultRequestHeaders.Add("Referer", $"{uri.Scheme}://{uri.Host}/");
+            httpClient.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8");
+
+            // Set Referer - WeChat CDN needs WeChat referer, others use their own domain
+            var isWeChatCdn = uri.Host.Contains("mmbiz") || uri.Host.Contains("qpic.cn") || uri.Host.Contains("qq.com");
+            var referer = isWeChatCdn ? "https://mp.weixin.qq.com/" : $"{uri.Scheme}://{uri.Host}/";
+            httpClient.DefaultRequestHeaders.Add("Referer", referer);
 
             HttpResponseMessage response;
             try
@@ -1277,6 +1292,8 @@ public class EventsController : ControllerBase
                 IsRegistrationRequired = eventItem.IsRegistrationRequired,
                 IsFeatured = eventItem.IsFeatured,
                 ThumbnailUrl = eventItem.ThumbnailUrl,
+                ThumbnailFocusX = eventItem.ThumbnailFocusX,
+                ThumbnailFocusY = eventItem.ThumbnailFocusY,
                 SourceUrl = eventItem.SourceUrl,
                 TotalRegistrations = totalRegistrations,
                 SpotsRemaining = (eventItem.MaxCapacity ?? 0) - totalRegistrations,

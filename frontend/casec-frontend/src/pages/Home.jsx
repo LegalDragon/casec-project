@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Clock, ChevronLeft, ChevronRight, DollarSign, Building2 } from 'lucide-react';
-import { eventsAPI, getAssetUrl } from '../services/api';
+import { Calendar, MapPin, Clock, ChevronLeft, ChevronRight, DollarSign, Building2, ChevronDown, ChevronUp, BarChart3, ClipboardList, Check } from 'lucide-react';
+import { eventsAPI, pollsAPI, surveysAPI, getAssetUrl } from '../services/api';
 import { useTheme } from '../components/ThemeProvider';
 import PollWidget from '../components/PollWidget';
 import SurveyWidget from '../components/SurveyWidget';
@@ -9,7 +9,7 @@ import SurveyWidget from '../components/SurveyWidget';
 export default function Home() {
   const { theme } = useTheme();
   const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [pastFeaturedEvents, setPastFeaturedEvents] = useState([]);
+  const [recentPastEvents, setRecentPastEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const upcomingScrollRef = useRef(null);
@@ -17,18 +17,41 @@ export default function Home() {
   const [upcomingPaused, setUpcomingPaused] = useState(false);
   const [pastPaused, setPastPaused] = useState(false);
 
-  // Parse hero video URLs and select a random one
-  const heroVideoUrl = useMemo(() => {
-    if (!theme?.heroVideoUrls) return null;
+  // Poll and Survey collapsed state
+  const [pollAnswered, setPollAnswered] = useState(false);
+  const [surveyAnswered, setSurveyAnswered] = useState(false);
+  const [pollCollapsed, setPollCollapsed] = useState(false);
+  const [surveyCollapsed, setSurveyCollapsed] = useState(false);
+  const [hasPoll, setHasPoll] = useState(false);
+  const [hasSurvey, setHasSurvey] = useState(false);
+
+  // Parse hero video URLs
+  const heroVideos = useMemo(() => {
+    if (!theme?.heroVideoUrls) return [];
     try {
       const videos = JSON.parse(theme.heroVideoUrls);
-      if (videos.length === 0) return null;
-      // Select random video
-      return videos[Math.floor(Math.random() * videos.length)];
+      return Array.isArray(videos) ? videos : [];
     } catch {
-      return null;
+      return [];
     }
   }, [theme?.heroVideoUrls]);
+
+  // Track current video index for sequential playback
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+
+  // Auto-advance to next video every 30 seconds
+  useEffect(() => {
+    if (heroVideos.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentVideoIndex((prev) => (prev + 1) % heroVideos.length);
+    }, 30000); // 30 seconds per video
+
+    return () => clearInterval(interval);
+  }, [heroVideos.length]);
+
+  // Current hero video URL based on index
+  const heroVideoUrl = heroVideos[currentVideoIndex] || null;
 
   // Convert YouTube URL to embeddable format
   const getYouTubeEmbedUrl = (url) => {
@@ -61,14 +84,25 @@ export default function Home() {
     return url?.includes('youtube.com') || url?.includes('youtu.be');
   };
 
-  // Get the embed URL for the selected video
-  const videoEmbedUrl = useMemo(() => {
-    if (!heroVideoUrl) return null;
-    if (isYouTubeUrl(heroVideoUrl)) {
-      return getYouTubeEmbedUrl(heroVideoUrl);
+  // Check if URL is an uploaded asset
+  const isAssetUrl = (url) => {
+    return url?.startsWith('/asset/');
+  };
+
+  // Get the video info for the selected video
+  const videoInfo = useMemo(() => {
+    if (!heroVideoUrl) return { type: null, url: null };
+
+    if (isAssetUrl(heroVideoUrl)) {
+      return { type: 'asset', url: getAssetUrl(heroVideoUrl) };
     }
+
+    if (isYouTubeUrl(heroVideoUrl)) {
+      return { type: 'youtube', url: getYouTubeEmbedUrl(heroVideoUrl) };
+    }
+
     // TikTok videos can't be easily embedded as background, skip for now
-    return null;
+    return { type: null, url: null };
   }, [heroVideoUrl]);
 
   // Custom smooth scroll with easing
@@ -104,7 +138,41 @@ export default function Home() {
 
   useEffect(() => {
     fetchEvents();
+    checkPollSurveyStatus();
   }, []);
+
+  // Check if user has already answered poll/survey
+  const checkPollSurveyStatus = async () => {
+    try {
+      // Check featured poll
+      const pollRes = await pollsAPI.getFeatured();
+      if (pollRes.success && pollRes.data) {
+        setHasPoll(true);
+        if (pollRes.data.hasVoted) {
+          setPollAnswered(true);
+          setPollCollapsed(true);
+        }
+      }
+    } catch (err) {
+      // No featured poll
+    }
+
+    try {
+      // Check featured survey
+      const surveyRes = await surveysAPI.getFeatured();
+      if (surveyRes.success && surveyRes.data) {
+        setHasSurvey(true);
+        // Check for existing response
+        const responseRes = await surveysAPI.getMyResponse(surveyRes.data.surveyId);
+        if (responseRes?.data?.status === 'Completed') {
+          setSurveyAnswered(true);
+          setSurveyCollapsed(true);
+        }
+      }
+    } catch (err) {
+      // No featured survey
+    }
+  };
 
   // Auto-scroll for upcoming events - always animate even with 1 card
   useEffect(() => {
@@ -130,7 +198,7 @@ export default function Home() {
 
   // Auto-scroll for past events
   useEffect(() => {
-    if (pastFeaturedEvents.length === 0 || pastPaused) return;
+    if (recentPastEvents.length === 0 || pastPaused) return;
 
     const container = pastScrollRef.current;
     if (!container) return;
@@ -148,7 +216,7 @@ export default function Home() {
     }, 5000);
 
     return () => clearInterval(scrollInterval);
-  }, [pastFeaturedEvents.length, pastPaused, smoothScrollTo]);
+  }, [recentPastEvents.length, pastPaused, smoothScrollTo]);
 
   const fetchEvents = async () => {
     try {
@@ -157,13 +225,14 @@ export default function Home() {
       const upcoming = (upcomingResponse.data || []).slice(0, 15);
       setUpcomingEvents(upcoming);
 
-      // Fetch all events to filter past featured ones
+      // Fetch all events to get recent past events (sorted by most recent first)
       const allResponse = await eventsAPI.getAll({ upcoming: false });
       const now = new Date();
-      const pastFeatured = (allResponse.data || [])
-        .filter(e => e.isFeatured && new Date(e.eventDate) < now)
+      const pastEvents = (allResponse.data || [])
+        .filter(e => new Date(e.eventDate) < now)
+        .sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate)) // Most recent first
         .slice(0, 15);
-      setPastFeaturedEvents(pastFeatured);
+      setRecentPastEvents(pastEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
@@ -218,13 +287,13 @@ export default function Home() {
       <div className="w-40 h-full relative bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
         {event.thumbnailUrl ? (
           <img
-            src={event.thumbnailUrl.startsWith('/api') ? getAssetUrl(event.thumbnailUrl) : event.thumbnailUrl}
+            src={getAssetUrl(event.thumbnailUrl)}
             alt={event.title}
             className="w-full h-full object-cover"
+            style={{ objectPosition: `${event.thumbnailFocusX ?? 50}% ${event.thumbnailFocusY ?? 50}%` }}
             referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
             onError={(e) => {
-              e.target.style.display = 'none';
+              if (e.target) e.target.style.display = 'none';
             }}
           />
         ) : (
@@ -293,13 +362,13 @@ export default function Home() {
       <div className="w-40 h-full relative bg-gradient-to-br from-gray-200 to-gray-300 flex-shrink-0">
         {event.thumbnailUrl ? (
           <img
-            src={event.thumbnailUrl.startsWith('/api') ? getAssetUrl(event.thumbnailUrl) : event.thumbnailUrl}
+            src={getAssetUrl(event.thumbnailUrl)}
             alt={event.title}
             className="w-full h-full object-cover grayscale-[30%]"
+            style={{ objectPosition: `${event.thumbnailFocusX ?? 50}% ${event.thumbnailFocusY ?? 50}%` }}
             referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
             onError={(e) => {
-              e.target.style.display = 'none';
+              if (e.target) e.target.style.display = 'none';
             }}
           />
         ) : (
@@ -357,23 +426,57 @@ export default function Home() {
       {/* Hero Section - Logo, Name, and CTAs Centered */}
       <section className="px-6 py-12 md:py-16 relative overflow-hidden">
         {/* Video Background */}
-        {videoEmbedUrl && (
+        {videoInfo.url && (
           <>
-            {/* Video iframe container */}
+            {/* Video container */}
             <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-              <iframe
-                src={videoEmbedUrl}
-                title="Hero Background Video"
-                className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 object-cover"
-                style={{ minWidth: '100%', minHeight: '100%' }}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                frameBorder="0"
-              />
+              {videoInfo.type === 'asset' ? (
+                /* Native HTML5 video for uploaded assets */
+                <video
+                  key={currentVideoIndex}
+                  src={videoInfo.url}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2 object-cover"
+                  style={{ minWidth: '100%', minHeight: '100%' }}
+                />
+              ) : (
+                /* YouTube iframe for external videos */
+                <iframe
+                  key={currentVideoIndex}
+                  src={videoInfo.url}
+                  title="Hero Background Video"
+                  className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 object-cover"
+                  style={{ minWidth: '100%', minHeight: '100%' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  frameBorder="0"
+                />
+              )}
             </div>
             {/* Dark overlay for readability */}
             <div className="absolute inset-0 bg-black/50" />
           </>
+        )}
+
+        {/* Video Progress Indicators */}
+        {heroVideos.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 z-20">
+            {heroVideos.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentVideoIndex(index)}
+                className={`w-2.5 h-2.5 rounded-full transition-all ${
+                  index === currentVideoIndex
+                    ? 'bg-white scale-125'
+                    : 'bg-white/50 hover:bg-white/75'
+                }`}
+                title={`Video ${index + 1}`}
+              />
+            ))}
+          </div>
         )}
 
         <div className="max-w-4xl mx-auto text-center relative z-10">
@@ -485,18 +588,12 @@ export default function Home() {
           )}
         </div>
 
-        {/* Featured Poll & Survey */}
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-6">
-          <PollWidget featured />
-          <SurveyWidget featured />
-        </div>
-
-        {/* Past Featured Events Carousel */}
+        {/* Recent Past Events Carousel */}
         <div className="w-full">
           <div className="max-w-7xl mx-auto px-6 mb-4">
             <h3 className="text-xl md:text-2xl font-display font-bold text-white flex items-center gap-2">
               <Clock className="w-6 h-6" />
-              Past Featured Events
+              Recent Events
             </h3>
           </div>
 
@@ -506,7 +603,7 @@ export default function Home() {
                 <div key={i} className="flex-shrink-0 w-[420px] h-40 bg-white/20 rounded-xl animate-pulse" />
               ))}
             </div>
-          ) : pastFeaturedEvents.length > 0 ? (
+          ) : recentPastEvents.length > 0 ? (
             <div className="relative group">
               {/* Left Arrow */}
               <button
@@ -524,7 +621,7 @@ export default function Home() {
                 className="flex gap-4 px-6 overflow-x-auto scrollbar-hide pb-4"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
-                {pastFeaturedEvents.map((event) => (
+                {recentPastEvents.map((event) => (
                   <PastEventCard key={event.eventId} event={event} />
                 ))}
               </div>
@@ -545,11 +642,88 @@ export default function Home() {
             <div className="max-w-7xl mx-auto px-6">
               <div className="bg-white/10 rounded-xl p-8 text-center">
                 <Clock className="w-12 h-12 text-white/40 mx-auto mb-3" />
-                <p className="text-white/70">No past featured events</p>
+                <p className="text-white/70">No recent events yet</p>
               </div>
             </div>
           )}
         </div>
+
+        {/* Featured Poll & Survey - Collapsible when answered */}
+        {(hasPoll || hasSurvey) && (
+          <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-6">
+            {/* Poll Section */}
+            {hasPoll && (
+              <div>
+                {pollAnswered ? (
+                  <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <button
+                      onClick={() => setPollCollapsed(!pollCollapsed)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div className="text-left">
+                          <span className="font-medium text-gray-900">Poll Completed</span>
+                          <p className="text-xs text-gray-500">Thank you for your response</p>
+                        </div>
+                      </div>
+                      {pollCollapsed ? (
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                    {!pollCollapsed && (
+                      <div className="border-t">
+                        <PollWidget featured />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <PollWidget featured />
+                )}
+              </div>
+            )}
+
+            {/* Survey Section */}
+            {hasSurvey && (
+              <div>
+                {surveyAnswered ? (
+                  <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <button
+                      onClick={() => setSurveyCollapsed(!surveyCollapsed)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div className="text-left">
+                          <span className="font-medium text-gray-900">Survey Completed</span>
+                          <p className="text-xs text-gray-500">Thank you for your feedback</p>
+                        </div>
+                      </div>
+                      {surveyCollapsed ? (
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                    {!surveyCollapsed && (
+                      <div className="border-t">
+                        <SurveyWidget featured />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <SurveyWidget featured />
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Footer */}

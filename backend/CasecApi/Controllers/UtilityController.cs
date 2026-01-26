@@ -50,6 +50,14 @@ public class UtilityController : ControllerBase
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(15);
             client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
+            client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8");
+
+            // Add referer for WeChat pages (helps with some anti-bot measures)
+            if (uri.Host.Contains("weixin.qq.com") || uri.Host.Contains("qq.com"))
+            {
+                client.DefaultRequestHeaders.Add("Referer", "https://mp.weixin.qq.com/");
+            }
 
             var response = await client.GetAsync(uri);
 
@@ -147,8 +155,52 @@ public class UtilityController : ControllerBase
     {
         var images = new List<string>();
         var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var isWeChat = baseUri.Host.Contains("weixin.qq.com") || baseUri.Host.Contains("qq.com");
 
-        // Extract <img> tags first - these usually have the best content images
+        // For WeChat articles, look for data-src first (lazy-loaded images)
+        if (isWeChat)
+        {
+            // WeChat uses data-src for lazy loading images
+            var dataSrcPattern = @"<img[^>]*data-src=[""']([^""']+)[""'][^>]*>";
+            var dataSrcMatches = Regex.Matches(html, dataSrcPattern, RegexOptions.IgnoreCase);
+
+            foreach (Match match in dataSrcMatches)
+            {
+                var src = match.Groups[1].Value;
+                if (!ShouldSkipImage(src))
+                {
+                    var absoluteUrl = MakeAbsoluteUrl(src, baseUri);
+                    if (seenUrls.Add(absoluteUrl))
+                    {
+                        images.Add(absoluteUrl);
+                    }
+                }
+
+                if (images.Count >= 12)
+                {
+                    break;
+                }
+            }
+
+            // Also check for background images in data-src style (WeChat sometimes uses this)
+            var wechatBgPattern = @"data-src=[""']([^""']*mmbiz[^""']+)[""']";
+            var wechatBgMatches = Regex.Matches(html, wechatBgPattern, RegexOptions.IgnoreCase);
+
+            foreach (Match match in wechatBgMatches)
+            {
+                var src = match.Groups[1].Value;
+                if (!ShouldSkipImage(src) && images.Count < 12)
+                {
+                    var absoluteUrl = MakeAbsoluteUrl(src, baseUri);
+                    if (seenUrls.Add(absoluteUrl))
+                    {
+                        images.Add(absoluteUrl);
+                    }
+                }
+            }
+        }
+
+        // Extract <img> tags with src attribute
         var imgPattern = @"<img[^>]*src=[""']([^""']+)[""'][^>]*>";
         var matches = Regex.Matches(html, imgPattern, RegexOptions.IgnoreCase);
 

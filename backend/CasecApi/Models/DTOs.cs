@@ -232,6 +232,8 @@ public class EventDto
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public int? ThumbnailFocusX { get; set; }
+    public int? ThumbnailFocusY { get; set; }
     public string? SourceUrl { get; set; }
     public int? RegisteredCount { get; set; }
     public int? TotalRegistrations { get; set; }
@@ -259,6 +261,8 @@ public class CreateEventRequest
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public int? ThumbnailFocusX { get; set; }
+    public int? ThumbnailFocusY { get; set; }
     public string? SourceUrl { get; set; }
 }
 
@@ -281,6 +285,8 @@ public class UpdateEventRequest
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public int? ThumbnailFocusX { get; set; }
+    public int? ThumbnailFocusY { get; set; }
     public string? SourceUrl { get; set; }
 }
 
@@ -786,6 +792,8 @@ public class EventDetailDto
     public bool? IsRegistrationRequired { get; set; }
     public bool? IsFeatured { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public int? ThumbnailFocusX { get; set; }
+    public int? ThumbnailFocusY { get; set; }
     public string? SourceUrl { get; set; }
     public int? TotalRegistrations { get; set; }
     public int? SpotsRemaining { get; set; }
@@ -958,6 +966,22 @@ public class UrlMetadataDto
     public List<string> Images { get; set; } = new();
 }
 
+// ============ SLIDESHOW DTOs ============
+
+// SlideShow DTOs
+public class SlideShowDto
+{
+    public int SlideShowId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
+    public string TransitionType { get; set; } = "fade";
+    public int TransitionDuration { get; set; }
+    public bool ShowProgress { get; set; }
+    public bool AllowSkip { get; set; }
+    public bool Loop { get; set; }
+    public bool AutoPlay { get; set; }
 // ============ RAFFLE DTOs ============
 
 // Raffle DTO - Full raffle info
@@ -980,6 +1004,452 @@ public class RaffleDto
     public string? CreatedByName { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public List<SlideDto> Slides { get; set; } = new();
+}
+
+public class SlideShowSummaryDto
+{
+    public int SlideShowId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
+    public int SlideCount { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class CreateSlideShowRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsActive { get; set; } = true;
+    public string TransitionType { get; set; } = "fade";
+    public int TransitionDuration { get; set; } = 500;
+    public bool ShowProgress { get; set; } = true;
+    public bool AllowSkip { get; set; } = true;
+    public bool Loop { get; set; } = false;
+    public bool AutoPlay { get; set; } = true;
+}
+
+public class UpdateSlideShowRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
+    public string TransitionType { get; set; } = "fade";
+    public int TransitionDuration { get; set; }
+    public bool ShowProgress { get; set; }
+    public bool AllowSkip { get; set; }
+    public bool Loop { get; set; }
+    public bool AutoPlay { get; set; }
+}
+
+// Slide DTOs
+public class SlideDto
+{
+    public int SlideId { get; set; }
+    public int SlideShowId { get; set; }
+    public int DisplayOrder { get; set; }
+    public int Duration { get; set; }
+
+    // NEW: Background settings
+    public string BackgroundType { get; set; } = "heroVideos";
+    public string? BackgroundColor { get; set; }
+    public string? BackgroundImageUrl { get; set; }
+    public bool UseRandomHeroVideos { get; set; }
+
+    // Legacy video background (kept for backwards compatibility)
+    public string? VideoUrl { get; set; }
+    public bool UseRandomVideo { get; set; }
+
+    public string Layout { get; set; } = "center";
+    public string OverlayType { get; set; } = "dark";
+    public string? OverlayColor { get; set; }
+    public int OverlayOpacity { get; set; }
+
+    // Legacy collections
+    public List<SlideImageDto> Images { get; set; } = new();
+    public List<SlideTextDto> Texts { get; set; } = new();
+
+    // NEW: Object-oriented collections
+    public List<SlideObjectDto> Objects { get; set; } = new();
+    public List<SlideBackgroundVideoDto> BackgroundVideos { get; set; } = new();
+}
+
+public class CreateSlideRequest
+{
+    public int SlideShowId { get; set; }
+    public int DisplayOrder { get; set; }
+    public int Duration { get; set; } = 5000;
+
+    // NEW: Background settings
+    public string BackgroundType { get; set; } = "heroVideos";
+    public string? BackgroundColor { get; set; }
+    public string? BackgroundImageUrl { get; set; }
+    public bool UseRandomHeroVideos { get; set; }
+
+    // Legacy video background
+    public string? VideoUrl { get; set; }
+    public bool UseRandomVideo { get; set; }
+
+    public string Layout { get; set; } = "center";
+    public string OverlayType { get; set; } = "dark";
+    public string? OverlayColor { get; set; }
+    public int OverlayOpacity { get; set; } = 50;
+}
+
+public class UpdateSlideRequest
+{
+    public int DisplayOrder { get; set; }
+    public int Duration { get; set; }
+
+    // NEW: Background settings
+    public string BackgroundType { get; set; } = "heroVideos";
+    public string? BackgroundColor { get; set; }
+    public string? BackgroundImageUrl { get; set; }
+    public bool UseRandomHeroVideos { get; set; }
+
+    // Legacy video background
+    public string? VideoUrl { get; set; }
+    public bool UseRandomVideo { get; set; }
+
+    public string Layout { get; set; } = "center";
+    public string OverlayType { get; set; } = "dark";
+    public string? OverlayColor { get; set; }
+    public int OverlayOpacity { get; set; }
+}
+
+// SlideImage DTOs
+public class SlideImageDto
+{
+    public int SlideImageId { get; set; }
+    public int SlideId { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
+    public string Position { get; set; } = "center";
+    public string Size { get; set; } = "medium";
+    public string Orientation { get; set; } = "auto";
+    public string Animation { get; set; } = "fadeIn";
+    public int Duration { get; set; }
+    public int Delay { get; set; }
+    public string? BorderRadius { get; set; }
+    public string? Shadow { get; set; }
+    public int? Opacity { get; set; }
+}
+
+public class CreateSlideImageRequest
+{
+    public int SlideId { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
+    public string Position { get; set; } = "center";
+    public string Size { get; set; } = "medium";
+    public string Orientation { get; set; } = "auto";
+    public string Animation { get; set; } = "fadeIn";
+    public int Duration { get; set; } = 500;
+    public int Delay { get; set; } = 1500;
+    public string? BorderRadius { get; set; }
+    public string? Shadow { get; set; }
+    public int? Opacity { get; set; }
+}
+
+public class UpdateSlideImageRequest
+{
+    public string ImageUrl { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
+    public string Position { get; set; } = "center";
+    public string Size { get; set; } = "medium";
+    public string Orientation { get; set; } = "auto";
+    public string Animation { get; set; } = "fadeIn";
+    public int Duration { get; set; }
+    public int Delay { get; set; }
+    public string? BorderRadius { get; set; }
+    public string? Shadow { get; set; }
+    public int? Opacity { get; set; }
+}
+
+// SlideText DTOs
+public class SlideTextDto
+{
+    public int SlideTextId { get; set; }
+    public int SlideId { get; set; }
+    public string Text { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
+    public string HorizontalPosition { get; set; } = "center";
+    public string VerticalPosition { get; set; } = "center";
+    public string Size { get; set; } = "large";
+    public string? Color { get; set; }
+    public string? FontFamily { get; set; }
+    public string Animation { get; set; } = "fadeIn";
+    public int Duration { get; set; }
+    public int Delay { get; set; }
+}
+
+public class CreateSlideTextRequest
+{
+    public int SlideId { get; set; }
+    public string Text { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
+    public string HorizontalPosition { get; set; } = "center";
+    public string VerticalPosition { get; set; } = "center";
+    public string Size { get; set; } = "large";
+    public string? Color { get; set; } = "#ffffff";
+    public string? FontFamily { get; set; }
+    public string Animation { get; set; } = "fadeIn";
+    public int Duration { get; set; } = 800;
+    public int Delay { get; set; } = 500;
+}
+
+public class UpdateSlideTextRequest
+{
+    public string Text { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
+    public string HorizontalPosition { get; set; } = "center";
+    public string VerticalPosition { get; set; } = "center";
+    public string Size { get; set; } = "large";
+    public string? Color { get; set; }
+    public string? FontFamily { get; set; }
+    public string Animation { get; set; } = "fadeIn";
+    public int Duration { get; set; }
+    public int Delay { get; set; }
+}
+
+// SharedVideo DTOs
+public class SharedVideoDto
+{
+    public int VideoId { get; set; }
+    public string Url { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? Category { get; set; }
+    public bool IsActive { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+public class CreateSharedVideoRequest
+{
+    public string Url { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? Category { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int DisplayOrder { get; set; }
+}
+
+public class UpdateSharedVideoRequest
+{
+    public string Url { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? Category { get; set; }
+    public bool IsActive { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+// SharedImage DTOs
+public class SharedImageDto
+{
+    public int ImageId { get; set; }
+    public string Url { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? Category { get; set; }
+    public bool IsActive { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+public class CreateSharedImageRequest
+{
+    public string Url { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? Category { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int DisplayOrder { get; set; }
+}
+
+public class UpdateSharedImageRequest
+{
+    public string Url { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public string? Category { get; set; }
+    public bool IsActive { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+// ========== NEW: SlideObject DTOs (Object-Oriented Slide System) ==========
+
+public class SlideObjectDto
+{
+    public int SlideObjectId { get; set; }
+    public int SlideId { get; set; }
+    public string ObjectType { get; set; } = "text"; // text, image, video
+    public int SortOrder { get; set; }
+    public string? Name { get; set; } // Name/Code for identification
+
+    // Position
+    public string HorizontalAlign { get; set; } = "center";
+    public string VerticalAlign { get; set; } = "middle";
+    public int OffsetX { get; set; }
+    public int OffsetY { get; set; }
+
+    // Animation In
+    public string AnimationIn { get; set; } = "fadeIn";
+    public int AnimationInDelay { get; set; }
+    public int AnimationInDuration { get; set; }
+
+    // Animation Out
+    public string? AnimationOut { get; set; }
+    public int? AnimationOutDelay { get; set; }
+    public int? AnimationOutDuration { get; set; }
+    public bool StayOnScreen { get; set; }
+
+    // Type-specific properties as JSON string or parsed object
+    public string? Properties { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class CreateSlideObjectRequest
+{
+    public int SlideId { get; set; }
+    public string ObjectType { get; set; } = "text";
+    public int SortOrder { get; set; }
+    public string? Name { get; set; } // Name/Code for identification
+
+    // Position
+    public string HorizontalAlign { get; set; } = "center";
+    public string VerticalAlign { get; set; } = "middle";
+    public int OffsetX { get; set; }
+    public int OffsetY { get; set; }
+
+    // Animation In
+    public string AnimationIn { get; set; } = "fadeIn";
+    public int AnimationInDelay { get; set; }
+    public int AnimationInDuration { get; set; } = 500;
+
+    // Animation Out
+    public string? AnimationOut { get; set; }
+    public int? AnimationOutDelay { get; set; }
+    public int? AnimationOutDuration { get; set; }
+    public bool StayOnScreen { get; set; } = true;
+
+    // Type-specific properties as JSON string
+    public string? Properties { get; set; }
+}
+
+public class UpdateSlideObjectRequest
+{
+    public string ObjectType { get; set; } = "text";
+    public int SortOrder { get; set; }
+    public string? Name { get; set; } // Name/Code for identification
+
+    // Position
+    public string HorizontalAlign { get; set; } = "center";
+    public string VerticalAlign { get; set; } = "middle";
+    public int OffsetX { get; set; }
+    public int OffsetY { get; set; }
+
+    // Animation In
+    public string AnimationIn { get; set; } = "fadeIn";
+    public int AnimationInDelay { get; set; }
+    public int AnimationInDuration { get; set; }
+
+    // Animation Out
+    public string? AnimationOut { get; set; }
+    public int? AnimationOutDelay { get; set; }
+    public int? AnimationOutDuration { get; set; }
+    public bool StayOnScreen { get; set; }
+
+    // Type-specific properties as JSON string
+    public string? Properties { get; set; }
+}
+
+// ========== SlideBackgroundVideo DTOs ==========
+
+public class SlideBackgroundVideoDto
+{
+    public int SlideBackgroundVideoId { get; set; }
+    public int SlideId { get; set; }
+    public int? VideoId { get; set; }
+    public string? VideoUrl { get; set; }
+    public int Duration { get; set; }
+    public int SortOrder { get; set; }
+    public bool UseRandom { get; set; }
+
+    // Include video details if available
+    public SharedVideoDto? Video { get; set; }
+}
+
+public class CreateSlideBackgroundVideoRequest
+{
+    public int SlideId { get; set; }
+    public int? VideoId { get; set; }
+    public string? VideoUrl { get; set; }
+    public int Duration { get; set; } = 5000;
+    public int SortOrder { get; set; }
+    public bool UseRandom { get; set; }
+}
+
+public class UpdateSlideBackgroundVideoRequest
+{
+    public int? VideoId { get; set; }
+    public string? VideoUrl { get; set; }
+    public int Duration { get; set; }
+    public int SortOrder { get; set; }
+    public bool UseRandom { get; set; }
+}
+
+// ========== Extended Slide DTO with new background settings ==========
+
+public class SlideWithObjectsDto
+{
+    public int SlideId { get; set; }
+    public int SlideShowId { get; set; }
+    public int DisplayOrder { get; set; }
+    public int Duration { get; set; }
+
+    // New background settings
+    public string BackgroundType { get; set; } = "heroVideos";
+    public string? BackgroundColor { get; set; }
+    public string? BackgroundImageUrl { get; set; }
+    public bool UseRandomHeroVideos { get; set; }
+
+    // Legacy fields (for backwards compatibility)
+    public string? VideoUrl { get; set; }
+    public bool UseRandomVideo { get; set; }
+
+    // Overlay settings
+    public string Layout { get; set; } = "center";
+    public string OverlayType { get; set; } = "dark";
+    public string? OverlayColor { get; set; }
+    public int OverlayOpacity { get; set; }
+
+    // Legacy title/subtitle (for backwards compatibility)
+    public string? TitleText { get; set; }
+    public string TitleAnimation { get; set; } = "fadeIn";
+    public int TitleDuration { get; set; }
+    public int TitleDelay { get; set; }
+    public string? TitleSize { get; set; }
+    public string? TitleColor { get; set; }
+    public string? SubtitleText { get; set; }
+    public string SubtitleAnimation { get; set; } = "fadeIn";
+    public int SubtitleDuration { get; set; }
+    public int SubtitleDelay { get; set; }
+    public string? SubtitleSize { get; set; }
+    public string? SubtitleColor { get; set; }
+
+    // New object-oriented collections
+    public List<SlideObjectDto> Objects { get; set; } = new();
+    public List<SlideBackgroundVideoDto> BackgroundVideos { get; set; } = new();
+
+    // Legacy collections (for backwards compatibility)
+    public List<SlideImageDto> Images { get; set; } = new();
+    public List<SlideTextDto> Texts { get; set; } = new();
     public List<RafflePrizeDto> Prizes { get; set; } = new();
     public List<RaffleTicketTierDto> TicketTiers { get; set; } = new();
     public int ParticipantCount { get; set; }

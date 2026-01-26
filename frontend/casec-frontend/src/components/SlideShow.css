@@ -1,0 +1,371 @@
+/* SlideShow Animations */
+
+.slideshow-animate {
+  animation-fill-mode: both;
+}
+
+/* Fade In */
+@keyframes slideshow-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.slideshow-fadeIn {
+  animation-name: slideshow-fadeIn;
+}
+
+/* Slide Up - from bottom of screen */
+@keyframes slideshow-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100vh);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slideshow-slideUp {
+  animation-name: slideshow-slideUp;
+}
+
+/* Slide Down - from top of screen */
+@keyframes slideshow-slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100vh);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slideshow-slideDown {
+  animation-name: slideshow-slideDown;
+}
+
+/* Zoom In - from scale 0 */
+@keyframes slideshow-zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.slideshow-zoomIn {
+  animation-name: slideshow-zoomIn;
+}
+
+/* Slide In Left - from left edge of screen */
+@keyframes slideshow-slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100vw);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slideshow-slideInLeft {
+  animation-name: slideshow-slideInLeft;
+}
+
+/* Slide In Right - from right edge of screen */
+@keyframes slideshow-slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100vw);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slideshow-slideInRight {
+  animation-name: slideshow-slideInRight;
+}
+
+/* Bounce */
+@keyframes slideshow-bounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.slideshow-bounce {
+  animation-name: slideshow-bounce;
+}
+
+/* Typewriter effect - simplified with opacity */
+@keyframes slideshow-typewriter {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.slideshow-typewriter {
+  animation-name: slideshow-typewriter;
+}
+
+/* Fade In Up with Scale */
+@keyframes slideshow-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.slideshow-fadeInUp {
+  animation-name: slideshow-fadeInUp;
+}
+
+/* Pulse */
+@keyframes slideshow-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.slideshow-pulse {
+  animation-name: slideshow-pulse;
+}
+
+/* Rotate In */
+@keyframes slideshow-rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+.slideshow-rotateIn {
+  animation-name: slideshow-rotateIn;
+}
+
+/* Blur In */
+@keyframes slideshow-blurIn {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.slideshow-blurIn {
+  animation-name: slideshow-blurIn;
+}
+
+/* ============ EXIT ANIMATIONS ============ */
+
+/* Fade Out */
+@keyframes slideshow-fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.slideshow-fadeOut {
+  animation-name: slideshow-fadeOut;
+}
+
+/* Slide Out Up - fully off screen */
+@keyframes slideshow-slideOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-100vh);
+  }
+}
+
+.slideshow-slideOutUp {
+  animation-name: slideshow-slideOutUp;
+}
+
+/* Slide Out Down - fully off screen */
+@keyframes slideshow-slideOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100vh);
+  }
+}
+
+.slideshow-slideOutDown {
+  animation-name: slideshow-slideOutDown;
+}
+
+/* Zoom Out */
+@keyframes slideshow-zoomOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
+
+.slideshow-zoomOut {
+  animation-name: slideshow-zoomOut;
+}
+
+/* Slide Out Left - fully off screen */
+@keyframes slideshow-slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100vw);
+  }
+}
+
+.slideshow-slideOutLeft {
+  animation-name: slideshow-slideOutLeft;
+}
+
+/* Slide Out Right - fully off screen */
+@keyframes slideshow-slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100vw);
+  }
+}
+
+.slideshow-slideOutRight {
+  animation-name: slideshow-slideOutRight;
+}
+
+/* Blur Out */
+@keyframes slideshow-blurOut {
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(10px);
+  }
+}
+
+.slideshow-blurOut {
+  animation-name: slideshow-blurOut;
+}
+
+/* Debug Panel Animations */
+
+/* Slide In Left for Debug Panel */
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.5s ease-out forwards;
+}
+
+/* Pulsing Border for Video Preview */
+@keyframes pulse-border {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.5),
+                0 0 10px rgba(34, 211, 238, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.8),
+                0 0 20px rgba(34, 211, 238, 0.5);
+  }
+}
+
+.animate-pulse-border {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+/* Scanning Line Effect for Video Preview */
+@keyframes scan-line {
+  0% {
+    top: 0;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+.animate-scan-line::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.8), transparent);
+  animation: scan-line 2s linear infinite;
+}

@@ -1,0 +1,479 @@
+import { useState, useEffect } from 'react';
+import { Plus, Trash2, ChevronDown, ChevronRight, Video, Clock, Film } from 'lucide-react';
+import { slideShowsAPI, getAssetUrl } from '../../services/api';
+
+// YouTube URL detection and parsing utilities
+const isYouTubeUrl = (url) => {
+  if (!url) return false;
+  return url.includes('youtube.com') || url.includes('youtu.be');
+};
+
+const getYouTubeVideoId = (url) => {
+  if (!url) return null;
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+  if (shortMatch) return shortMatch[1];
+  const longMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+  if (longMatch) return longMatch[1];
+  const embedMatch = url.match(/embed\/([a-zA-Z0-9_-]+)/);
+  if (embedMatch) return embedMatch[1];
+  return null;
+};
+
+// Video preview component that handles both regular videos and YouTube
+function VideoPreview({ url, className = '', style = {} }) {
+  if (!url) {
+    return (
+      <div className={`bg-gray-100 flex items-center justify-center text-gray-400 ${className}`} style={style}>
+        <Video className="w-6 h-6" />
+      </div>
+    );
+  }
+
+  if (isYouTubeUrl(url)) {
+    const videoId = getYouTubeVideoId(url);
+    return (
+      <img
+        src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+        alt="YouTube thumbnail"
+        className={`object-cover ${className}`}
+        style={style}
+      />
+    );
+  }
+
+  return (
+    <video
+      src={getAssetUrl(url)}
+      className={`object-cover ${className}`}
+      style={style}
+      muted
+    />
+  );
+}
+
+// Background types
+const BACKGROUND_TYPES = [
+  { value: 'heroVideos', label: 'Hero Videos', description: 'Cycle through video backgrounds' },
+  { value: 'color', label: 'Solid Color', description: 'Single color background' },
+  { value: 'image', label: 'Static Image', description: 'Single image background' },
+  { value: 'none', label: 'None', description: 'Transparent/no background' },
+];
+
+export default function BackgroundVideoEditor({
+  slideId,
+  backgroundType = 'heroVideos',
+  backgroundColor,
+  backgroundImageUrl,
+  useRandomHeroVideos = false,
+  backgroundVideos = [],
+  sharedVideos = [],
+  sharedImages = [],
+  onUpdate,
+  onRefresh,
+  onToast,
+}) {
+  const [localBackgroundType, setLocalBackgroundType] = useState(backgroundType);
+  const [localBackgroundColor, setLocalBackgroundColor] = useState(backgroundColor || '#000000');
+  const [localBackgroundImageUrl, setLocalBackgroundImageUrl] = useState(backgroundImageUrl || '');
+  const [localUseRandom, setLocalUseRandom] = useState(useRandomHeroVideos);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [showAddVideo, setShowAddVideo] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Get background type label for collapsed view
+  const getBackgroundLabel = () => {
+    const type = BACKGROUND_TYPES.find(t => t.value === localBackgroundType);
+    return type?.label || 'Hero Videos';
+  };
+
+  useEffect(() => {
+    setLocalBackgroundType(backgroundType);
+    setLocalBackgroundColor(backgroundColor || '#000000');
+    setLocalBackgroundImageUrl(backgroundImageUrl || '');
+    setLocalUseRandom(useRandomHeroVideos);
+  }, [backgroundType, backgroundColor, backgroundImageUrl, useRandomHeroVideos]);
+
+  // Save background settings
+  const handleSaveSettings = () => {
+    onUpdate({
+      backgroundType: localBackgroundType,
+      backgroundColor: localBackgroundColor,
+      backgroundImageUrl: localBackgroundImageUrl,
+      useRandomHeroVideos: localUseRandom,
+    });
+  };
+
+  // Add background video
+  const handleAddBackgroundVideo = async (videoData) => {
+    setSaving(true);
+    try {
+      const response = await slideShowsAPI.createSlideBackgroundVideo({
+        slideId,
+        videoId: videoData.videoId || null,
+        videoUrl: videoData.videoUrl || null,
+        duration: videoData.duration || 5000,
+        sortOrder: backgroundVideos.length,
+      });
+
+      if (response.success) {
+        setShowAddVideo(false);
+        onRefresh?.();
+        onToast?.('success', 'Background video added');
+      } else {
+        onToast?.('error', response.message || 'Failed to add background video');
+      }
+    } catch (err) {
+      onToast?.('error', 'Error adding background video');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Update background video
+  const handleUpdateBackgroundVideo = async (videoId, data) => {
+    try {
+      const response = await slideShowsAPI.updateSlideBackgroundVideo(videoId, data);
+      if (response.success) {
+        onRefresh?.();
+        onToast?.('success', 'Background video updated');
+      } else {
+        onToast?.('error', response.message || 'Failed to update background video');
+      }
+    } catch (err) {
+      onToast?.('error', 'Error updating background video');
+    }
+  };
+
+  // Delete background video
+  const handleDeleteBackgroundVideo = async (videoId) => {
+    if (!confirm('Remove this background video?')) return;
+    try {
+      const response = await slideShowsAPI.deleteSlideBackgroundVideo(videoId);
+      if (response.success) {
+        onRefresh?.();
+        onToast?.('success', 'Background video removed');
+      } else {
+        onToast?.('error', response.message || 'Failed to remove background video');
+      }
+    } catch (err) {
+      onToast?.('error', 'Error removing background video');
+    }
+  };
+
+  return (
+    <div className="border-t pt-4">
+      {/* Collapsible Header */}
+      <div
+        className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-4 px-4 py-2 rounded"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <h4 className="font-medium text-gray-700 flex items-center gap-2">
+          <Film className="w-4 h-4" />
+          Background Settings
+          <span className="text-sm font-normal text-gray-500">({getBackgroundLabel()})</span>
+        </h4>
+        {isExpanded ? (
+          <ChevronDown className="w-5 h-5 text-gray-400" />
+        ) : (
+          <ChevronRight className="w-5 h-5 text-gray-400" />
+        )}
+      </div>
+
+      {/* Collapsible Content */}
+      {isExpanded && (
+        <div className="space-y-4 mt-4">
+          {/* Background Type Selector */}
+          <div>
+            <label className="block text-sm text-gray-600 mb-2">Background Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              {BACKGROUND_TYPES.map(type => (
+                <button
+                  key={type.value}
+                  onClick={() => setLocalBackgroundType(type.value)}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    localBackgroundType === type.value
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="font-medium text-sm">{type.label}</span>
+                  <p className="text-xs text-gray-500 mt-1">{type.description}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Type-specific settings */}
+          {localBackgroundType === 'color' && (
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">Background Color</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={localBackgroundColor}
+                  onChange={(e) => setLocalBackgroundColor(e.target.value)}
+                  className="w-12 h-10 border rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={localBackgroundColor}
+                  onChange={(e) => setLocalBackgroundColor(e.target.value)}
+                  className="flex-1 px-3 py-2 border rounded text-sm"
+                  placeholder="#000000"
+                />
+              </div>
+            </div>
+          )}
+
+          {localBackgroundType === 'image' && (
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">Background Image</label>
+              {localBackgroundImageUrl ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={getAssetUrl(localBackgroundImageUrl)}
+                    alt="Background"
+                    className="w-24 h-16 object-cover rounded border"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 truncate">{localBackgroundImageUrl}</p>
+                    <button
+                      onClick={() => setShowImagePicker(true)}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Change image
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowImagePicker(true)}
+                  className="w-full py-4 border-2 border-dashed rounded-lg text-gray-500 hover:border-blue-500"
+                >
+                  Select Background Image
+                </button>
+              )}
+
+              {showImagePicker && (
+                <div className="mt-3 bg-gray-50 p-3 rounded-lg border">
+                  <p className="text-xs text-gray-500 mb-2">Select from shared images:</p>
+                  <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
+                    {sharedImages.map(img => (
+                      <button
+                        key={img.imageId}
+                        onClick={() => {
+                          setLocalBackgroundImageUrl(img.url);
+                          setShowImagePicker(false);
+                        }}
+                        className="aspect-video rounded border overflow-hidden hover:ring-2 ring-blue-500"
+                      >
+                        <img src={getAssetUrl(img.url)} alt={img.title} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={localBackgroundImageUrl}
+                    onChange={(e) => setLocalBackgroundImageUrl(e.target.value)}
+                    className="w-full mt-2 px-2 py-1 border rounded text-sm"
+                    placeholder="Or enter URL..."
+                  />
+                  <button
+                    onClick={() => setShowImagePicker(false)}
+                    className="mt-2 text-sm text-gray-500"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {localBackgroundType === 'heroVideos' && (
+            <div className="space-y-4">
+              {/* Background Videos List */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm text-gray-600">
+                    Background Videos ({backgroundVideos.length})
+                  </label>
+                  <button
+                    onClick={() => setShowAddVideo(true)}
+                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Video
+                  </button>
+                </div>
+
+                {backgroundVideos.length === 0 ? (
+                  <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed text-gray-500 text-sm">
+                    No background videos. Add videos to cycle through as background.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {backgroundVideos.map((bgVideo, index) => (
+                      <BackgroundVideoItem
+                        key={bgVideo.slideBackgroundVideoId}
+                        bgVideo={bgVideo}
+                        index={index}
+                        sharedVideos={sharedVideos}
+                        onUpdate={(data) => handleUpdateBackgroundVideo(bgVideo.slideBackgroundVideoId, data)}
+                        onDelete={() => handleDeleteBackgroundVideo(bgVideo.slideBackgroundVideoId)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Add Video Panel */}
+                {showAddVideo && (
+                  <AddBackgroundVideoPanel
+                    sharedVideos={sharedVideos}
+                    onAdd={handleAddBackgroundVideo}
+                    onCancel={() => setShowAddVideo(false)}
+                    saving={saving}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Save Button - always visible when expanded */}
+          <div className="flex justify-end pt-4">
+            <button
+              onClick={handleSaveSettings}
+              className="btn btn-primary"
+            >
+              Save Background Settings
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Background Video Item Component
+function BackgroundVideoItem({ bgVideo, index, sharedVideos, onUpdate, onDelete }) {
+  const [localDuration, setLocalDuration] = useState(bgVideo.duration);
+
+  useEffect(() => {
+    setLocalDuration(bgVideo.duration);
+  }, [bgVideo]);
+
+  const videoUrl = bgVideo.video?.url || bgVideo.videoUrl;
+
+  const handleSave = () => {
+    onUpdate({
+      videoId: bgVideo.videoId,
+      videoUrl: bgVideo.videoUrl,
+      duration: localDuration,
+      sortOrder: bgVideo.sortOrder,
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+      <span className="text-sm text-gray-400 w-6">#{index + 1}</span>
+
+      <VideoPreview url={videoUrl} className="w-24 h-14 rounded" />
+
+      <div className="flex items-center gap-2 flex-1">
+        <Clock className="w-4 h-4 text-gray-400" />
+        <input
+          type="number"
+          value={localDuration}
+          onChange={(e) => setLocalDuration(parseInt(e.target.value) || 5000)}
+          className="w-24 px-2 py-1 border rounded text-sm"
+          min="1000"
+          step="500"
+        />
+        <span className="text-xs text-gray-500">ms</span>
+      </div>
+
+      <button
+        onClick={handleSave}
+        className="px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+      >
+        Save
+      </button>
+
+      <button
+        onClick={onDelete}
+        className="p-1 text-red-500 hover:bg-red-50 rounded"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// Add Background Video Panel
+function AddBackgroundVideoPanel({ sharedVideos, onAdd, onCancel, saving }) {
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [duration, setDuration] = useState(5000);
+
+  const handleAdd = () => {
+    onAdd({
+      videoId: selectedVideo?.videoId || null,
+      videoUrl: selectedVideo?.url || null,
+      duration,
+    });
+  };
+
+  return (
+    <div className="mt-3 bg-gray-50 p-4 rounded-lg border">
+      <h5 className="font-medium text-sm mb-3">Add Background Video</h5>
+
+      <div className="space-y-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-2">Select Video:</label>
+          <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
+            {sharedVideos.map(vid => (
+              <button
+                key={vid.videoId}
+                onClick={() => setSelectedVideo(vid)}
+                className={`aspect-video rounded border overflow-hidden ${
+                  selectedVideo?.videoId === vid.videoId ? 'ring-2 ring-blue-500' : ''
+                }`}
+              >
+                <VideoPreview url={vid.url} className="w-full h-full" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Duration (ms)</label>
+          <input
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(parseInt(e.target.value) || 5000)}
+            className="w-full px-3 py-2 border rounded text-sm"
+            min="1000"
+            step="500"
+          />
+          <p className="text-xs text-gray-400 mt-1">How long to show this video before switching</p>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            className="btn btn-secondary"
+            disabled={saving}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAdd}
+            className="btn btn-primary"
+            disabled={saving || !selectedVideo}
+          >
+            {saving ? 'Adding...' : 'Add Video'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -54,6 +54,17 @@ public class CasecDbContext : DbContext
     // Payment configuration entities
     public DbSet<PaymentMethod> PaymentMethods { get; set; }
 
+    // SlideShow entities
+    public DbSet<SlideShow> SlideShows { get; set; }
+    public DbSet<Slide> Slides { get; set; }
+    public DbSet<SlideImage> SlideImages { get; set; }
+    public DbSet<SlideText> SlideTexts { get; set; }
+    public DbSet<SharedVideo> SharedVideos { get; set; }
+    public DbSet<SharedImage> SharedImages { get; set; }
+
+    // NEW: Object-oriented slide entities
+    public DbSet<SlideObject> SlideObjects { get; set; }
+    public DbSet<SlideBackgroundVideo> SlideBackgroundVideos { get; set; }
     // Raffle entities
     public DbSet<Raffle> Raffles { get; set; }
     public DbSet<RafflePrize> RafflePrizes { get; set; }
@@ -426,6 +437,14 @@ public class CasecDbContext : DbContext
             entity.HasIndex(e => e.DisplayOrder);
         });
 
+        // SlideShow entity configuration
+        modelBuilder.Entity<SlideShow>(entity =>
+        {
+            entity.HasKey(e => e.SlideShowId);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.IsActive);
         // Raffle entity configuration
         modelBuilder.Entity<Raffle>(entity =>
         {
@@ -438,6 +457,55 @@ public class CasecDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.CreatedBy)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Slide entity configuration
+        modelBuilder.Entity<Slide>(entity =>
+        {
+            entity.HasKey(e => e.SlideId);
+
+            entity.HasOne(e => e.SlideShow)
+                .WithMany(s => s.Slides)
+                .HasForeignKey(e => e.SlideShowId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.SlideShowId);
+            entity.HasIndex(e => new { e.SlideShowId, e.DisplayOrder });
+        });
+
+        // SlideImage entity configuration
+        modelBuilder.Entity<SlideImage>(entity =>
+        {
+            entity.HasKey(e => e.SlideImageId);
+            entity.Property(e => e.ImageUrl).IsRequired().HasMaxLength(500);
+
+            entity.HasOne(e => e.Slide)
+                .WithMany(s => s.Images)
+                .HasForeignKey(e => e.SlideId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.SlideId);
+            entity.HasIndex(e => new { e.SlideId, e.DisplayOrder });
+        });
+
+        // SharedVideo entity configuration
+        modelBuilder.Entity<SharedVideo>(entity =>
+        {
+            entity.HasKey(e => e.VideoId);
+            entity.Property(e => e.Url).IsRequired().HasMaxLength(500);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.DisplayOrder);
+        });
+
+        // SharedImage entity configuration
+        modelBuilder.Entity<SharedImage>(entity =>
+        {
+            entity.HasKey(e => e.ImageId);
+            entity.Property(e => e.Url).IsRequired().HasMaxLength(500);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.DisplayOrder);
 
             entity.HasIndex(e => e.Status);
         });

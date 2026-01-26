@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/useStore';
 import ThemeProvider from './components/ThemeProvider';
 import Layout from './components/Layout';
+import AdminLayout from './components/AdminLayout';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -17,6 +18,7 @@ import Payment from './pages/Payment';
 import Members from './pages/Members';
 import BoardOfDirectors from './pages/BoardOfDirectors';
 import PublicProfile from './pages/PublicProfile';
+import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsers from './pages/admin/Users';
 import AdminMembershipTypes from './pages/admin/MembershipTypes';
 import AdminClubs from './pages/admin/Clubs';
@@ -28,6 +30,8 @@ import AdminPayments from './pages/admin/Payments';
 import AdminPaymentMethods from './pages/admin/PaymentMethods';
 import AdminPolls from './pages/admin/Polls';
 import AdminSurveys from './pages/admin/Surveys';
+import AdminSlideShows from './pages/admin/SlideShows';
+import SlideShowPreview from './pages/SlideShowPreview';
 import AdminRaffles from './pages/admin/Raffles';
 import Membership from './pages/Membership';
 import Raffle from './pages/Raffle';
@@ -76,6 +80,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/event/:eventId" element={<EventDetail />} />
+        <Route path="/preview/slideshow/:code" element={<SlideShowPreview />} />
         <Route path="/raffle/:raffleId" element={<Raffle />} />
         <Route path="/raffle/:raffleId/drawing" element={<RaffleDrawing />} />
 
@@ -96,7 +101,25 @@ function App() {
           <Route path="member/:userId" element={<PublicProfile />} />
           <Route path="board-of-directors" element={<BoardOfDirectors />} />
           <Route path="board-profile/:userId" element={<PublicProfile />} />
+        </Route>
 
+        {/* Admin Routes with AdminLayout */}
+        <Route path="/admin" element={
+          <AdminRoute><AdminLayout /></AdminRoute>
+        }>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="membership-types" element={<AdminMembershipTypes />} />
+          <Route path="clubs" element={<AdminClubs />} />
+          <Route path="events" element={<AdminEvents />} />
+          <Route path="events/:eventId" element={<AdminEventDetail />} />
+          <Route path="event-types" element={<AdminEventTypes />} />
+          <Route path="theme" element={<AdminTheme />} />
+          <Route path="payments" element={<AdminPayments />} />
+          <Route path="payment-methods" element={<AdminPaymentMethods />} />
+          <Route path="polls" element={<AdminPolls />} />
+          <Route path="surveys" element={<AdminSurveys />} />
+          <Route path="slideshows" element={<AdminSlideShows />} />
           {/* Admin Routes */}
           <Route path="admin/users" element={
             <AdminRoute><AdminUsers /></AdminRoute>
