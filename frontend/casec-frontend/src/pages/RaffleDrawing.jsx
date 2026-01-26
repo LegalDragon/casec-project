@@ -162,10 +162,16 @@ export default function RaffleDrawing() {
 
   const handleStartDrawing = async () => {
     try {
-      await rafflesAPI.startDrawing(raffleId);
-      loadDrawingData();
+      const response = await rafflesAPI.startDrawing(raffleId);
+      if (response.success) {
+        loadDrawingData();
+      } else {
+        setError(response.message || "Failed to start drawing");
+      }
     } catch (err) {
-      setError(err.message || "Failed to start drawing");
+      // err is already error.response?.data from the axios interceptor
+      const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to start drawing");
+      setError(errorMsg);
     }
   };
 
@@ -173,14 +179,20 @@ export default function RaffleDrawing() {
     const currentIndex = drawingData?.revealedDigits?.length || 0;
     setRevealingIndex(currentIndex);
     try {
-      await rafflesAPI.revealDigit(raffleId, digit);
-      // Small delay to let animation complete
-      setTimeout(() => {
-        loadDrawingData();
+      const response = await rafflesAPI.revealDigit(raffleId, digit);
+      if (response.success) {
+        // Small delay to let animation complete
+        setTimeout(() => {
+          loadDrawingData();
+          setRevealingIndex(-1);
+        }, 2000);
+      } else {
+        setError(response.message || "Failed to reveal digit");
         setRevealingIndex(-1);
-      }, 2000);
+      }
     } catch (err) {
-      setError(err.message || "Failed to reveal digit");
+      const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to reveal digit");
+      setError(errorMsg);
       setRevealingIndex(-1);
     }
   };
@@ -188,10 +200,15 @@ export default function RaffleDrawing() {
   const handleResetDrawing = async () => {
     if (!confirm("Are you sure you want to reset the drawing?")) return;
     try {
-      await rafflesAPI.resetDrawing(raffleId);
-      loadDrawingData();
+      const response = await rafflesAPI.resetDrawing(raffleId);
+      if (response.success) {
+        loadDrawingData();
+      } else {
+        setError(response.message || "Failed to reset drawing");
+      }
     } catch (err) {
-      setError(err.message || "Failed to reset drawing");
+      const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to reset drawing");
+      setError(errorMsg);
     }
   };
 
@@ -237,6 +254,25 @@ export default function RaffleDrawing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900">
+      {/* Error Toast */}
+      {error && drawingData && (
+        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg max-w-sm animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="text-lg">⚠️</div>
+            <div>
+              <p className="font-medium">Error</p>
+              <p className="text-sm opacity-90">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-white/70 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-black/50 backdrop-blur-sm border-b border-gray-800">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
