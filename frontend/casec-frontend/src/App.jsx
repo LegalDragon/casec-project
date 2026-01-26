@@ -32,7 +32,10 @@ import AdminPolls from './pages/admin/Polls';
 import AdminSurveys from './pages/admin/Surveys';
 import AdminSlideShows from './pages/admin/SlideShows';
 import SlideShowPreview from './pages/SlideShowPreview';
+import AdminRaffles from './pages/admin/Raffles';
 import Membership from './pages/Membership';
+import Raffle from './pages/Raffle';
+import RaffleDrawing from './pages/RaffleDrawing';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -78,6 +81,8 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/event/:eventId" element={<EventDetail />} />
         <Route path="/preview/slideshow/:code" element={<SlideShowPreview />} />
+        <Route path="/raffle/:raffleId" element={<Raffle />} />
+        <Route path="/raffle/:raffleId/drawing" element={<RaffleDrawing />} />
 
         {/* Protected Routes */}
         <Route path="/" element={
@@ -115,6 +120,43 @@ function App() {
           <Route path="polls" element={<AdminPolls />} />
           <Route path="surveys" element={<AdminSurveys />} />
           <Route path="slideshows" element={<AdminSlideShows />} />
+          {/* Admin Routes */}
+          <Route path="admin/users" element={
+            <AdminRoute><AdminUsers /></AdminRoute>
+          } />
+          <Route path="admin/membership-types" element={
+            <AdminRoute><AdminMembershipTypes /></AdminRoute>
+          } />
+          <Route path="admin/clubs" element={
+            <ClubAdminRoute><AdminClubs /></ClubAdminRoute>
+          } />
+          <Route path="admin/events" element={
+            <ClubAdminRoute><AdminEvents /></ClubAdminRoute>
+          } />
+          <Route path="admin/events/:eventId" element={
+            <ClubAdminRoute><AdminEventDetail /></ClubAdminRoute>
+          } />
+          <Route path="admin/event-types" element={
+            <AdminRoute><AdminEventTypes /></AdminRoute>
+          } />
+          <Route path="admin/theme" element={
+            <AdminRoute><AdminTheme /></AdminRoute>
+          } />
+          <Route path="admin/payments" element={
+            <AdminRoute><AdminPayments /></AdminRoute>
+          } />
+          <Route path="admin/payment-methods" element={
+            <AdminRoute><AdminPaymentMethods /></AdminRoute>
+          } />
+          <Route path="admin/polls" element={
+            <AdminRoute><AdminPolls /></AdminRoute>
+          } />
+          <Route path="admin/surveys" element={
+            <AdminRoute><AdminSurveys /></AdminRoute>
+          } />
+          <Route path="admin/raffles" element={
+            <AdminRoute><AdminRaffles /></AdminRoute>
+          } />
         </Route>
         </Routes>
       </Router>

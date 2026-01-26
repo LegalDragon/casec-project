@@ -65,6 +65,11 @@ public class CasecDbContext : DbContext
     // NEW: Object-oriented slide entities
     public DbSet<SlideObject> SlideObjects { get; set; }
     public DbSet<SlideBackgroundVideo> SlideBackgroundVideos { get; set; }
+    // Raffle entities
+    public DbSet<Raffle> Raffles { get; set; }
+    public DbSet<RafflePrize> RafflePrizes { get; set; }
+    public DbSet<RaffleTicketTier> RaffleTicketTiers { get; set; }
+    public DbSet<RaffleParticipant> RaffleParticipants { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -440,6 +445,13 @@ public class CasecDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasIndex(e => e.IsActive);
+        // Raffle entity configuration
+        modelBuilder.Entity<Raffle>(entity =>
+        {
+            entity.HasKey(e => e.RaffleId);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.TotalRevenue).HasColumnType("decimal(10, 2)");
 
             entity.HasOne(e => e.CreatedByUser)
                 .WithMany()
@@ -494,6 +506,59 @@ public class CasecDbContext : DbContext
             entity.HasIndex(e => e.IsActive);
             entity.HasIndex(e => e.Category);
             entity.HasIndex(e => e.DisplayOrder);
+
+            entity.HasIndex(e => e.Status);
+        });
+
+        // RafflePrize entity configuration
+        modelBuilder.Entity<RafflePrize>(entity =>
+        {
+            entity.HasKey(e => e.PrizeId);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Value).HasColumnType("decimal(10, 2)");
+
+            entity.HasOne(e => e.Raffle)
+                .WithMany(r => r.Prizes)
+                .HasForeignKey(e => e.RaffleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.RaffleId);
+            entity.HasIndex(e => new { e.RaffleId, e.DisplayOrder });
+        });
+
+        // RaffleTicketTier entity configuration
+        modelBuilder.Entity<RaffleTicketTier>(entity =>
+        {
+            entity.HasKey(e => e.TierId);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Price).IsRequired().HasColumnType("decimal(10, 2)");
+
+            entity.HasOne(e => e.Raffle)
+                .WithMany(r => r.TicketTiers)
+                .HasForeignKey(e => e.RaffleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.RaffleId);
+            entity.HasIndex(e => new { e.RaffleId, e.DisplayOrder });
+        });
+
+        // RaffleParticipant entity configuration
+        modelBuilder.Entity<RaffleParticipant>(entity =>
+        {
+            entity.HasKey(e => e.ParticipantId);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(30);
+            entity.Property(e => e.TotalPaid).HasColumnType("decimal(10, 2)");
+
+            entity.HasOne(e => e.Raffle)
+                .WithMany(r => r.Participants)
+                .HasForeignKey(e => e.RaffleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.RaffleId);
+            entity.HasIndex(e => e.PhoneNumber);
+            entity.HasIndex(e => e.SessionToken);
+            entity.HasIndex(e => new { e.RaffleId, e.PhoneNumber }).IsUnique();
         });
     }
 }

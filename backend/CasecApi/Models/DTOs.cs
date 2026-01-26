@@ -982,6 +982,24 @@ public class SlideShowDto
     public bool AllowSkip { get; set; }
     public bool Loop { get; set; }
     public bool AutoPlay { get; set; }
+// ============ RAFFLE DTOs ============
+
+// Raffle DTO - Full raffle info
+public class RaffleDto
+{
+    public int RaffleId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public string Status { get; set; } = "Draft";
+    public int? WinningNumber { get; set; }
+    public string? RevealedDigits { get; set; }
+    public int TicketDigits { get; set; }
+    public int TotalTicketsSold { get; set; }
+    public decimal TotalRevenue { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public DateTime? DrawingDate { get; set; }
     public int? CreatedBy { get; set; }
     public string? CreatedByName { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -1432,4 +1450,241 @@ public class SlideWithObjectsDto
     // Legacy collections (for backwards compatibility)
     public List<SlideImageDto> Images { get; set; } = new();
     public List<SlideTextDto> Texts { get; set; } = new();
+    public List<RafflePrizeDto> Prizes { get; set; } = new();
+    public List<RaffleTicketTierDto> TicketTiers { get; set; } = new();
+    public int ParticipantCount { get; set; }
+}
+
+// Raffle Summary DTO - For list views
+public class RaffleSummaryDto
+{
+    public int RaffleId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+    public string Status { get; set; } = "Draft";
+    public int TotalTicketsSold { get; set; }
+    public int ParticipantCount { get; set; }
+    public decimal TotalRevenue { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public DateTime? DrawingDate { get; set; }
+}
+
+// Create Raffle Request
+public class CreateRaffleRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public int TicketDigits { get; set; } = 6;
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public DateTime? DrawingDate { get; set; }
+    public List<CreateRafflePrizeRequest>? Prizes { get; set; }
+    public List<CreateRaffleTicketTierRequest>? TicketTiers { get; set; }
+}
+
+// Update Raffle Request
+public class UpdateRaffleRequest
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? Status { get; set; }
+    public int? TicketDigits { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public DateTime? DrawingDate { get; set; }
+}
+
+// Raffle Prize DTO
+public class RafflePrizeDto
+{
+    public int PrizeId { get; set; }
+    public int RaffleId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public decimal? Value { get; set; }
+    public int DisplayOrder { get; set; }
+    public bool IsGrandPrize { get; set; }
+}
+
+// Create Prize Request
+public class CreateRafflePrizeRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public decimal? Value { get; set; }
+    public int DisplayOrder { get; set; } = 0;
+    public bool IsGrandPrize { get; set; } = false;
+}
+
+// Update Prize Request
+public class UpdateRafflePrizeRequest
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public decimal? Value { get; set; }
+    public int? DisplayOrder { get; set; }
+    public bool? IsGrandPrize { get; set; }
+}
+
+// Ticket Tier DTO
+public class RaffleTicketTierDto
+{
+    public int TierId { get; set; }
+    public int RaffleId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public int TicketCount { get; set; }
+    public string? Description { get; set; }
+    public int DisplayOrder { get; set; }
+    public bool IsActive { get; set; }
+    public bool IsFeatured { get; set; }
+}
+
+// Create Ticket Tier Request
+public class CreateRaffleTicketTierRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public int TicketCount { get; set; }
+    public string? Description { get; set; }
+    public int DisplayOrder { get; set; } = 0;
+    public bool IsActive { get; set; } = true;
+    public bool IsFeatured { get; set; } = false;
+}
+
+// Update Ticket Tier Request
+public class UpdateRaffleTicketTierRequest
+{
+    public string? Name { get; set; }
+    public decimal? Price { get; set; }
+    public int? TicketCount { get; set; }
+    public string? Description { get; set; }
+    public int? DisplayOrder { get; set; }
+    public bool? IsActive { get; set; }
+    public bool? IsFeatured { get; set; }
+}
+
+// Raffle Participant DTO
+public class RaffleParticipantDto
+{
+    public int ParticipantId { get; set; }
+    public int RaffleId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
+    public bool IsVerified { get; set; }
+    public int? TicketStart { get; set; }
+    public int? TicketEnd { get; set; }
+    public int TotalTickets { get; set; }
+    public decimal TotalPaid { get; set; }
+    public string PaymentStatus { get; set; } = "Pending";
+    public string? PaymentMethod { get; set; }
+    public bool IsWinner { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+// Participant Registration Request
+public class RaffleRegistrationRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+}
+
+// OTP Verification Request
+public class RaffleOtpVerifyRequest
+{
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string OtpCode { get; set; } = string.Empty;
+}
+
+// Registration Response (includes session token)
+public class RaffleRegistrationResponse
+{
+    public int ParticipantId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public bool IsVerified { get; set; }
+    public string? SessionToken { get; set; }
+    public string? OtpMessage { get; set; } // For demo: shows OTP in dev mode
+}
+
+// Purchase Tickets Request
+public class RafflePurchaseRequest
+{
+    public int TierId { get; set; }
+    public string PaymentMethod { get; set; } = "Cash";
+    public string? TransactionId { get; set; }
+}
+
+// Purchase Response
+public class RafflePurchaseResponse
+{
+    public int ParticipantId { get; set; }
+    public int TicketStart { get; set; }
+    public int TicketEnd { get; set; }
+    public int TicketsAdded { get; set; }
+    public int TotalTickets { get; set; }
+    public decimal AmountPaid { get; set; }
+    public decimal TotalPaid { get; set; }
+}
+
+// Update Avatar Request
+public class RaffleUpdateAvatarRequest
+{
+    public string AvatarUrl { get; set; } = string.Empty;
+}
+
+// Drawing Page DTO - Info needed for the drawing display
+public class RaffleDrawingDto
+{
+    public int RaffleId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public string Status { get; set; } = "Draft";
+    public int? WinningNumber { get; set; }
+    public string? RevealedDigits { get; set; }
+    public int TicketDigits { get; set; }
+    public int TotalTicketsSold { get; set; }
+    public DateTime? DrawingDate { get; set; }
+    public List<RafflePrizeDto> Prizes { get; set; } = new();
+    public List<RaffleParticipantSummaryDto> Participants { get; set; } = new();
+}
+
+// Participant Summary for Drawing Page
+public class RaffleParticipantSummaryDto
+{
+    public int ParticipantId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
+    public int? TicketStart { get; set; }
+    public int? TicketEnd { get; set; }
+    public int TotalTickets { get; set; }
+    public bool IsWinner { get; set; }
+    public bool IsStillEligible { get; set; } // Based on revealed digits
+}
+
+// Reveal Next Digit Request
+public class RaffleRevealDigitRequest
+{
+    public int Digit { get; set; } // 0-9
+}
+
+// Admin: Confirm Payment Request
+public class RaffleConfirmPaymentRequest
+{
+    public bool Confirm { get; set; }
+    public string? Notes { get; set; }
+}
+
+// Resend OTP Request
+public class RaffleResendOtpRequest
+{
+    public string PhoneNumber { get; set; } = string.Empty;
 }

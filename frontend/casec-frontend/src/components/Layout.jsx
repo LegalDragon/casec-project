@@ -25,6 +25,20 @@ export default function Layout() {
     { path: '/profile', label: 'Profile' },
   ];
 
+  const adminLinks = user?.isAdmin ? [
+    { path: '/admin/users', label: 'Manage Users' },
+    { path: '/admin/membership-types', label: 'Membership Types' },
+    { path: '/admin/payments', label: 'Payments' },
+    { path: '/admin/payment-methods', label: 'Payment Methods' },
+    { path: '/admin/clubs', label: 'Manage Clubs' },
+    { path: '/admin/events', label: 'Manage Events' },
+    { path: '/admin/event-types', label: 'Event Types' },
+    { path: '/admin/polls', label: 'Polls' },
+    { path: '/admin/surveys', label: 'Surveys' },
+    { path: '/admin/raffles', label: 'Raffles' },
+    { path: '/admin/theme', label: 'Theme' },
+  ] : [];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

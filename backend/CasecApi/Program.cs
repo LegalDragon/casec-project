@@ -41,6 +41,9 @@ else
 // Add Asset Service (wraps file storage and saves to database)
 builder.Services.AddScoped<IAssetService, AssetService>();
 
+// Add Email/SMS Notification Service
+builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
+
 // Add HttpClient for URL metadata fetching
 builder.Services.AddHttpClient();
 
