@@ -225,6 +225,9 @@ export default function RaffleDrawing() {
   const pendingEliminationIds = useRef([]);
   const [flipAnimationComplete, setFlipAnimationComplete] = useState(false);
 
+  // Track if a reveal sequence is in progress (from button click until all animations complete)
+  const [isRevealInProgress, setIsRevealInProgress] = useState(false);
+
   // Displayed counts (updated after animation completes)
   const [displayedCounts, setDisplayedCounts] = useState({ people: 0, tickets: 0 });
 
@@ -302,21 +305,27 @@ export default function RaffleDrawing() {
 
   // Initialize displayed counts when data first loads or when no animation is pending
   useEffect(() => {
-    if (drawingData?.participants && pendingEliminationIds.current.length === 0 && Object.keys(animatingParticipants).length === 0) {
+    // Only update counts if NOT in a reveal sequence
+    if (drawingData?.participants && !isRevealInProgress && Object.keys(animatingParticipants).length === 0) {
       const eligible = drawingData.participants.filter(p => p.isStillEligible);
       setDisplayedCounts({
         people: eligible.length,
         tickets: eligible.reduce((sum, p) => sum + (p.totalTickets || 0), 0)
       });
     }
-  }, [drawingData?.participants, animatingParticipants]);
+  }, [drawingData?.participants, animatingParticipants, isRevealInProgress]);
 
   // Run elimination animation when flip animation completes
   useEffect(() => {
-    if (flipAnimationComplete && pendingEliminationIds.current.length > 0) {
-      const idsToAnimate = [...pendingEliminationIds.current];
-      pendingEliminationIds.current = [];
-      runEliminationAnimation(idsToAnimate);
+    if (flipAnimationComplete) {
+      if (pendingEliminationIds.current.length > 0) {
+        const idsToAnimate = [...pendingEliminationIds.current];
+        pendingEliminationIds.current = [];
+        runEliminationAnimation(idsToAnimate);
+      } else {
+        // No eliminations for this digit, mark reveal as complete
+        setIsRevealInProgress(false);
+      }
     }
   }, [flipAnimationComplete]);
 
@@ -365,6 +374,9 @@ export default function RaffleDrawing() {
         tickets: eligible.reduce((sum, p) => sum + (p.totalTickets || 0), 0)
       });
     }
+
+    // Mark reveal sequence as complete
+    setIsRevealInProgress(false);
 
     // Mark as recently moved for pop-in animation in eliminated section
     setRecentlyMovedIds(new Set(participantIds));
@@ -421,6 +433,7 @@ export default function RaffleDrawing() {
   const handleRevealNext = async () => {
     const currentIndex = drawingData?.revealedDigits?.length || 0;
     setRevealingIndex(currentIndex);
+    setIsRevealInProgress(true); // Mark reveal sequence as started
 
     try {
       const response = await rafflesAPI.revealNext(raffleId);
@@ -432,12 +445,14 @@ export default function RaffleDrawing() {
       } else {
         setError(response.message || "Failed to reveal digit");
         setRevealingIndex(-1);
+        setIsRevealInProgress(false);
       }
     } catch (err) {
       const errorMsg =
         typeof err === "string" ? err : err?.message || "Failed to reveal digit";
       setError(errorMsg);
       setRevealingIndex(-1);
+      setIsRevealInProgress(false);
     }
   };
 
