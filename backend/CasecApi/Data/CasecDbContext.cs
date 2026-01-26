@@ -583,7 +583,9 @@ public class CasecDbContext : DbContext
                 .HasForeignKey(e => e.CreatedBy)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.Slug)
+                .IsUnique()
+                .HasFilter("[Slug] IS NOT NULL");
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.IsFeatured);
         });
