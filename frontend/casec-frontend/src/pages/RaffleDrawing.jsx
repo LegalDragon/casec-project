@@ -100,7 +100,10 @@ function ParticipantCard({
   animationStage, // null, "shake", "shrink", "exit", "entered"
   isInEliminatedSection,
   totalDigits,
+  size = "normal", // "normal" or "small"
 }) {
+  const isSmall = size === "small";
+
   const getAnimationClasses = () => {
     if (animationStage === "shake") {
       return "animate-shake grayscale";
@@ -115,46 +118,64 @@ function ParticipantCard({
       return "animate-pop-in";
     }
     if (isInEliminatedSection) {
-      return "opacity-50 grayscale scale-90";
+      return "opacity-60 grayscale";
     }
     return "";
   };
 
   return (
     <div
-      className={`flex flex-col items-center gap-1 transition-all duration-500 ${getAnimationClasses()}`}
+      className={`flex flex-col items-center transition-all duration-500 ${getAnimationClasses()} ${
+        isSmall ? "gap-0.5" : "gap-1"
+      }`}
     >
       <div className="relative">
         {/* Avatar */}
-        <div className="w-16 h-16 relative">
+        <div className={`relative ${isSmall ? "w-8 h-8" : "w-16 h-16"}`}>
           {participant.avatarUrl ? (
             <img
               src={getAssetUrl(participant.avatarUrl)}
               alt={participant.name}
-              className="w-full h-full rounded-full object-cover border-2 border-white shadow-lg"
+              className={`w-full h-full rounded-full object-cover border-2 border-white shadow-lg ${
+                isSmall ? "border" : "border-2"
+              }`}
             />
           ) : (
-            <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow-lg">
+            <div
+              className={`w-full h-full rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold border-white shadow-lg ${
+                isSmall ? "text-xs border" : "text-lg border-2"
+              }`}
+            >
               {participant.name.charAt(0).toUpperCase()}
             </div>
           )}
 
-          {/* Ticket count badge */}
-          <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.5rem] text-center">
-            {participant.totalTickets}
-          </div>
+          {/* Ticket count badge - only show on normal size */}
+          {!isSmall && (
+            <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.5rem] text-center">
+              {participant.totalTickets}
+            </div>
+          )}
 
           {/* Winner crown */}
           {participant.isWinner && (
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-              <Trophy className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-bounce" />
+              <Trophy
+                className={`text-yellow-400 fill-yellow-400 animate-bounce ${
+                  isSmall ? "w-4 h-4" : "w-6 h-6"
+                }`}
+              />
             </div>
           )}
 
           {/* Elimination overlay */}
           {animationStage === "shake" && (
             <div className="absolute inset-0 flex items-center justify-center bg-red-500/30 rounded-full">
-              <XCircle className="w-10 h-10 text-red-500 animate-pulse" />
+              <XCircle
+                className={`text-red-500 animate-pulse ${
+                  isSmall ? "w-5 h-5" : "w-10 h-10"
+                }`}
+              />
             </div>
           )}
         </div>
@@ -162,15 +183,17 @@ function ParticipantCard({
 
       {/* Name */}
       <span
-        className={`text-xs font-medium truncate max-w-16 ${
-          isInEliminatedSection ? "text-gray-500" : "text-white"
+        className={`font-medium truncate ${
+          isSmall
+            ? "text-[10px] max-w-8 text-gray-500"
+            : "text-xs max-w-16 " + (isInEliminatedSection ? "text-gray-500" : "text-white")
         }`}
       >
         {participant.name.split(" ")[0]}
       </span>
 
-      {/* Ticket range - only show if not in eliminated section */}
-      {!isInEliminatedSection && (
+      {/* Ticket range - only show if not in eliminated section and not small */}
+      {!isInEliminatedSection && !isSmall && (
         <span className="text-gray-500 text-xs font-mono">
           {participant.ticketStart?.toString().padStart(totalDigits, "0")}-
           {participant.ticketEnd?.toString().padStart(totalDigits, "0")}
@@ -730,13 +753,27 @@ export default function RaffleDrawing() {
         )}
 
         {/* Participants Section */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Still Eligible */}
+        <div className="space-y-4">
+          {/* Possible Winners */}
           <div className="bg-green-900/20 border border-green-500/30 rounded-2xl p-6">
-            <h3 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
-              <Ticket className="w-5 h-5" />
-              Still in the Running ({eligibleParticipants.filter(p => p.isStillEligible).length})
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-green-400 flex items-center gap-2">
+                <Ticket className="w-5 h-5" />
+                Possible Winners
+              </h3>
+              <div className="flex gap-4 text-sm">
+                <span className="text-green-300">
+                  <span className="font-bold">{eligibleParticipants.filter(p => p.isStillEligible).length}</span> people
+                </span>
+                <span className="text-yellow-400">
+                  <span className="font-bold">
+                    {eligibleParticipants
+                      .filter(p => p.isStillEligible)
+                      .reduce((sum, p) => sum + (p.totalTickets || 0), 0)}
+                  </span> tickets
+                </span>
+              </div>
+            </div>
             <div className="flex flex-wrap gap-4 min-h-[100px]">
               {eligibleParticipants.map((participant) => (
                 <ParticipantCard
@@ -745,6 +782,7 @@ export default function RaffleDrawing() {
                   animationStage={animatingParticipants[participant.participantId]}
                   isInEliminatedSection={false}
                   totalDigits={totalDigits}
+                  size="normal"
                 />
               ))}
               {eligibleParticipants.length === 0 && (
@@ -753,31 +791,36 @@ export default function RaffleDrawing() {
             </div>
           </div>
 
-          {/* Eliminated */}
-          <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-6">
-            <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
-              <XCircle className="w-5 h-5" />
-              Eliminated ({eliminatedParticipants.length})
-            </h3>
-            <div className="flex flex-wrap gap-3 min-h-[100px]">
-              {eliminatedParticipants.map((participant) => (
-                <ParticipantCard
-                  key={participant.participantId}
-                  participant={participant}
-                  animationStage={
-                    recentlyMovedIds.has(participant.participantId)
-                      ? "entered"
-                      : null
-                  }
-                  isInEliminatedSection={true}
-                  totalDigits={totalDigits}
-                />
-              ))}
-              {eliminatedParticipants.length === 0 && (
-                <p className="text-gray-500 text-sm">No one eliminated yet</p>
-              )}
+          {/* Eliminated - Below, smaller */}
+          {eliminatedParticipants.length > 0 && (
+            <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                  <XCircle className="w-4 h-4" />
+                  Eliminated
+                </h3>
+                <span className="text-xs text-gray-600">
+                  {eliminatedParticipants.length} people
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {eliminatedParticipants.map((participant) => (
+                  <ParticipantCard
+                    key={participant.participantId}
+                    participant={participant}
+                    animationStage={
+                      recentlyMovedIds.has(participant.participantId)
+                        ? "entered"
+                        : null
+                    }
+                    isInEliminatedSection={true}
+                    totalDigits={totalDigits}
+                    size="small"
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* All Prizes */}
