@@ -10,7 +10,7 @@ import {
   ExternalLink,
   Play,
 } from "lucide-react";
-import { eventProgramsAPI, slideshowsAPI, getAssetUrl } from "../services/api";
+import { eventProgramsAPI, slideShowsAPI, getAssetUrl } from "../services/api";
 
 export default function EventProgram() {
   const { slug } = useParams();
@@ -35,7 +35,7 @@ export default function EventProgram() {
         // Load slideshows if any
         if (response.data.slideShowIds?.length > 0) {
           try {
-            const allSlideshows = await slideshowsAPI.getAll();
+            const allSlideshows = await slideShowsAPI.getAll();
             if (allSlideshows.success) {
               const programSlideshows = allSlideshows.data.filter((s) =>
                 response.data.slideShowIds.includes(s.slideShowId)

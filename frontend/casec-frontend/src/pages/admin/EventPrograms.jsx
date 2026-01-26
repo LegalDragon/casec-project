@@ -17,7 +17,7 @@ import {
   ExternalLink,
   Star,
 } from "lucide-react";
-import { eventProgramsAPI, slideshowsAPI, getAssetUrl } from "../../services/api";
+import { eventProgramsAPI, slideShowsAPI, getAssetUrl } from "../../services/api";
 
 export default function AdminEventPrograms() {
   const [programs, setPrograms] = useState([]);
@@ -49,7 +49,7 @@ export default function AdminEventPrograms() {
       setLoading(true);
       const [programsRes, slideshowsRes] = await Promise.all([
         eventProgramsAPI.getAll(true),
-        slideshowsAPI.getAll(),
+        slideShowsAPI.getAll(),
       ]);
 
       if (programsRes.success) {
