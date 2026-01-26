@@ -366,6 +366,8 @@ export const slideShowsAPI = {
     api.post("/slideshows/admin/images/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+};
+
 // Raffle APIs
 export const rafflesAPI = {
   // Public endpoints
