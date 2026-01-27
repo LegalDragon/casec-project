@@ -996,36 +996,77 @@ function ProgramEditor({ program, onReload }) {
 // Section Editor Component
 function SectionEditor({ section, onSave, onCancel }) {
   const [data, setData] = useState({
-    title: section.title,
+    title: section.title || "",
+    titleZh: section.titleZh || "",
+    titleEn: section.titleEn || "",
     subtitle: section.subtitle || "",
+    subtitleZh: section.subtitleZh || "",
+    subtitleEn: section.subtitleEn || "",
     description: section.description || "",
+    descriptionZh: section.descriptionZh || "",
+    descriptionEn: section.descriptionEn || "",
   });
 
   return (
-    <div className="flex-1 flex items-center gap-2">
-      <input
-        type="text"
-        value={data.title}
-        onChange={(e) => setData({ ...data, title: e.target.value })}
-        className="flex-1 border rounded px-2 py-1 text-sm"
-        placeholder="Section title"
-      />
-      <input
-        type="text"
-        value={data.subtitle}
-        onChange={(e) => setData({ ...data, subtitle: e.target.value })}
-        className="flex-1 border rounded px-2 py-1 text-sm"
-        placeholder="Subtitle (optional)"
-      />
-      <button
-        onClick={() => onSave(data)}
-        className="p-1 text-emerald-600 hover:text-emerald-700"
-      >
-        <Save className="w-4 h-4" />
-      </button>
-      <button onClick={onCancel} className="p-1 text-gray-400 hover:text-gray-600">
-        <X className="w-4 h-4" />
-      </button>
+    <div className="flex-1 space-y-3 p-3 bg-white rounded-lg border">
+      {/* Title - Bilingual */}
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-gray-600">Title (Bilingual)</label>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            value={data.titleZh}
+            onChange={(e) => setData({ ...data, titleZh: e.target.value, title: e.target.value || data.title })}
+            className="border rounded px-2 py-1 text-sm"
+            placeholder="中文标题"
+          />
+          <input
+            type="text"
+            value={data.titleEn}
+            onChange={(e) => setData({ ...data, titleEn: e.target.value })}
+            className="border rounded px-2 py-1 text-sm"
+            placeholder="English Title"
+          />
+        </div>
+      </div>
+
+      {/* Subtitle - Bilingual */}
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-gray-600">Subtitle (Bilingual, optional)</label>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            value={data.subtitleZh}
+            onChange={(e) => setData({ ...data, subtitleZh: e.target.value, subtitle: e.target.value || data.subtitle })}
+            className="border rounded px-2 py-1 text-sm"
+            placeholder="中文副标题"
+          />
+          <input
+            type="text"
+            value={data.subtitleEn}
+            onChange={(e) => setData({ ...data, subtitleEn: e.target.value })}
+            className="border rounded px-2 py-1 text-sm"
+            placeholder="English Subtitle"
+          />
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-2 pt-2">
+        <button
+          onClick={onCancel}
+          className="text-sm text-gray-500 px-3 py-1 hover:text-gray-700"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onSave(data)}
+          className="flex items-center gap-1 text-sm bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700"
+        >
+          <Save className="w-3 h-3" />
+          Save
+        </button>
+      </div>
     </div>
   );
 }
@@ -1034,55 +1075,121 @@ function SectionEditor({ section, onSave, onCancel }) {
 function ItemEditor({ item, onSave, onCancel }) {
   const [data, setData] = useState({
     itemNumber: item.itemNumber,
-    title: item.title,
+    title: item.title || "",
+    titleZh: item.titleZh || "",
+    titleEn: item.titleEn || "",
     performanceType: item.performanceType || "",
+    performanceTypeZh: item.performanceTypeZh || "",
+    performanceTypeEn: item.performanceTypeEn || "",
     performerNames: item.performerNames || "",
     description: item.description || "",
+    descriptionZh: item.descriptionZh || "",
+    descriptionEn: item.descriptionEn || "",
   });
 
   return (
-    <div className="flex-1 grid grid-cols-5 gap-2">
-      <input
-        type="number"
-        value={data.itemNumber}
-        onChange={(e) => setData({ ...data, itemNumber: parseInt(e.target.value) || 1 })}
-        className="border rounded px-2 py-1 text-sm w-16"
-        placeholder="#"
-      />
-      <input
-        type="text"
-        value={data.title}
-        onChange={(e) => setData({ ...data, title: e.target.value })}
-        className="border rounded px-2 py-1 text-sm col-span-2"
-        placeholder="Title (e.g., 《天鹅湖》)"
-      />
-      <input
-        type="text"
-        value={data.performanceType}
-        onChange={(e) => setData({ ...data, performanceType: e.target.value })}
-        className="border rounded px-2 py-1 text-sm"
-        placeholder="Type (e.g., 芭蕾舞)"
-      />
-      <input
-        type="text"
-        value={data.performerNames}
-        onChange={(e) => setData({ ...data, performerNames: e.target.value })}
-        className="border rounded px-2 py-1 text-sm"
-        placeholder="Performers"
-      />
-      <div className="col-span-5 flex justify-end gap-2">
+    <div className="flex-1 space-y-3 p-3 bg-white rounded-lg border">
+      {/* Item Number and Performer Names */}
+      <div className="grid grid-cols-4 gap-2">
+        <div>
+          <label className="text-xs font-medium text-gray-600">Item #</label>
+          <input
+            type="number"
+            value={data.itemNumber}
+            onChange={(e) => setData({ ...data, itemNumber: parseInt(e.target.value) || 1 })}
+            className="w-full border rounded px-2 py-1 text-sm"
+            placeholder="#"
+          />
+        </div>
+        <div className="col-span-3">
+          <label className="text-xs font-medium text-gray-600">Performer Names</label>
+          <input
+            type="text"
+            value={data.performerNames}
+            onChange={(e) => setData({ ...data, performerNames: e.target.value })}
+            className="w-full border rounded px-2 py-1 text-sm"
+            placeholder="Performer names"
+          />
+        </div>
+      </div>
+
+      {/* Title - Bilingual */}
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-gray-600">Title (Bilingual)</label>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            value={data.titleZh}
+            onChange={(e) => setData({ ...data, titleZh: e.target.value, title: e.target.value || data.title })}
+            className="border rounded px-2 py-1 text-sm"
+            placeholder="中文标题 (e.g., 《天鹅湖》)"
+          />
+          <input
+            type="text"
+            value={data.titleEn}
+            onChange={(e) => setData({ ...data, titleEn: e.target.value })}
+            className="border rounded px-2 py-1 text-sm"
+            placeholder="English Title (e.g., Swan Lake)"
+          />
+        </div>
+      </div>
+
+      {/* Performance Type - Bilingual */}
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-gray-600">Performance Type (Bilingual)</label>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            value={data.performanceTypeZh}
+            onChange={(e) => setData({ ...data, performanceTypeZh: e.target.value, performanceType: e.target.value || data.performanceType })}
+            className="border rounded px-2 py-1 text-sm"
+            placeholder="中文类型 (e.g., 芭蕾舞)"
+          />
+          <input
+            type="text"
+            value={data.performanceTypeEn}
+            onChange={(e) => setData({ ...data, performanceTypeEn: e.target.value })}
+            className="border rounded px-2 py-1 text-sm"
+            placeholder="English Type (e.g., Ballet)"
+          />
+        </div>
+      </div>
+
+      {/* Description - Bilingual */}
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-gray-600">Description (Bilingual, optional)</label>
+        <div className="grid grid-cols-2 gap-2">
+          <textarea
+            value={data.descriptionZh}
+            onChange={(e) => setData({ ...data, descriptionZh: e.target.value, description: e.target.value || data.description })}
+            className="border rounded px-2 py-1 text-sm"
+            rows={2}
+            placeholder="中文描述..."
+          />
+          <textarea
+            value={data.descriptionEn}
+            onChange={(e) => setData({ ...data, descriptionEn: e.target.value })}
+            className="border rounded px-2 py-1 text-sm"
+            rows={2}
+            placeholder="English description..."
+          />
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-2 pt-2">
+        <button
+          onClick={onCancel}
+          className="text-sm text-gray-500 px-3 py-1 hover:text-gray-700"
+        >
+          Cancel
+        </button>
         <button
           onClick={() => onSave(data)}
-          className="flex items-center gap-1 text-sm bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700"
+          className="flex items-center gap-1 text-sm bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700"
         >
           <Save className="w-3 h-3" />
           Save
-        </button>
-        <button
-          onClick={onCancel}
-          className="text-sm text-gray-500 px-2 py-1 hover:text-gray-700"
-        >
-          Cancel
         </button>
       </div>
     </div>
