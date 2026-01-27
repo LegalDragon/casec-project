@@ -27,6 +27,26 @@ public class EventTypesController : ControllerBase
         return int.TryParse(userIdClaim, out var userId) ? userId : 0;
     }
 
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserId();
+        if (userId == 0) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: /EventTypes (Public - returns active event types)
     [AllowAnonymous]
     [HttpGet]
@@ -69,13 +89,16 @@ public class EventTypesController : ControllerBase
         }
     }
 
-    // GET: /EventTypes/all (Admin only - includes inactive)
-    [Authorize(Roles = "Admin")]
+    // GET: /EventTypes/all (includes inactive)
+    [Authorize]
     [HttpGet("all")]
     public async Task<ActionResult<ApiResponse<List<EventTypeDto>>>> GetAllEventTypes()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("event-types"))
+                return ForbiddenResponse<List<EventTypeDto>>();
+
             var eventTypes = await _context.EventTypes
                 .OrderBy(et => et.DisplayOrder)
                 .ThenBy(et => et.DisplayName)
@@ -110,13 +133,16 @@ public class EventTypesController : ControllerBase
         }
     }
 
-    // GET: /EventTypes/{id} (Admin only)
-    [Authorize(Roles = "Admin")]
+    // GET: /EventTypes/{id}
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<EventTypeDto>>> GetEventType(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("event-types"))
+                return ForbiddenResponse<EventTypeDto>();
+
             var eventType = await _context.EventTypes.FindAsync(id);
 
             if (eventType == null)
@@ -156,13 +182,16 @@ public class EventTypesController : ControllerBase
         }
     }
 
-    // POST: /EventTypes (Admin only)
-    [Authorize(Roles = "Admin")]
+    // POST: /EventTypes
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<EventTypeDto>>> CreateEventType([FromBody] CreateEventTypeRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("event-types", requireEdit: true))
+                return ForbiddenResponse<EventTypeDto>();
+
             // Check for duplicate code
             var existingCode = await _context.EventTypes
                 .AnyAsync(et => et.Code == request.Code);
@@ -233,13 +262,16 @@ public class EventTypesController : ControllerBase
         }
     }
 
-    // PUT: /EventTypes/{id} (Admin only)
-    [Authorize(Roles = "Admin")]
+    // PUT: /EventTypes/{id}
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<EventTypeDto>>> UpdateEventType(int id, [FromBody] UpdateEventTypeRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("event-types", requireEdit: true))
+                return ForbiddenResponse<EventTypeDto>();
+
             var eventType = await _context.EventTypes.FindAsync(id);
 
             if (eventType == null)
@@ -326,13 +358,16 @@ public class EventTypesController : ControllerBase
         }
     }
 
-    // DELETE: /EventTypes/{id} (Admin only)
-    [Authorize(Roles = "Admin")]
+    // DELETE: /EventTypes/{id}
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteEventType(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("event-types", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var eventType = await _context.EventTypes.FindAsync(id);
 
             if (eventType == null)

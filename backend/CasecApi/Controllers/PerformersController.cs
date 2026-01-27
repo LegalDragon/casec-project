@@ -20,6 +20,32 @@ public class PerformersController : ControllerBase
         _logger = logger;
     }
 
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserId();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: /Performers - Get all performers (public, active only)
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<PerformerDto>>>> GetPerformers()
@@ -62,13 +88,16 @@ public class PerformersController : ControllerBase
         }
     }
 
-    // GET: /Performers/admin/all - Get all performers including inactive (admin only)
-    [Authorize(Roles = "Admin")]
+    // GET: /Performers/admin/all - Get all performers including inactive
+    [Authorize]
     [HttpGet("admin/all")]
     public async Task<ActionResult<ApiResponse<List<PerformerDto>>>> GetAllPerformers()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("performers"))
+                return ForbiddenResponse<List<PerformerDto>>();
+
             var performers = await _context.Performers
                 .OrderBy(p => p.Name)
                 .Select(p => new PerformerDto
@@ -154,13 +183,16 @@ public class PerformersController : ControllerBase
         }
     }
 
-    // POST: /Performers - Create a new performer (admin only)
-    [Authorize(Roles = "Admin")]
+    // POST: /Performers - Create a new performer
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<PerformerDto>>> CreatePerformer([FromBody] CreatePerformerRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("performers", requireEdit: true))
+                return ForbiddenResponse<PerformerDto>();
+
             var performer = new Performer
             {
                 Name = request.Name,
@@ -213,13 +245,16 @@ public class PerformersController : ControllerBase
         }
     }
 
-    // PUT: /Performers/{id} - Update a performer (admin only)
-    [Authorize(Roles = "Admin")]
+    // PUT: /Performers/{id} - Update a performer
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<PerformerDto>>> UpdatePerformer(int id, [FromBody] UpdatePerformerRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("performers", requireEdit: true))
+                return ForbiddenResponse<PerformerDto>();
+
             var performer = await _context.Performers.FindAsync(id);
             if (performer == null)
             {
@@ -277,13 +312,16 @@ public class PerformersController : ControllerBase
         }
     }
 
-    // DELETE: /Performers/{id} - Delete a performer (admin only)
-    [Authorize(Roles = "Admin")]
+    // DELETE: /Performers/{id} - Delete a performer
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeletePerformer(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("performers", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var performer = await _context.Performers.FindAsync(id);
             if (performer == null)
             {

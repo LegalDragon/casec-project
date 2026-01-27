@@ -33,6 +33,32 @@ public class RafflesController : ControllerBase
         return int.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 
+    private int? GetCurrentUserIdNullable()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserIdNullable();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: /Raffles - Get active raffles (public)
     [AllowAnonymous]
     [HttpGet]
@@ -229,12 +255,15 @@ public class RafflesController : ControllerBase
     // ============ ADMIN ENDPOINTS ============
 
     // GET: /Raffles/admin/all - Get all raffles (admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("admin/all")]
     public async Task<ActionResult<ApiResponse<List<RaffleDto>>>> GetAllRaffles()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles"))
+                return ForbiddenResponse<List<RaffleDto>>();
+
             var raffles = await _context.Raffles
                 .Include(r => r.Prizes)
                 .Include(r => r.TicketTiers)
@@ -263,12 +292,15 @@ public class RafflesController : ControllerBase
     }
 
     // POST: /Raffles - Create a new raffle (admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<RaffleDto>>> CreateRaffle([FromBody] CreateRaffleRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RaffleDto>();
+
             var userId = GetCurrentUserId();
 
             var raffle = new Raffle
@@ -359,12 +391,15 @@ public class RafflesController : ControllerBase
     }
 
     // PUT: /Raffles/{id} - Update raffle (admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<RaffleDto>>> UpdateRaffle(int id, [FromBody] UpdateRaffleRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RaffleDto>();
+
             var raffle = await _context.Raffles
                 .Include(r => r.Prizes)
                 .Include(r => r.TicketTiers)
@@ -428,12 +463,15 @@ public class RafflesController : ControllerBase
     }
 
     // DELETE: /Raffles/{id} - Delete raffle (admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteRaffle(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var raffle = await _context.Raffles
                 .Include(r => r.Prizes)
                 .Include(r => r.TicketTiers)
@@ -486,12 +524,15 @@ public class RafflesController : ControllerBase
     // ============ PRIZE MANAGEMENT ============
 
     // POST: /Raffles/{id}/prizes - Add prize to raffle
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("{id}/prizes")]
     public async Task<ActionResult<ApiResponse<RafflePrizeDto>>> AddPrize(int id, [FromBody] CreateRafflePrizeRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RafflePrizeDto>();
+
             var raffle = await _context.Raffles.FindAsync(id);
             if (raffle == null)
             {
@@ -536,12 +577,15 @@ public class RafflesController : ControllerBase
     }
 
     // PUT: /Raffles/prizes/{prizeId} - Update prize
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("prizes/{prizeId}")]
     public async Task<ActionResult<ApiResponse<RafflePrizeDto>>> UpdatePrize(int prizeId, [FromBody] UpdateRafflePrizeRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RafflePrizeDto>();
+
             var prize = await _context.RafflePrizes.FindAsync(prizeId);
             if (prize == null)
             {
@@ -586,12 +630,15 @@ public class RafflesController : ControllerBase
     }
 
     // DELETE: /Raffles/prizes/{prizeId} - Delete prize
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("prizes/{prizeId}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeletePrize(int prizeId)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var prize = await _context.RafflePrizes.FindAsync(prizeId);
             if (prize == null)
             {
@@ -626,12 +673,15 @@ public class RafflesController : ControllerBase
     // ============ TICKET TIER MANAGEMENT ============
 
     // POST: /Raffles/{id}/tiers - Add ticket tier
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("{id}/tiers")]
     public async Task<ActionResult<ApiResponse<RaffleTicketTierDto>>> AddTicketTier(int id, [FromBody] CreateRaffleTicketTierRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RaffleTicketTierDto>();
+
             var raffle = await _context.Raffles.FindAsync(id);
             if (raffle == null)
             {
@@ -677,12 +727,15 @@ public class RafflesController : ControllerBase
     }
 
     // PUT: /Raffles/tiers/{tierId} - Update ticket tier
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("tiers/{tierId}")]
     public async Task<ActionResult<ApiResponse<RaffleTicketTierDto>>> UpdateTicketTier(int tierId, [FromBody] UpdateRaffleTicketTierRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RaffleTicketTierDto>();
+
             var tier = await _context.RaffleTicketTiers.FindAsync(tierId);
             if (tier == null)
             {
@@ -729,12 +782,15 @@ public class RafflesController : ControllerBase
     }
 
     // DELETE: /Raffles/tiers/{tierId} - Delete ticket tier
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("tiers/{tierId}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteTicketTier(int tierId)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var tier = await _context.RaffleTicketTiers.FindAsync(tierId);
             if (tier == null)
             {
@@ -769,12 +825,15 @@ public class RafflesController : ControllerBase
     // ============ DRAWING MANAGEMENT ============
 
     // POST: /Raffles/{id}/start-drawing - Start the drawing process
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("{id}/start-drawing")]
     public async Task<ActionResult<ApiResponse<RaffleDrawingDto>>> StartDrawing(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RaffleDrawingDto>();
+
             var raffle = await _context.Raffles
                 .Include(r => r.Prizes)
                 .Include(r => r.Participants)
@@ -852,12 +911,15 @@ public class RafflesController : ControllerBase
     }
 
     // POST: /Raffles/{id}/reveal-next - Reveal the next digit of pre-selected winning number
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("{id}/reveal-next")]
     public async Task<ActionResult<ApiResponse<RaffleDrawingDto>>> RevealNextDigit(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RaffleDrawingDto>();
+
             var raffle = await _context.Raffles
                 .Include(r => r.Prizes)
                 .Include(r => r.Participants)
@@ -961,12 +1023,15 @@ public class RafflesController : ControllerBase
     }
 
     // POST: /Raffles/{id}/reveal-digit - Reveal a specific digit (legacy, kept for compatibility)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("{id}/reveal-digit")]
     public async Task<ActionResult<ApiResponse<RaffleDrawingDto>>> RevealDigit(int id, [FromBody] RaffleRevealDigitRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RaffleDrawingDto>();
+
             var raffle = await _context.Raffles
                 .Include(r => r.Prizes)
                 .Include(r => r.Participants)
@@ -1068,12 +1133,15 @@ public class RafflesController : ControllerBase
     }
 
     // POST: /Raffles/{id}/reset-drawing - Reset the drawing
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("{id}/reset-drawing")]
     public async Task<ActionResult<ApiResponse<RaffleDrawingDto>>> ResetDrawing(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RaffleDrawingDto>();
+
             var raffle = await _context.Raffles
                 .Include(r => r.Participants)
                 .FirstOrDefaultAsync(r => r.RaffleId == id);
@@ -1116,12 +1184,15 @@ public class RafflesController : ControllerBase
     // ============ PARTICIPANT MANAGEMENT (Admin) ============
 
     // GET: /Raffles/{id}/participants - Get all participants
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("{id}/participants")]
     public async Task<ActionResult<ApiResponse<List<RaffleParticipantDto>>>> GetParticipants(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles"))
+                return ForbiddenResponse<List<RaffleParticipantDto>>();
+
             var raffle = await _context.Raffles.FindAsync(id);
             if (raffle == null)
             {
@@ -1157,12 +1228,15 @@ public class RafflesController : ControllerBase
     }
 
     // POST: /Raffles/participants/{participantId}/confirm-payment - Confirm participant payment
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("participants/{participantId}/confirm-payment")]
     public async Task<ActionResult<ApiResponse<RaffleParticipantDto>>> ConfirmPayment(int participantId, [FromBody] RaffleConfirmPaymentRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("raffles", requireEdit: true))
+                return ForbiddenResponse<RaffleParticipantDto>();
+
             var participant = await _context.RaffleParticipants
                 .Include(p => p.Raffle)
                 .FirstOrDefaultAsync(p => p.ParticipantId == participantId);

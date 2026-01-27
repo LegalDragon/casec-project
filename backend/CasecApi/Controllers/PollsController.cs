@@ -27,6 +27,32 @@ public class PollsController : ControllerBase
         return int.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 
+    private int? GetCurrentUserIdNullable()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserIdNullable();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     private string GetClientIp()
     {
         return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
@@ -198,12 +224,15 @@ public class PollsController : ControllerBase
     }
 
     // GET: /Polls/admin/all (Admin only - includes all polls)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("admin/all")]
     public async Task<ActionResult<ApiResponse<List<PollAdminDto>>>> GetAllPolls()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("polls"))
+                return ForbiddenResponse<List<PollAdminDto>>();
+
             var polls = await _context.Polls
                 .Include(p => p.Options)
                 .Include(p => p.Responses)
@@ -263,12 +292,15 @@ public class PollsController : ControllerBase
     }
 
     // GET: /Polls/{id}/results (Admin only - detailed results)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("{id}/results")]
     public async Task<ActionResult<ApiResponse<PollResultsDto>>> GetPollResults(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("polls"))
+                return ForbiddenResponse<PollResultsDto>();
+
             var poll = await _context.Polls
                 .Include(p => p.Options)
                 .Include(p => p.Responses)
@@ -340,12 +372,15 @@ public class PollsController : ControllerBase
     }
 
     // POST: /Polls (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<PollAdminDto>>> CreatePoll([FromBody] CreatePollRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("polls", requireEdit: true))
+                return ForbiddenResponse<PollAdminDto>();
+
             var userId = GetCurrentUserId();
 
             var poll = new Poll
@@ -429,12 +464,15 @@ public class PollsController : ControllerBase
     }
 
     // PUT: /Polls/{id} (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<PollAdminDto>>> UpdatePoll(int id, [FromBody] UpdatePollRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("polls", requireEdit: true))
+                return ForbiddenResponse<PollAdminDto>();
+
             var poll = await _context.Polls
                 .Include(p => p.Options)
                 .FirstOrDefaultAsync(p => p.PollId == id);
@@ -531,12 +569,15 @@ public class PollsController : ControllerBase
     }
 
     // DELETE: /Polls/{id} (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeletePoll(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("polls", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var poll = await _context.Polls
                 .Include(p => p.Options)
                 .Include(p => p.Responses)

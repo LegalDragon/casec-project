@@ -31,6 +31,26 @@ public class ThemeController : ControllerBase
         return int.TryParse(userIdClaim, out var userId) ? userId : 0;
     }
 
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserId();
+        if (userId == 0) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: api/Theme/active (Public - no auth required)
     [AllowAnonymous]
     [HttpGet("active")]
@@ -73,12 +93,14 @@ public class ThemeController : ControllerBase
     }
 
     // GET: api/Theme (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<ApiResponse<ThemeSettingsDto>>> GetTheme()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("theme")) return ForbiddenResponse<ThemeSettingsDto>();
+
             var theme = await _context.ThemeSettings
                 .Where(t => t.IsActive)
                 .OrderByDescending(t => t.ThemeId)
@@ -110,12 +132,14 @@ public class ThemeController : ControllerBase
     }
 
     // PUT: api/Theme (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut]
     public async Task<ActionResult<ApiResponse<ThemeSettingsDto>>> UpdateTheme([FromBody] UpdateThemeRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("theme", requireEdit: true)) return ForbiddenResponse<ThemeSettingsDto>();
+
             var theme = await _context.ThemeSettings
                 .Where(t => t.IsActive)
                 .OrderByDescending(t => t.ThemeId)
@@ -241,12 +265,14 @@ public class ThemeController : ControllerBase
     }
 
     // POST: api/Theme/logo (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("logo")]
     public async Task<ActionResult<ApiResponse<UploadResponse>>> UploadLogo(IFormFile file)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("theme", requireEdit: true)) return ForbiddenResponse<UploadResponse>();
+
             var currentUserId = GetCurrentUserId();
 
             // Get current theme
@@ -321,12 +347,14 @@ public class ThemeController : ControllerBase
     }
 
     // POST: api/Theme/favicon (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("favicon")]
     public async Task<ActionResult<ApiResponse<UploadResponse>>> UploadFavicon(IFormFile file)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("theme", requireEdit: true)) return ForbiddenResponse<UploadResponse>();
+
             var currentUserId = GetCurrentUserId();
 
             // Get current theme
@@ -402,12 +430,14 @@ public class ThemeController : ControllerBase
 
     // POST: api/Theme/hero-video (Admin only)
     // Upload a hero video file and return the asset URL
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("hero-video")]
     public async Task<ActionResult<ApiResponse<UploadResponse>>> UploadHeroVideo(IFormFile file)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("theme", requireEdit: true)) return ForbiddenResponse<UploadResponse>();
+
             if (file == null || file.Length == 0)
             {
                 return BadRequest(new ApiResponse<UploadResponse>
@@ -483,12 +513,14 @@ public class ThemeController : ControllerBase
     }
 
     // GET: api/Theme/presets (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("presets")]
     public async Task<ActionResult<ApiResponse<List<ThemePresetDto>>>> GetThemePresets()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("theme")) return ForbiddenResponse<List<ThemePresetDto>>();
+
             var presets = await _context.ThemePresets
                 .Select(p => new ThemePresetDto
                 {
@@ -524,12 +556,14 @@ public class ThemeController : ControllerBase
     }
 
     // POST: api/Theme/reset (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("reset")]
     public async Task<ActionResult<ApiResponse<ThemeSettingsDto>>> ResetToDefault()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("theme", requireEdit: true)) return ForbiddenResponse<ThemeSettingsDto>();
+
             var theme = await _context.ThemeSettings
                 .Where(t => t.IsActive)
                 .OrderByDescending(t => t.ThemeId)

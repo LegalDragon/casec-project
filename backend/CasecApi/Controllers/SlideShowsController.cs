@@ -30,6 +30,32 @@ public class SlideShowsController : ControllerBase
         return int.TryParse(userIdClaim, out var userId) ? userId : 0;
     }
 
+    private int? GetCurrentUserIdNullable()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserIdNullable();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // ============ PUBLIC ENDPOINTS ============
 
     // GET: /slideshows/code/{code}
@@ -227,11 +253,14 @@ public class SlideShowsController : ControllerBase
     // GET: /slideshows/admin/all
     // Get all slideshows (admin)
     [HttpGet("admin/all")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<SlideShowSummaryDto>>>> GetAllSlideShows()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows"))
+                return ForbiddenResponse<List<SlideShowSummaryDto>>();
+
             var slideShows = await _context.SlideShows
                 .Include(s => s.Slides)
                 .OrderBy(s => s.Name)
@@ -267,11 +296,14 @@ public class SlideShowsController : ControllerBase
     // GET: /slideshows/admin/{id}
     // Get slideshow details (admin)
     [HttpGet("admin/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideShowDto>>> GetSlideShowAdmin(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows"))
+                return ForbiddenResponse<SlideShowDto>();
+
             var slideShow = await _context.SlideShows
                 .Include(s => s.Slides.OrderBy(sl => sl.DisplayOrder))
                     .ThenInclude(sl => sl.Images.OrderBy(i => i.DisplayOrder))
@@ -314,11 +346,14 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin
     // Create a new slideshow
     [HttpPost("admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideShowDto>>> CreateSlideShow([FromBody] CreateSlideShowRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideShowDto>();
+
             // Check if code already exists
             if (await _context.SlideShows.AnyAsync(s => s.Code == request.Code))
             {
@@ -368,11 +403,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/{id}
     // Update a slideshow
     [HttpPut("admin/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideShowDto>>> UpdateSlideShow(int id, [FromBody] UpdateSlideShowRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideShowDto>();
+
             var slideShow = await _context.SlideShows.FindAsync(id);
             if (slideShow == null)
             {
@@ -428,11 +466,14 @@ public class SlideShowsController : ControllerBase
     // DELETE: /slideshows/admin/{id}
     // Delete a slideshow
     [HttpDelete("admin/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSlideShow(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var slideShow = await _context.SlideShows.FindAsync(id);
             if (slideShow == null)
             {
@@ -469,11 +510,14 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin/slides
     // Create a new slide
     [HttpPost("admin/slides")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideDto>>> CreateSlide([FromBody] CreateSlideRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideDto>();
+
             var slideShow = await _context.SlideShows.FindAsync(request.SlideShowId);
             if (slideShow == null)
             {
@@ -528,11 +572,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/slides/{id}
     // Update a slide
     [HttpPut("admin/slides/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideDto>>> UpdateSlide(int id, [FromBody] UpdateSlideRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideDto>();
+
             var slide = await _context.Slides
                 .Include(s => s.SlideShow)
                 .FirstOrDefaultAsync(s => s.SlideId == id);
@@ -590,11 +637,14 @@ public class SlideShowsController : ControllerBase
     // DELETE: /slideshows/admin/slides/{id}
     // Delete a slide
     [HttpDelete("admin/slides/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSlide(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var slide = await _context.Slides
                 .Include(s => s.SlideShow)
                 .FirstOrDefaultAsync(s => s.SlideId == id);
@@ -637,11 +687,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/slides/reorder
     // Reorder slides within a slideshow
     [HttpPut("admin/slides/reorder")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> ReorderSlides([FromBody] List<int> slideIds)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<bool>();
+
             for (int i = 0; i < slideIds.Count; i++)
             {
                 var slide = await _context.Slides.FindAsync(slideIds[i]);
@@ -677,11 +730,14 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin/slide-images
     // Add an image to a slide
     [HttpPost("admin/slide-images")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideImageDto>>> CreateSlideImage([FromBody] CreateSlideImageRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideImageDto>();
+
             var slide = await _context.Slides.FindAsync(request.SlideId);
             if (slide == null)
             {
@@ -733,11 +789,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/slide-images/{id}
     // Update a slide image
     [HttpPut("admin/slide-images/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideImageDto>>> UpdateSlideImage(int id, [FromBody] UpdateSlideImageRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideImageDto>();
+
             var slideImage = await _context.SlideImages.FindAsync(id);
             if (slideImage == null)
             {
@@ -783,11 +842,14 @@ public class SlideShowsController : ControllerBase
     // DELETE: /slideshows/admin/slide-images/{id}
     // Delete a slide image
     [HttpDelete("admin/slide-images/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSlideImage(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var slideImage = await _context.SlideImages.FindAsync(id);
             if (slideImage == null)
             {
@@ -824,11 +886,14 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin/slide-texts
     // Add a text element to a slide
     [HttpPost("admin/slide-texts")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideTextDto>>> CreateSlideText([FromBody] CreateSlideTextRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideTextDto>();
+
             var slide = await _context.Slides.FindAsync(request.SlideId);
             if (slide == null)
             {
@@ -879,11 +944,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/slide-texts/{id}
     // Update a slide text
     [HttpPut("admin/slide-texts/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideTextDto>>> UpdateSlideText(int id, [FromBody] UpdateSlideTextRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideTextDto>();
+
             var slideText = await _context.SlideTexts.FindAsync(id);
             if (slideText == null)
             {
@@ -928,11 +996,14 @@ public class SlideShowsController : ControllerBase
     // DELETE: /slideshows/admin/slide-texts/{id}
     // Delete a slide text
     [HttpDelete("admin/slide-texts/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSlideText(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var slideText = await _context.SlideTexts.FindAsync(id);
             if (slideText == null)
             {
@@ -969,11 +1040,14 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin/slide-objects
     // Add an object to a slide
     [HttpPost("admin/slide-objects")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideObjectDto>>> CreateSlideObject([FromBody] CreateSlideObjectRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideObjectDto>();
+
             var slide = await _context.Slides.FindAsync(request.SlideId);
             if (slide == null)
             {
@@ -1029,11 +1103,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/slide-objects/{id}
     // Update a slide object
     [HttpPut("admin/slide-objects/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideObjectDto>>> UpdateSlideObject(int id, [FromBody] UpdateSlideObjectRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideObjectDto>();
+
             var slideObject = await _context.SlideObjects.FindAsync(id);
             if (slideObject == null)
             {
@@ -1084,11 +1161,14 @@ public class SlideShowsController : ControllerBase
     // DELETE: /slideshows/admin/slide-objects/{id}
     // Delete a slide object
     [HttpDelete("admin/slide-objects/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSlideObject(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var slideObject = await _context.SlideObjects.FindAsync(id);
             if (slideObject == null)
             {
@@ -1123,11 +1203,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/slide-objects/reorder
     // Reorder objects within a slide
     [HttpPut("admin/slide-objects/reorder")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> ReorderSlideObjects([FromBody] List<int> objectIds)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<bool>();
+
             for (int i = 0; i < objectIds.Count; i++)
             {
                 var obj = await _context.SlideObjects.FindAsync(objectIds[i]);
@@ -1163,11 +1246,14 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin/slide-background-videos
     // Add a background video to a slide
     [HttpPost("admin/slide-background-videos")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideBackgroundVideoDto>>> CreateSlideBackgroundVideo([FromBody] CreateSlideBackgroundVideoRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideBackgroundVideoDto>();
+
             var slide = await _context.Slides.FindAsync(request.SlideId);
             if (slide == null)
             {
@@ -1216,11 +1302,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/slide-background-videos/{id}
     // Update a slide background video
     [HttpPut("admin/slide-background-videos/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SlideBackgroundVideoDto>>> UpdateSlideBackgroundVideo(int id, [FromBody] UpdateSlideBackgroundVideoRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SlideBackgroundVideoDto>();
+
             var bgVideo = await _context.SlideBackgroundVideos
                 .Include(b => b.Video)
                 .FirstOrDefaultAsync(b => b.SlideBackgroundVideoId == id);
@@ -1263,11 +1352,14 @@ public class SlideShowsController : ControllerBase
     // DELETE: /slideshows/admin/slide-background-videos/{id}
     // Delete a slide background video
     [HttpDelete("admin/slide-background-videos/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSlideBackgroundVideo(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var bgVideo = await _context.SlideBackgroundVideos.FindAsync(id);
             if (bgVideo == null)
             {
@@ -1302,11 +1394,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/slide-background-videos/reorder
     // Reorder background videos within a slide
     [HttpPut("admin/slide-background-videos/reorder")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> ReorderSlideBackgroundVideos([FromBody] List<int> videoIds)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<bool>();
+
             for (int i = 0; i < videoIds.Count; i++)
             {
                 var video = await _context.SlideBackgroundVideos.FindAsync(videoIds[i]);
@@ -1341,11 +1436,14 @@ public class SlideShowsController : ControllerBase
     // GET: /slideshows/admin/videos
     // Get all shared videos (admin)
     [HttpGet("admin/videos")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<SharedVideoDto>>>> GetAllSharedVideos()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows"))
+                return ForbiddenResponse<List<SharedVideoDto>>();
+
             var videos = await _context.SharedVideos
                 .OrderBy(v => v.DisplayOrder)
                 .Select(v => new SharedVideoDto
@@ -1380,11 +1478,14 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin/videos
     // Create a shared video
     [HttpPost("admin/videos")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SharedVideoDto>>> CreateSharedVideo([FromBody] CreateSharedVideoRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SharedVideoDto>();
+
             var video = new SharedVideo
             {
                 Url = request.Url,
@@ -1428,11 +1529,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/videos/{id}
     // Update a shared video
     [HttpPut("admin/videos/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SharedVideoDto>>> UpdateSharedVideo(int id, [FromBody] UpdateSharedVideoRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SharedVideoDto>();
+
             var video = await _context.SharedVideos.FindAsync(id);
             if (video == null)
             {
@@ -1483,11 +1587,14 @@ public class SlideShowsController : ControllerBase
     // DELETE: /slideshows/admin/videos/{id}
     // Delete a shared video
     [HttpDelete("admin/videos/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSharedVideo(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var video = await _context.SharedVideos.FindAsync(id);
             if (video == null)
             {
@@ -1524,11 +1631,14 @@ public class SlideShowsController : ControllerBase
     // GET: /slideshows/admin/images
     // Get all shared images (admin)
     [HttpGet("admin/images")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<SharedImageDto>>>> GetAllSharedImages()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows"))
+                return ForbiddenResponse<List<SharedImageDto>>();
+
             var images = await _context.SharedImages
                 .OrderBy(i => i.DisplayOrder)
                 .Select(i => new SharedImageDto
@@ -1563,11 +1673,14 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin/images
     // Create a shared image
     [HttpPost("admin/images")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SharedImageDto>>> CreateSharedImage([FromBody] CreateSharedImageRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SharedImageDto>();
+
             var image = new SharedImage
             {
                 Url = request.Url,
@@ -1611,11 +1724,14 @@ public class SlideShowsController : ControllerBase
     // PUT: /slideshows/admin/images/{id}
     // Update a shared image
     [HttpPut("admin/images/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SharedImageDto>>> UpdateSharedImage(int id, [FromBody] UpdateSharedImageRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SharedImageDto>();
+
             var image = await _context.SharedImages.FindAsync(id);
             if (image == null)
             {
@@ -1666,11 +1782,14 @@ public class SlideShowsController : ControllerBase
     // DELETE: /slideshows/admin/images/{id}
     // Delete a shared image
     [HttpDelete("admin/images/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSharedImage(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var image = await _context.SharedImages.FindAsync(id);
             if (image == null)
             {
@@ -1707,7 +1826,7 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin/videos/upload
     // Upload a video file and create a shared video entry
     [HttpPost("admin/videos/upload")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [RequestSizeLimit(110 * 1024 * 1024)] // 110MB for videos
     [RequestFormLimits(MultipartBodyLengthLimit = 110 * 1024 * 1024)]
     public async Task<ActionResult<ApiResponse<SharedVideoDto>>> UploadSharedVideo(
@@ -1717,6 +1836,9 @@ public class SlideShowsController : ControllerBase
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SharedVideoDto>();
+
             if (file == null || file.Length == 0)
             {
                 return BadRequest(new ApiResponse<SharedVideoDto>
@@ -1798,7 +1920,7 @@ public class SlideShowsController : ControllerBase
     // POST: /slideshows/admin/images/upload
     // Upload an image file and create a shared image entry
     [HttpPost("admin/images/upload")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [RequestSizeLimit(25 * 1024 * 1024)] // 25MB for images
     [RequestFormLimits(MultipartBodyLengthLimit = 25 * 1024 * 1024)]
     public async Task<ActionResult<ApiResponse<SharedImageDto>>> UploadSharedImage(
@@ -1808,6 +1930,9 @@ public class SlideShowsController : ControllerBase
     {
         try
         {
+            if (!await HasAreaPermissionAsync("slideshows", requireEdit: true))
+                return ForbiddenResponse<SharedImageDto>();
+
             if (file == null || file.Length == 0)
             {
                 return BadRequest(new ApiResponse<SharedImageDto>

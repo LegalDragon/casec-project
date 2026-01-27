@@ -20,6 +20,32 @@ public class MembershipDurationsController : ControllerBase
         _logger = logger;
     }
 
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserId();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: api/MembershipDurations
     // Get all active durations (public for payment forms)
     [HttpGet]
@@ -63,11 +89,14 @@ public class MembershipDurationsController : ControllerBase
     // GET: api/MembershipDurations/admin/all
     // Get all durations including inactive (Admin only)
     [HttpGet("admin/all")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<MembershipDurationDto>>>> GetAllDurations()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("membership-types"))
+                return ForbiddenResponse<List<MembershipDurationDto>>();
+
             var durations = await _context.MembershipDurations
                 .OrderBy(d => d.DisplayOrder)
                 .ThenBy(d => d.Months)
@@ -102,11 +131,14 @@ public class MembershipDurationsController : ControllerBase
     // POST: api/MembershipDurations/admin
     // Create a new duration (Admin only)
     [HttpPost("admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<MembershipDurationDto>>> CreateDuration([FromBody] CreateDurationRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("membership-types", requireEdit: true))
+                return ForbiddenResponse<MembershipDurationDto>();
+
             var duration = new MembershipDuration
             {
                 Name = request.Name,
@@ -148,11 +180,14 @@ public class MembershipDurationsController : ControllerBase
     // PUT: api/MembershipDurations/admin/{id}
     // Update a duration (Admin only)
     [HttpPut("admin/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<MembershipDurationDto>>> UpdateDuration(int id, [FromBody] CreateDurationRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("membership-types", requireEdit: true))
+                return ForbiddenResponse<MembershipDurationDto>();
+
             var duration = await _context.MembershipDurations.FindAsync(id);
             if (duration == null)
             {
@@ -201,11 +236,14 @@ public class MembershipDurationsController : ControllerBase
     // DELETE: api/MembershipDurations/admin/{id}
     // Delete a duration (Admin only)
     [HttpDelete("admin/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteDuration(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("membership-types", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var duration = await _context.MembershipDurations.FindAsync(id);
             if (duration == null)
             {

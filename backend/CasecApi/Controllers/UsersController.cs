@@ -34,6 +34,26 @@ public class UsersController : ControllerBase
         return int.TryParse(userIdClaim, out var userId) ? userId : 0;
     }
 
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserId();
+        if (userId == 0) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: api/Users/profile
     [HttpGet("profile")]
     public async Task<ActionResult<ApiResponse<UserProfileDto>>> GetProfile()
@@ -103,11 +123,14 @@ public class UsersController : ControllerBase
 
     // GET: api/Users (Admin only - list all users)
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<UserListDto>>>> GetAllUsers()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("users"))
+                return ForbiddenResponse<List<UserListDto>>();
+
             var users = await _context.Users
                 .Include(u => u.MembershipType)
                 .OrderBy(u => u.LastName)
@@ -278,12 +301,15 @@ public class UsersController : ControllerBase
     }
 
     // GET: api/Users/all (Admin only - detailed view)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("all")]
     public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetAllUsersDetailed()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("users"))
+                return ForbiddenResponse<List<UserDto>>();
+
             var users = await _context.Users
                 .Include(u => u.MembershipType)
                 .Include(u => u.ClubMemberships)
@@ -331,12 +357,15 @@ public class UsersController : ControllerBase
     }
 
     // PUT: api/Users/{id}/admin-edit (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("{id}/admin-edit")]
     public async Task<ActionResult<ApiResponse<object>>> AdminEditUser(int id, [FromBody] AdminEditUserRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("users", requireEdit: true))
+                return ForbiddenResponse<object>();
+
             var user = await _context.Users.FindAsync(id);
 
             if (user == null)

@@ -32,6 +32,32 @@ public class MembershipPaymentsController : ControllerBase
         return int.TryParse(userIdClaim, out var userId) ? userId : 0;
     }
 
+    private int? GetCurrentUserIdNullable()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserIdNullable();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: api/MembershipPayments/status
     // Get current user's membership status and payment history
     [HttpGet("status")]
@@ -491,11 +517,14 @@ public class MembershipPaymentsController : ControllerBase
     // GET: api/MembershipPayments/admin/pending
     // Get all pending payments (Admin only)
     [HttpGet("admin/pending")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<MembershipPaymentDto>>>> GetPendingPayments()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments"))
+                return ForbiddenResponse<List<MembershipPaymentDto>>();
+
             var payments = await _context.MembershipPayments
                 .Where(p => p.Status == "Pending")
                 .OrderBy(p => p.CreatedAt)
@@ -525,7 +554,7 @@ public class MembershipPaymentsController : ControllerBase
     // GET: api/MembershipPayments/admin/all
     // Get all payments with optional filters (Admin only)
     [HttpGet("admin/all")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<MembershipPaymentDto>>>> GetAllPayments(
         [FromQuery] string? status = null,
         [FromQuery] int? userId = null,
@@ -533,6 +562,9 @@ public class MembershipPaymentsController : ControllerBase
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments"))
+                return ForbiddenResponse<List<MembershipPaymentDto>>();
+
             var query = _context.MembershipPayments
                 .Include(p => p.User)
                 .Include(p => p.MembershipType)
@@ -592,11 +624,14 @@ public class MembershipPaymentsController : ControllerBase
     // GET: api/MembershipPayments/admin/{id}
     // Get payment details (Admin only)
     [HttpGet("admin/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<MembershipPaymentDto>>> GetPaymentDetails(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments"))
+                return ForbiddenResponse<MembershipPaymentDto>();
+
             var payment = await _context.MembershipPayments
                 .Include(p => p.User)
                 .Include(p => p.MembershipType)
@@ -650,11 +685,14 @@ public class MembershipPaymentsController : ControllerBase
     // POST: api/MembershipPayments/admin/{id}/confirm
     // Confirm or reject a payment (Admin only)
     [HttpPost("admin/{id}/confirm")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<MembershipPaymentDto>>> ConfirmPayment(int id, [FromBody] ConfirmPaymentRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments", requireEdit: true))
+                return ForbiddenResponse<MembershipPaymentDto>();
+
             var adminId = GetCurrentUserId();
             var payment = await _context.MembershipPayments
                 .Include(p => p.User)
@@ -792,11 +830,14 @@ public class MembershipPaymentsController : ControllerBase
     // PUT: api/MembershipPayments/admin/{id}/linked-users
     // Update linked family members on a confirmed payment (Admin only)
     [HttpPut("admin/{id}/linked-users")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<MembershipPaymentDto>>> UpdateLinkedUsers(int id, [FromBody] UpdateLinkedUsersRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments", requireEdit: true))
+                return ForbiddenResponse<MembershipPaymentDto>();
+
             var payment = await _context.MembershipPayments
                 .Include(p => p.User)
                 .Include(p => p.MembershipType)
@@ -891,11 +932,14 @@ public class MembershipPaymentsController : ControllerBase
     // GET: api/MembershipPayments/admin/user/{userId}/family
     // Get a user's family members for family membership assignment (Admin only)
     [HttpGet("admin/user/{userId}/family")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<FamilyMemberSummaryDto>>>> GetUserFamilyMembers(int userId)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments"))
+                return ForbiddenResponse<List<FamilyMemberSummaryDto>>();
+
             var user = await _context.Users.FindAsync(userId);
             if (user == null)
             {
@@ -948,13 +992,16 @@ public class MembershipPaymentsController : ControllerBase
     // GET: api/MembershipPayments/admin/users/search
     // Search users to link to family membership (Admin only)
     [HttpGet("admin/users/search")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<FamilyMemberSummaryDto>>>> SearchUsersForFamilyLink(
         [FromQuery] string query,
         [FromQuery] int excludeUserId = 0)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments"))
+                return ForbiddenResponse<List<FamilyMemberSummaryDto>>();
+
             if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             {
                 return Ok(new ApiResponse<List<FamilyMemberSummaryDto>>
@@ -1056,11 +1103,14 @@ public class MembershipPaymentsController : ControllerBase
     // GET: api/MembershipPayments/admin/methods
     // Get all payment methods including inactive (Admin only)
     [HttpGet("admin/methods")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<PaymentMethodDto>>>> GetAllPaymentMethods()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments"))
+                return ForbiddenResponse<List<PaymentMethodDto>>();
+
             var methods = await _context.PaymentMethods
                 .OrderBy(m => m.DisplayOrder)
                 .ThenBy(m => m.Name)
@@ -1096,11 +1146,14 @@ public class MembershipPaymentsController : ControllerBase
     // POST: api/MembershipPayments/admin/methods
     // Create a new payment method (Admin only)
     [HttpPost("admin/methods")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<PaymentMethodDto>>> CreatePaymentMethod([FromBody] CreatePaymentMethodRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments", requireEdit: true))
+                return ForbiddenResponse<PaymentMethodDto>();
+
             // Check if code already exists
             var existingCode = await _context.PaymentMethods.AnyAsync(m => m.Code == request.Code);
             if (existingCode)
@@ -1155,11 +1208,14 @@ public class MembershipPaymentsController : ControllerBase
     // PUT: api/MembershipPayments/admin/methods/{id}
     // Update a payment method (Admin only)
     [HttpPut("admin/methods/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<PaymentMethodDto>>> UpdatePaymentMethod(int id, [FromBody] UpdatePaymentMethodRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments", requireEdit: true))
+                return ForbiddenResponse<PaymentMethodDto>();
+
             var method = await _context.PaymentMethods.FindAsync(id);
             if (method == null)
             {
@@ -1224,11 +1280,14 @@ public class MembershipPaymentsController : ControllerBase
     // DELETE: api/MembershipPayments/admin/methods/{id}
     // Delete a payment method (Admin only)
     [HttpDelete("admin/methods/{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeletePaymentMethod(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("payments", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var method = await _context.PaymentMethods.FindAsync(id);
             if (method == null)
             {

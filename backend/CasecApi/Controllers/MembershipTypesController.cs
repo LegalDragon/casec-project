@@ -21,6 +21,32 @@ public class MembershipTypesController : ControllerBase
         _logger = logger;
     }
 
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserId();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: api/MembershipTypes
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<MembershipTypeDto>>>> GetMembershipTypes([FromQuery] bool includeInactive = false)
@@ -120,12 +146,15 @@ public class MembershipTypesController : ControllerBase
     }
 
     // POST: api/MembershipTypes
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<MembershipTypeDto>>> CreateMembershipType([FromBody] CreateMembershipTypeRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("membership-types", requireEdit: true))
+                return ForbiddenResponse<MembershipTypeDto>();
+
             // Check if name already exists
             if (await _context.MembershipTypes.AnyAsync(mt => mt.Name == request.Name))
             {
@@ -187,12 +216,15 @@ public class MembershipTypesController : ControllerBase
     }
 
     // PUT: api/MembershipTypes/{id}
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<MembershipTypeDto>>> UpdateMembershipType(int id, [FromBody] UpdateMembershipTypeRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("membership-types", requireEdit: true))
+                return ForbiddenResponse<MembershipTypeDto>();
+
             var membershipType = await _context.MembershipTypes.FindAsync(id);
             if (membershipType == null)
             {
@@ -265,12 +297,15 @@ public class MembershipTypesController : ControllerBase
     }
 
     // DELETE: api/MembershipTypes/{id}
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteMembershipType(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("membership-types", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var membershipType = await _context.MembershipTypes.FindAsync(id);
             if (membershipType == null)
             {

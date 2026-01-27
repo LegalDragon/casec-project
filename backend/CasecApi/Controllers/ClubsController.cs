@@ -42,6 +42,32 @@ public class ClubsController : ControllerBase
         return user != null && user.IsAdmin;
     }
 
+    private int? GetCurrentUserIdNullable()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserIdNullable();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: api/Clubs
     [AllowAnonymous]
     [HttpGet]
@@ -437,12 +463,15 @@ public class ClubsController : ControllerBase
     }
 
     // POST: api/Clubs (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<ClubDetailDto>>> CreateClub([FromBody] CreateClubRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("clubs", requireEdit: true))
+                return ForbiddenResponse<ClubDetailDto>();
+
             var club = new Club
             {
                 Name = request.Name,
@@ -699,12 +728,15 @@ public class ClubsController : ControllerBase
     }
 
     // POST: api/Clubs/{id}/admins (System Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("{id}/admins")]
     public async Task<ActionResult<ApiResponse<string>>> AssignClubAdmin(int id, [FromBody] AssignClubAdminRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("clubs", requireEdit: true))
+                return ForbiddenResponse<string>();
+
             var club = await _context.Clubs.FindAsync(id);
             if (club == null)
             {
@@ -791,12 +823,15 @@ public class ClubsController : ControllerBase
     }
 
     // DELETE: api/Clubs/{id}/admins/{userId} (System Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("{id}/admins/{userId}")]
     public async Task<ActionResult<ApiResponse<string>>> RemoveClubAdmin(int id, int userId)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("clubs", requireDelete: true))
+                return ForbiddenResponse<string>();
+
             var clubAdmin = await _context.ClubAdmins
                 .FirstOrDefaultAsync(ca => ca.ClubId == id && ca.UserId == userId);
             

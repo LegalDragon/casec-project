@@ -29,6 +29,32 @@ public class FamilyController : ControllerBase
         return int.TryParse(userIdClaim, out var userId) ? userId : 0;
     }
 
+    private int? GetCurrentUserIdNullable()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserIdNullable();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     // GET: api/Family/my-family
     [HttpGet("my-family")]
     public async Task<ActionResult<ApiResponse<FamilyGroupDto>>> GetMyFamily()
@@ -115,12 +141,15 @@ public class FamilyController : ControllerBase
     }
 
     // GET: api/Family (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<FamilyGroupDto>>>> GetAllFamilies()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("users"))
+                return ForbiddenResponse<List<FamilyGroupDto>>();
+
             var familyGroups = await _context.FamilyGroups
                 .Include(fg => fg.PrimaryUser)
                 .Include(fg => fg.Members)
@@ -166,12 +195,15 @@ public class FamilyController : ControllerBase
     }
 
     // POST: api/Family (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<FamilyGroupDto>>> CreateFamilyGroup([FromBody] CreateFamilyGroupRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("users", requireEdit: true))
+                return ForbiddenResponse<FamilyGroupDto>();
+
             // Check if primary user exists
             var primaryUser = await _context.Users.FindAsync(request.PrimaryUserId);
             if (primaryUser == null)
@@ -413,12 +445,15 @@ public class FamilyController : ControllerBase
     }
 
     // DELETE: api/Family/{id} (Admin only)
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteFamilyGroup(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("users", requireDelete: true))
+                return ForbiddenResponse<object>();
+
             var familyGroup = await _context.FamilyGroups
                 .Include(fg => fg.Members)
                 .FirstOrDefaultAsync(fg => fg.FamilyGroupId == id);

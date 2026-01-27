@@ -20,8 +20,34 @@ public class ContentCardsController : ControllerBase
         _logger = logger;
     }
 
-    // GET: /ContentCards - List all cards (admin only)
-    [Authorize(Roles = "Admin")]
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserId();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
+    // GET: /ContentCards - List all cards
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<ContentCardDto>>>> GetCards(
         [FromQuery] string? entityType = null,
@@ -29,6 +55,9 @@ public class ContentCardsController : ControllerBase
     {
         try
         {
+            if (!await HasAreaPermissionAsync("content-cards"))
+                return ForbiddenResponse<List<ContentCardDto>>();
+
             var query = _context.ContentCards.AsQueryable();
 
             if (!string.IsNullOrEmpty(entityType))
@@ -128,13 +157,16 @@ public class ContentCardsController : ControllerBase
         }
     }
 
-    // POST: /ContentCards - Create new card (admin only)
-    [Authorize(Roles = "Admin")]
+    // POST: /ContentCards - Create new card
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<ContentCardDto>>> CreateCard([FromBody] CreateContentCardRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("content-cards", requireEdit: true))
+                return ForbiddenResponse<ContentCardDto>();
+
             // Validate entity type
             if (request.EntityType != "ProgramItem" && request.EntityType != "Performer")
             {
@@ -203,13 +235,16 @@ public class ContentCardsController : ControllerBase
         }
     }
 
-    // PUT: /ContentCards/{id} - Update card (admin only)
-    [Authorize(Roles = "Admin")]
+    // PUT: /ContentCards/{id} - Update card
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<ContentCardDto>>> UpdateCard(int id, [FromBody] UpdateContentCardRequest request)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("content-cards", requireEdit: true))
+                return ForbiddenResponse<ContentCardDto>();
+
             var card = await _context.ContentCards.FindAsync(id);
 
             if (card == null)
@@ -279,13 +314,16 @@ public class ContentCardsController : ControllerBase
         }
     }
 
-    // DELETE: /ContentCards/{id} - Delete card (admin only)
-    [Authorize(Roles = "Admin")]
+    // DELETE: /ContentCards/{id} - Delete card
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteCard(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("content-cards", requireDelete: true))
+                return ForbiddenResponse<object>();
+
             var card = await _context.ContentCards.FindAsync(id);
 
             if (card == null)
@@ -318,12 +356,15 @@ public class ContentCardsController : ControllerBase
     }
 
     // GET: /ContentCards/performers - Get all performers with their card counts
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("performers")]
     public async Task<ActionResult<ApiResponse<List<object>>>> GetPerformersWithCardCounts()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("content-cards"))
+                return ForbiddenResponse<List<object>>();
+
             // Show all performers in admin (no IsActive filter)
             var performers = await _context.Performers
                 .Select(p => new
@@ -357,12 +398,15 @@ public class ContentCardsController : ControllerBase
     }
 
     // GET: /ContentCards/programitems - Get all program items with their card counts
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpGet("programitems")]
     public async Task<ActionResult<ApiResponse<List<object>>>> GetProgramItemsWithCardCounts()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("content-cards"))
+                return ForbiddenResponse<List<object>>();
+
             var items = await _context.ProgramItems
                 .Include(i => i.Section)
                     .ThenInclude(s => s.Program)

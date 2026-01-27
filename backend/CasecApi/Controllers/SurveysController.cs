@@ -223,6 +223,32 @@ public class SurveysController : ControllerBase
         return HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 
+    private int? GetCurrentUserIdNullable()
+    {
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        if (User.IsInRole("Admin")) return true;
+        var userId = GetCurrentUserIdNullable();
+        if (userId == null) return false;
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions, ur => ur.RoleId, rap => rap.RoleId, (ur, rap) => rap)
+            .Join(_context.AdminAreas, rap => rap.AreaId, a => a.AreaId, (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey && x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+    }
+
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
+    }
+
     private IQueryable<Survey> GetActiveSurveysQuery()
     {
         var now = DateTime.UtcNow;
@@ -611,11 +637,14 @@ public class SurveysController : ControllerBase
 
     // GET: api/surveys/admin/all - Get all surveys (admin)
     [HttpGet("admin/all")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<List<SurveyAdminDto>>>> GetAllSurveysAdmin()
     {
         try
         {
+            if (!await HasAreaPermissionAsync("surveys"))
+                return ForbiddenResponse<List<SurveyAdminDto>>();
+
             var surveys = await _context.Surveys
                 .Include(s => s.Questions)
                 .Include(s => s.Responses)
@@ -660,11 +689,14 @@ public class SurveysController : ControllerBase
 
     /// GET: api/surveys/{id}/results - Get survey results (admin)
     [HttpGet("{id}/results")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SurveyResultsDto>>> GetSurveyResults(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("surveys"))
+                return ForbiddenResponse<SurveyResultsDto>();
+
             var survey = await _context.Surveys
                 .Include(s => s.Questions.OrderBy(q => q.DisplayOrder))
                 .Include(s => s.Responses)
@@ -776,11 +808,14 @@ public class SurveysController : ControllerBase
 
     /// POST: api/surveys - Create survey (admin)
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SurveyAdminDto>>> CreateSurvey([FromBody] CreateSurveyDto dto)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("surveys", requireEdit: true))
+                return ForbiddenResponse<SurveyAdminDto>();
+
             var userId = GetUserId();
 
             var survey = new Survey
@@ -893,11 +928,14 @@ public class SurveysController : ControllerBase
 
     /// PUT: api/surveys/{id} - Update survey (admin)
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<SurveyAdminDto>>> UpdateSurvey(int id, [FromBody] CreateSurveyDto dto)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("surveys", requireEdit: true))
+                return ForbiddenResponse<SurveyAdminDto>();
+
             var survey = await _context.Surveys
                 .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.SurveyId == id);
@@ -1013,11 +1051,14 @@ public class SurveysController : ControllerBase
 
     /// DELETE: api/surveys/{id} - Delete survey (admin)
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSurvey(int id)
     {
         try
         {
+            if (!await HasAreaPermissionAsync("surveys", requireDelete: true))
+                return ForbiddenResponse<bool>();
+
             var survey = await _context.Surveys.FindAsync(id);
             if (survey == null)
             {
