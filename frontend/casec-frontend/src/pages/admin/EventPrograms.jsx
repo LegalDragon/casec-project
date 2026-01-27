@@ -1082,6 +1082,7 @@ function ItemEditor({ item, onSave, onCancel }) {
     performanceTypeZh: item.performanceTypeZh || "",
     performanceTypeEn: item.performanceTypeEn || "",
     performerNames: item.performerNames || "",
+    performerNames2: item.performerNames2 || "",
     description: item.description || "",
     descriptionZh: item.descriptionZh || "",
     descriptionEn: item.descriptionEn || "",
@@ -1089,7 +1090,7 @@ function ItemEditor({ item, onSave, onCancel }) {
 
   return (
     <div className="flex-1 space-y-3 p-3 bg-white rounded-lg border">
-      {/* Row 1: Item Number + Title (Bilingual) + Performer Names */}
+      {/* Row 1: Item Number + Title (Bilingual) */}
       <div className="grid grid-cols-12 gap-2">
         <div className="col-span-1">
           <label className="text-xs font-medium text-gray-600">#</label>
@@ -1122,13 +1123,28 @@ function ItemEditor({ item, onSave, onCancel }) {
           />
         </div>
         <div className="col-span-3">
-          <label className="text-xs font-medium text-gray-600">Performers</label>
+          <label className="text-xs font-medium text-gray-600">Performer 1</label>
           <input
             type="text"
             value={data.performerNames}
             onChange={(e) => setData({ ...data, performerNames: e.target.value })}
             className="w-full border rounded px-2 py-1 text-sm"
-            placeholder="Names"
+            placeholder="Name"
+          />
+        </div>
+      </div>
+
+      {/* Row 1b: Performer 2 */}
+      <div className="grid grid-cols-12 gap-2">
+        <div className="col-span-9"></div>
+        <div className="col-span-3">
+          <label className="text-xs font-medium text-gray-600">Performer 2</label>
+          <input
+            type="text"
+            value={data.performerNames2}
+            onChange={(e) => setData({ ...data, performerNames2: e.target.value })}
+            className="w-full border rounded px-2 py-1 text-sm"
+            placeholder="Name (optional)"
           />
         </div>
       </div>

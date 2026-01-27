@@ -1970,6 +1970,10 @@ public class ProgramItem
     [MaxLength(500)]
     public string? PerformerNames { get; set; } // e.g., "杨心灵 Lynn Young"
 
+    // Second performer (optional)
+    [MaxLength(500)]
+    public string? PerformerNames2 { get; set; }
+
     [MaxLength(2000)]
     public string? Description { get; set; } // Legacy: keep for backwards compatibility
 

@@ -542,6 +542,7 @@ public class EventProgramsController : ControllerBase
                 PerformanceTypeZh = request.PerformanceTypeZh,
                 PerformanceTypeEn = request.PerformanceTypeEn,
                 PerformerNames = request.PerformerNames,
+                PerformerNames2 = request.PerformerNames2,
                 Description = request.Description,
                 DescriptionZh = request.DescriptionZh,
                 DescriptionEn = request.DescriptionEn,
@@ -618,6 +619,7 @@ public class EventProgramsController : ControllerBase
             if (request.PerformanceTypeZh != null) item.PerformanceTypeZh = request.PerformanceTypeZh;
             if (request.PerformanceTypeEn != null) item.PerformanceTypeEn = request.PerformanceTypeEn;
             if (request.PerformerNames != null) item.PerformerNames = request.PerformerNames;
+            if (request.PerformerNames2 != null) item.PerformerNames2 = request.PerformerNames2;
             if (request.Description != null) item.Description = request.Description;
             if (request.DescriptionZh != null) item.DescriptionZh = request.DescriptionZh;
             if (request.DescriptionEn != null) item.DescriptionEn = request.DescriptionEn;
@@ -942,6 +944,7 @@ public class EventProgramsController : ControllerBase
             PerformanceTypeZh = item.PerformanceTypeZh,
             PerformanceTypeEn = item.PerformanceTypeEn,
             PerformerNames = item.PerformerNames,
+            PerformerNames2 = item.PerformerNames2,
             Description = item.Description,
             DescriptionZh = item.DescriptionZh,
             DescriptionEn = item.DescriptionEn,

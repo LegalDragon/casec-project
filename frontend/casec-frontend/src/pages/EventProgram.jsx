@@ -314,7 +314,7 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText })
 
   return (
     <div className="border-b border-white/10 last:border-0 pb-3 last:pb-0">
-      {/* Main Row: Number, Title, Performer */}
+      {/* Main Row: Number, Title, Performers */}
       <div className="flex items-start gap-4">
         {/* Item Number */}
         <span className="text-yellow-400/70 font-mono text-sm w-6 text-right flex-shrink-0 pt-0.5">
@@ -326,12 +326,19 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText })
           <span className="text-white font-medium">{itemTitle}</span>
         </div>
 
-        {/* Performer Names - will be clickable for cards later */}
-        {item.performerNames && (
-          <span className="text-yellow-400/80 text-sm flex-shrink-0">
-            {item.performerNames}
-          </span>
-        )}
+        {/* Performer Names - each will be clickable for cards later */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {item.performerNames && (
+            <span className="text-yellow-400/80 text-sm">
+              {item.performerNames}
+            </span>
+          )}
+          {item.performerNames2 && (
+            <span className="text-yellow-400/80 text-sm">
+              {item.performerNames2}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Description Box - always visible if has content */}

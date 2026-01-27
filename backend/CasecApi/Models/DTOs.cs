@@ -1843,6 +1843,7 @@ public class ProgramItemDto
     public string? PerformanceTypeZh { get; set; }
     public string? PerformanceTypeEn { get; set; }
     public string? PerformerNames { get; set; }
+    public string? PerformerNames2 { get; set; }
     public string? Description { get; set; }
     public string? DescriptionZh { get; set; }
     public string? DescriptionEn { get; set; }
@@ -1865,6 +1866,7 @@ public class CreateProgramItemRequest
     public string? PerformanceTypeZh { get; set; }
     public string? PerformanceTypeEn { get; set; }
     public string? PerformerNames { get; set; }
+    public string? PerformerNames2 { get; set; }
     public string? Description { get; set; }
     public string? DescriptionZh { get; set; }
     public string? DescriptionEn { get; set; }
@@ -1885,6 +1887,7 @@ public class UpdateProgramItemRequest
     public string? PerformanceTypeZh { get; set; }
     public string? PerformanceTypeEn { get; set; }
     public string? PerformerNames { get; set; }
+    public string? PerformerNames2 { get; set; }
     public string? Description { get; set; }
     public string? DescriptionZh { get; set; }
     public string? DescriptionEn { get; set; }
