@@ -371,6 +371,7 @@ public class ContentCardsController : ControllerBase
                     i.Title,
                     i.PerformanceType,
                     i.PerformerNames,
+                    i.PerformerNames2,
                     ProgramTitle = i.Section != null && i.Section.Program != null ? i.Section.Program.Title : null,
                     SectionTitle = i.Section != null ? i.Section.Title : null,
                     CardCount = _context.ContentCards.Count(c => c.EntityType == "ProgramItem" && c.EntityId == i.ItemId)

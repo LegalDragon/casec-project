@@ -12,8 +12,9 @@ import {
   Users,
   Music,
   ChevronDown,
+  Upload,
 } from "lucide-react";
-import { contentCardsAPI, getAssetUrl } from "../../services/api";
+import { contentCardsAPI, slideShowsAPI, getAssetUrl } from "../../services/api";
 
 const ENTITY_TYPES = [
   { value: "ProgramItem", label: "Program Item", icon: Music },
@@ -44,6 +45,8 @@ export default function AdminContentCards() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [filterType, setFilterType] = useState("all");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const [formData, setFormData] = useState({
     entityType: "ProgramItem",
@@ -83,6 +86,7 @@ export default function AdminContentCards() {
 
   const handleCreate = () => {
     setEditingCard(null);
+    setSelectedFile(null);
     setFormData({
       entityType: "ProgramItem",
       entityId: "",
@@ -98,8 +102,41 @@ export default function AdminContentCards() {
     setShowForm(true);
   };
 
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const isVideo = file.type.startsWith('video/');
+      const response = isVideo
+        ? await slideShowsAPI.uploadVideo(uploadFormData)
+        : await slideShowsAPI.uploadImage(uploadFormData);
+
+      if (response.success && response.data) {
+        // Get the URL from the response
+        const mediaUrl = response.data.url || response.data.filePath;
+        setFormData(prev => ({
+          ...prev,
+          mediaUrl,
+          mediaType: isVideo ? 'video' : 'image'
+        }));
+        setSelectedFile(null);
+      } else {
+        setError(response.message || 'Upload failed');
+      }
+    } catch (err) {
+      setError('Error uploading file: ' + (err.message || 'Please try again'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleEdit = (card) => {
     setEditingCard(card);
+    setSelectedFile(null);
     setFormData({
       entityType: card.entityType,
       entityId: card.entityId.toString(),
@@ -175,10 +212,15 @@ export default function AdminContentCards() {
         label: p.chineseName ? `${p.name} (${p.chineseName})` : p.name,
       }));
     } else {
-      return programItems.map((i) => ({
-        value: i.itemId.toString(),
-        label: `${i.title}${i.programTitle ? ` - ${i.programTitle}` : ""}`,
-      }));
+      return programItems.map((i) => {
+        // Build performer display string
+        const performers = [i.performerNames, i.performerNames2].filter(Boolean).join(", ");
+        const performerStr = performers ? ` [${performers}]` : "";
+        return {
+          value: i.itemId.toString(),
+          label: `${i.title}${performerStr}${i.programTitle ? ` - ${i.programTitle}` : ""}`,
+        };
+      });
     }
   };
 
@@ -468,45 +510,59 @@ export default function AdminContentCards() {
                 </div>
               </div>
 
-              {/* Media */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Media URL
+              {/* Media Upload */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Media
+                </label>
+
+                {/* File Upload */}
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors">
+                    <Upload className="w-4 h-4" />
+                    {uploading ? "Uploading..." : "Upload File"}
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                      disabled={uploading}
+                    />
                   </label>
+                  <span className="text-gray-400 text-sm">or</span>
                   <input
                     type="text"
                     value={formData.mediaUrl}
                     onChange={(e) =>
                       setFormData({ ...formData, mediaUrl: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="/uploads/image.jpg"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter URL manually"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Media Type
-                  </label>
-                  <div className="flex gap-2">
-                    {MEDIA_TYPES.map((type) => (
-                      <button
-                        key={type.value}
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, mediaType: type.value })
-                        }
-                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border ${
-                          formData.mediaType === type.value
-                            ? "border-blue-500 bg-blue-50 text-blue-700"
-                            : "border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
-                        <type.icon className="w-4 h-4" />
-                        {type.label}
-                      </button>
-                    ))}
-                  </div>
+
+                {/* Media Type Selection */}
+                <div className="flex gap-2">
+                  {MEDIA_TYPES.map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, mediaType: type.value })
+                      }
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border ${
+                        formData.mediaType === type.value
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <type.icon className="w-4 h-4" />
+                      {type.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
