@@ -74,6 +74,7 @@ public class UserDto
     public bool IsActive { get; set; }
     public DateTime MemberSince { get; set; }
     public List<int> ClubIds { get; set; } = new();
+    public List<string> Roles { get; set; } = new();
     public List<FamilyMemberDto>? FamilyMembers { get; set; }
 }
 

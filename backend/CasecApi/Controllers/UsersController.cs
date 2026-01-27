@@ -304,7 +304,11 @@ public class UsersController : ControllerBase
                     BoardDisplayOrder = u.BoardDisplayOrder,
                     MemberSince = u.MemberSince,
                     IsActive = u.IsActive,
-                    ClubIds = u.ClubMemberships.Select(cm => cm.ClubId).ToList()
+                    ClubIds = u.ClubMemberships.Select(cm => cm.ClubId).ToList(),
+                    Roles = _context.UserRoles
+                        .Where(ur => ur.UserId == u.UserId)
+                        .Join(_context.Roles, ur => ur.RoleId, r => r.RoleId, (ur, r) => r.Name)
+                        .ToList()
                 })
                 .OrderBy(u => u.LastName)
                 .ToListAsync();

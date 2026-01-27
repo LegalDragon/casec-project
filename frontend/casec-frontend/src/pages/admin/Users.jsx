@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Edit, Trash2, Search, UserPlus, Shield, ShieldOff, CheckCircle, XCircle, Calendar, Filter, X } from 'lucide-react';
-import api, { getAssetUrl, clubsAPI, membershipTypesAPI } from '../../services/api';
+import { Edit, Trash2, Search, UserPlus, Shield, ShieldOff, CheckCircle, XCircle, Calendar, Filter, X, UserCog } from 'lucide-react';
+import api, { getAssetUrl, clubsAPI, membershipTypesAPI, rolesAPI } from '../../services/api';
 
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [clubs, setClubs] = useState([]);
   const [membershipTypes, setMembershipTypes] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({});
+  const [userRoles, setUserRoles] = useState([]);
+  const [savingRoles, setSavingRoles] = useState(false);
 
   // Filter states
   const [clubFilter, setClubFilter] = useState('');
@@ -21,6 +24,7 @@ export default function ManageUsers() {
     fetchUsers();
     fetchClubs();
     fetchMembershipTypes();
+    fetchRoles();
   }, []);
 
   const fetchUsers = async () => {
@@ -57,6 +61,31 @@ export default function ManageUsers() {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      const response = await rolesAPI.getAll();
+      if (response.success) {
+        setRoles(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+    }
+  };
+
+  const fetchUserRoles = async (userId) => {
+    try {
+      const response = await rolesAPI.getUserPermissions(userId);
+      if (response.success && response.data) {
+        setUserRoles(response.data.roles?.map(r => r.roleId) || []);
+      } else {
+        setUserRoles([]);
+      }
+    } catch (error) {
+      console.error('Error fetching user roles:', error);
+      setUserRoles([]);
+    }
+  };
+
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
@@ -73,19 +102,55 @@ export default function ManageUsers() {
       boardDisplayOrder: user.boardDisplayOrder || 0,
       memberSince: user.memberSince ? user.memberSince.split('T')[0] : '',
     });
+    fetchUserRoles(user.userId);
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    setSavingRoles(true);
     try {
+      // Update user details
       await api.put(`/users/${editingUser.userId}/admin-edit`, formData);
+
+      // Update user roles
+      // Get current roles from API to compare
+      const currentRolesResponse = await rolesAPI.getUserPermissions(editingUser.userId);
+      const currentRoleIds = currentRolesResponse.success && currentRolesResponse.data?.roles
+        ? currentRolesResponse.data.roles.map(r => r.roleId)
+        : [];
+
+      // Find roles to add and remove
+      const rolesToAdd = userRoles.filter(r => !currentRoleIds.includes(r));
+      const rolesToRemove = currentRoleIds.filter(r => !userRoles.includes(r));
+
+      // Add new roles
+      for (const roleId of rolesToAdd) {
+        await rolesAPI.assignRole(roleId, { userId: editingUser.userId });
+      }
+
+      // Remove old roles
+      for (const roleId of rolesToRemove) {
+        await rolesAPI.unassignRole(roleId, editingUser.userId);
+      }
+
       alert('User updated successfully!');
       setEditingUser(null);
+      setUserRoles([]);
       fetchUsers();
     } catch (error) {
       console.error('Error updating user:', error);
       alert('Failed to update user');
+    } finally {
+      setSavingRoles(false);
     }
+  };
+
+  const toggleUserRole = (roleId) => {
+    setUserRoles(prev =>
+      prev.includes(roleId)
+        ? prev.filter(r => r !== roleId)
+        : [...prev, roleId]
+    );
   };
 
   const toggleAdmin = async (userId, currentStatus) => {
@@ -367,6 +432,11 @@ export default function ManageUsers() {
                           Board Member
                         </span>
                       )}
+                      {user.roles && user.roles.length > 0 && (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800" title={user.roles.join(', ')}>
+                          <UserCog className="w-3 h-3 mr-1" /> {user.roles.length} Role{user.roles.length > 1 ? 's' : ''}
+                        </span>
+                      )}
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
@@ -565,16 +635,64 @@ export default function ManageUsers() {
                   />
                 </div>
 
+                {/* User Roles Section */}
+                {roles.length > 0 && (
+                  <div className="border-t pt-4 mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <UserCog className="w-4 h-4" />
+                      Admin Roles
+                    </label>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Assign roles to control access to admin panel areas
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {roles.filter(r => r.isActive).map((role) => (
+                        <label
+                          key={role.roleId}
+                          className={`flex items-center space-x-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                            userRoles.includes(role.roleId)
+                              ? 'border-primary bg-primary/5'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={userRoles.includes(role.roleId)}
+                            onChange={() => toggleUserRole(role.roleId)}
+                            className="rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-700 block truncate">
+                              {role.name}
+                            </span>
+                            {role.description && (
+                              <span className="text-xs text-gray-500 block truncate">
+                                {role.description}
+                              </span>
+                            )}
+                          </div>
+                          {role.isSystem && (
+                            <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                              System
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     type="button"
-                    onClick={() => setEditingUser(null)}
+                    onClick={() => { setEditingUser(null); setUserRoles([]); }}
                     className="btn btn-secondary"
+                    disabled={savingRoles}
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary">
-                    Update User
+                  <button type="submit" className="btn btn-primary" disabled={savingRoles}>
+                    {savingRoles ? 'Saving...' : 'Update User'}
                   </button>
                 </div>
               </form>
