@@ -324,8 +324,8 @@ public class ContentCardsController : ControllerBase
     {
         try
         {
+            // Show all performers in admin (no IsActive filter)
             var performers = await _context.Performers
-                .Where(p => p.IsActive)
                 .Select(p => new
                 {
                     p.PerformerId,
@@ -333,6 +333,7 @@ public class ContentCardsController : ControllerBase
                     p.ChineseName,
                     p.EnglishName,
                     p.PhotoUrl,
+                    p.IsActive,
                     CardCount = _context.ContentCards.Count(c => c.EntityType == "Performer" && c.EntityId == p.PerformerId)
                 })
                 .OrderBy(p => p.Name)
