@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import {
   Calendar,
   MapPin,
@@ -11,13 +11,37 @@ import {
 import { eventProgramsAPI, getAssetUrl } from "../services/api";
 import SlideShow from "../components/SlideShow";
 
+// Language configuration
+const LANGUAGES = {
+  zh: {
+    locale: "zh-CN",
+    dateFormat: { year: "numeric", month: "long", day: "numeric" },
+    footer: "节目内容可能会有所调整，以实际演出为准",
+    replayButton: "重播幻灯片",
+    viewMore: "查看更多",
+  },
+  en: {
+    locale: "en-US",
+    dateFormat: { year: "numeric", month: "long", day: "numeric" },
+    footer: "Program content is subject to change",
+    replayButton: "Replay Slideshow",
+    viewMore: "View More",
+  },
+};
+
 export default function EventProgram() {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showSlideshow, setShowSlideshow] = useState(true);
   const [currentSlideshowIndex, setCurrentSlideshowIndex] = useState(0);
+
+  // Get language from query string, default to "zh"
+  const langParam = searchParams.get("lang") || "zh";
+  const lang = LANGUAGES[langParam] ? langParam : "zh";
+  const t = LANGUAGES[lang];
 
   useEffect(() => {
     loadProgram();
@@ -113,7 +137,7 @@ export default function EventProgram() {
           className="fixed top-4 right-4 z-40 flex items-center gap-2 bg-black/50 text-white px-4 py-2 rounded-full text-sm hover:bg-black/70 transition-colors"
         >
           <Play className="w-4 h-4" />
-          Replay Slideshow
+          {t.replayButton}
         </button>
       )}
 
@@ -136,11 +160,7 @@ export default function EventProgram() {
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 <span>
-                  {new Date(program.eventDate).toLocaleDateString("zh-CN", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                  {new Date(program.eventDate).toLocaleDateString(t.locale, t.dateFormat)}
                 </span>
               </div>
             )}
@@ -182,6 +202,7 @@ export default function EventProgram() {
                     key={item.itemId}
                     item={item}
                     itemNumber={item.itemNumber || itemIdx + 1}
+                    lang={lang}
                   />
                 ))}
               </div>
@@ -191,7 +212,7 @@ export default function EventProgram() {
 
         {/* Footer */}
         <div className="mt-12 text-center text-white/50 text-sm">
-          <p>节目内容可能会有所调整，以实际演出为准</p>
+          <p>{t.footer}</p>
         </div>
       </div>
     </div>
@@ -199,8 +220,9 @@ export default function EventProgram() {
 }
 
 // Program Item Row Component
-function ProgramItemRow({ item, itemNumber }) {
+function ProgramItemRow({ item, itemNumber, lang = "zh" }) {
   const [expanded, setExpanded] = useState(false);
+  const t = LANGUAGES[lang] || LANGUAGES.zh;
 
   const hasDetails =
     item.description ||
@@ -300,7 +322,7 @@ function ProgramItemRow({ item, itemNumber }) {
               className="inline-flex items-center gap-1 text-yellow-400 hover:text-yellow-300 text-sm"
               onClick={(e) => e.stopPropagation()}
             >
-              View More <ExternalLink className="w-3 h-3" />
+              {t.viewMore} <ExternalLink className="w-3 h-3" />
             </Link>
           )}
         </div>
