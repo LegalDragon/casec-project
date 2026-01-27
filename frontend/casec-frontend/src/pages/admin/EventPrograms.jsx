@@ -124,8 +124,14 @@ export default function AdminEventPrograms() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
+    titleZh: "",
+    titleEn: "",
     subtitle: "",
+    subtitleZh: "",
+    subtitleEn: "",
     description: "",
+    descriptionZh: "",
+    descriptionEn: "",
     imageUrl: "",
     eventDate: "",
     venue: "",
@@ -177,8 +183,14 @@ export default function AdminEventPrograms() {
     setEditingProgram(null);
     setFormData({
       title: "",
+      titleZh: "",
+      titleEn: "",
       subtitle: "",
+      subtitleZh: "",
+      subtitleEn: "",
       description: "",
+      descriptionZh: "",
+      descriptionEn: "",
       imageUrl: "",
       eventDate: "",
       venue: "",
@@ -197,8 +209,14 @@ export default function AdminEventPrograms() {
         setEditingProgram(p);
         setFormData({
           title: p.title || "",
+          titleZh: p.titleZh || "",
+          titleEn: p.titleEn || "",
           subtitle: p.subtitle || "",
+          subtitleZh: p.subtitleZh || "",
+          subtitleEn: p.subtitleEn || "",
           description: p.description || "",
+          descriptionZh: p.descriptionZh || "",
+          descriptionEn: p.descriptionEn || "",
           imageUrl: p.imageUrl || "",
           eventDate: p.eventDate ? p.eventDate.split("T")[0] : "",
           venue: p.venue || "",
@@ -351,48 +369,106 @@ export default function AdminEventPrograms() {
             </div>
 
             <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              {/* Title Section */}
+              <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   Title *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className="w-full border rounded-lg px-3 py-2"
-                  placeholder="e.g., 2026 佛罗里达华人春晚节目单"
-                />
+                  <span className="text-xs text-gray-400">(Bilingual)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Chinese 中文</label>
+                    <input
+                      type="text"
+                      value={formData.titleZh}
+                      onChange={(e) =>
+                        setFormData({ ...formData, titleZh: e.target.value, title: e.target.value || formData.title })
+                      }
+                      className="w-full border rounded-lg px-3 py-2"
+                      placeholder="中文标题"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">English</label>
+                    <input
+                      type="text"
+                      value={formData.titleEn}
+                      onChange={(e) =>
+                        setFormData({ ...formData, titleEn: e.target.value })
+                      }
+                      className="w-full border rounded-lg px-3 py-2"
+                      placeholder="English title"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              {/* Subtitle Section */}
+              <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   Subtitle
-                </label>
-                <input
-                  type="text"
-                  value={formData.subtitle}
-                  onChange={(e) =>
-                    setFormData({ ...formData, subtitle: e.target.value })
-                  }
-                  className="w-full border rounded-lg px-3 py-2"
-                  placeholder="e.g., 一马当先·光耀世界"
-                />
+                  <span className="text-xs text-gray-400">(Bilingual)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Chinese 中文</label>
+                    <input
+                      type="text"
+                      value={formData.subtitleZh}
+                      onChange={(e) =>
+                        setFormData({ ...formData, subtitleZh: e.target.value, subtitle: e.target.value || formData.subtitle })
+                      }
+                      className="w-full border rounded-lg px-3 py-2"
+                      placeholder="中文副标题"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">English</label>
+                    <input
+                      type="text"
+                      value={formData.subtitleEn}
+                      onChange={(e) =>
+                        setFormData({ ...formData, subtitleEn: e.target.value })
+                      }
+                      className="w-full border rounded-lg px-3 py-2"
+                      placeholder="English subtitle"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              {/* Description Section */}
+              <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full border rounded-lg px-3 py-2"
-                  rows={3}
-                />
+                  <span className="text-xs text-gray-400">(Bilingual)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Chinese 中文</label>
+                    <textarea
+                      value={formData.descriptionZh}
+                      onChange={(e) =>
+                        setFormData({ ...formData, descriptionZh: e.target.value, description: e.target.value || formData.description })
+                      }
+                      className="w-full border rounded-lg px-3 py-2"
+                      rows={3}
+                      placeholder="中文描述..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">English</label>
+                    <textarea
+                      value={formData.descriptionEn}
+                      onChange={(e) =>
+                        setFormData({ ...formData, descriptionEn: e.target.value })
+                      }
+                      className="w-full border rounded-lg px-3 py-2"
+                      rows={3}
+                      placeholder="English description..."
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

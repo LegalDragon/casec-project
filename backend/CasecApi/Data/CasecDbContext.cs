@@ -78,6 +78,7 @@ public class CasecDbContext : DbContext
     public DbSet<ProgramItemPerformer> ProgramItemPerformers { get; set; }
     public DbSet<Performer> Performers { get; set; }
     public DbSet<ProgramContent> ProgramContents { get; set; }
+    public DbSet<ContentCard> ContentCards { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -715,6 +716,18 @@ public class CasecDbContext : DbContext
             entity.HasIndex(e => e.Slug);
             entity.HasIndex(e => e.ContentType);
             entity.HasIndex(e => e.Status);
+        });
+
+        // ContentCard entity configuration
+        modelBuilder.Entity<ContentCard>(entity =>
+        {
+            entity.HasKey(e => e.CardId);
+            entity.Property(e => e.EntityType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.MediaType).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.LayoutType).IsRequired().HasMaxLength(20);
+
+            entity.HasIndex(e => new { e.EntityType, e.EntityId });
+            entity.HasIndex(e => new { e.EntityType, e.EntityId, e.DisplayOrder });
         });
     }
 }

@@ -1706,8 +1706,14 @@ public class EventProgramDto
 {
     public int ProgramId { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
     public string? Subtitle { get; set; }
+    public string? SubtitleZh { get; set; }
+    public string? SubtitleEn { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionZh { get; set; }
+    public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public DateTime? EventDate { get; set; }
     public string? Venue { get; set; }
@@ -1740,8 +1746,14 @@ public class EventProgramListDto
 public class CreateEventProgramRequest
 {
     public string Title { get; set; } = string.Empty;
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
     public string? Subtitle { get; set; }
+    public string? SubtitleZh { get; set; }
+    public string? SubtitleEn { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionZh { get; set; }
+    public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public DateTime? EventDate { get; set; }
     public string? Venue { get; set; }
@@ -1753,8 +1765,14 @@ public class CreateEventProgramRequest
 public class UpdateEventProgramRequest
 {
     public string? Title { get; set; }
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
     public string? Subtitle { get; set; }
+    public string? SubtitleZh { get; set; }
+    public string? SubtitleEn { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionZh { get; set; }
+    public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public DateTime? EventDate { get; set; }
     public string? Venue { get; set; }
@@ -1771,8 +1789,14 @@ public class ProgramSectionDto
     public int SectionId { get; set; }
     public int ProgramId { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
     public string? Subtitle { get; set; }
+    public string? SubtitleZh { get; set; }
+    public string? SubtitleEn { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionZh { get; set; }
+    public string? DescriptionEn { get; set; }
     public int DisplayOrder { get; set; }
     public List<ProgramItemDto> Items { get; set; } = new();
 }
@@ -1781,16 +1805,28 @@ public class CreateProgramSectionRequest
 {
     public int ProgramId { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
     public string? Subtitle { get; set; }
+    public string? SubtitleZh { get; set; }
+    public string? SubtitleEn { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionZh { get; set; }
+    public string? DescriptionEn { get; set; }
     public int DisplayOrder { get; set; }
 }
 
 public class UpdateProgramSectionRequest
 {
     public string? Title { get; set; }
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
     public string? Subtitle { get; set; }
+    public string? SubtitleZh { get; set; }
+    public string? SubtitleEn { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionZh { get; set; }
+    public string? DescriptionEn { get; set; }
     public int? DisplayOrder { get; set; }
 }
 
@@ -1801,14 +1837,21 @@ public class ProgramItemDto
     public int SectionId { get; set; }
     public int ItemNumber { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
     public string? PerformanceType { get; set; }
+    public string? PerformanceTypeZh { get; set; }
+    public string? PerformanceTypeEn { get; set; }
     public string? PerformerNames { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionZh { get; set; }
+    public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public int? ContentPageId { get; set; }
     public int DisplayOrder { get; set; }
     public int? DurationMinutes { get; set; }
     public List<PerformerDto>? Performers { get; set; }
+    public List<ContentCardDto>? Cards { get; set; }
 }
 
 public class CreateProgramItemRequest
@@ -1816,9 +1859,15 @@ public class CreateProgramItemRequest
     public int SectionId { get; set; }
     public int ItemNumber { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
     public string? PerformanceType { get; set; }
+    public string? PerformanceTypeZh { get; set; }
+    public string? PerformanceTypeEn { get; set; }
     public string? PerformerNames { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionZh { get; set; }
+    public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public int? ContentPageId { get; set; }
     public int DisplayOrder { get; set; }
@@ -1830,9 +1879,15 @@ public class UpdateProgramItemRequest
 {
     public int? ItemNumber { get; set; }
     public string? Title { get; set; }
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
     public string? PerformanceType { get; set; }
+    public string? PerformanceTypeZh { get; set; }
+    public string? PerformanceTypeEn { get; set; }
     public string? PerformerNames { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionZh { get; set; }
+    public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public int? ContentPageId { get; set; }
     public int? DisplayOrder { get; set; }
@@ -1854,6 +1909,7 @@ public class PerformerDto
     public string? YouTube { get; set; }
     public int? ContentPageId { get; set; }
     public bool IsActive { get; set; }
+    public List<ContentCardDto>? Cards { get; set; }
 }
 
 public class CreatePerformerRequest
@@ -1929,4 +1985,48 @@ public class UpdateProgramContentRequest
     public string? Status { get; set; }
     public string? MetaTitle { get; set; }
     public string? MetaDescription { get; set; }
+}
+
+// ContentCard DTOs - Cards with rich content for program items and performers
+public class ContentCardDto
+{
+    public int CardId { get; set; }
+    public string EntityType { get; set; } = "ProgramItem";
+    public int EntityId { get; set; }
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
+    public string? BodyTextZh { get; set; }
+    public string? BodyTextEn { get; set; }
+    public string? MediaUrl { get; set; }
+    public string MediaType { get; set; } = "image";
+    public string LayoutType { get; set; } = "left";
+    public int DisplayOrder { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class CreateContentCardRequest
+{
+    public string EntityType { get; set; } = "ProgramItem";
+    public int EntityId { get; set; }
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
+    public string? BodyTextZh { get; set; }
+    public string? BodyTextEn { get; set; }
+    public string? MediaUrl { get; set; }
+    public string MediaType { get; set; } = "image";
+    public string LayoutType { get; set; } = "left";
+    public int DisplayOrder { get; set; }
+}
+
+public class UpdateContentCardRequest
+{
+    public string? TitleZh { get; set; }
+    public string? TitleEn { get; set; }
+    public string? BodyTextZh { get; set; }
+    public string? BodyTextEn { get; set; }
+    public string? MediaUrl { get; set; }
+    public string? MediaType { get; set; }
+    public string? LayoutType { get; set; }
+    public int? DisplayOrder { get; set; }
 }

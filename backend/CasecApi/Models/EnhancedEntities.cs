@@ -1814,13 +1814,32 @@ public class EventProgram
 
     [Required]
     [MaxLength(200)]
-    public string Title { get; set; } = string.Empty; // e.g., "2026 佛罗里达华人春晚节目单"
+    public string Title { get; set; } = string.Empty; // Legacy: keep for backwards compatibility
+
+    // Bilingual title
+    [MaxLength(200)]
+    public string? TitleZh { get; set; }
 
     [MaxLength(200)]
-    public string? Subtitle { get; set; } // e.g., ""一马当先·光耀世界""
+    public string? TitleEn { get; set; }
+
+    [MaxLength(200)]
+    public string? Subtitle { get; set; } // Legacy: keep for backwards compatibility
+
+    // Bilingual subtitle
+    [MaxLength(200)]
+    public string? SubtitleZh { get; set; }
+
+    [MaxLength(200)]
+    public string? SubtitleEn { get; set; }
 
     [MaxLength(2000)]
-    public string? Description { get; set; }
+    public string? Description { get; set; } // Legacy: keep for backwards compatibility
+
+    // Bilingual description
+    public string? DescriptionZh { get; set; }
+
+    public string? DescriptionEn { get; set; }
 
     [MaxLength(500)]
     public string? ImageUrl { get; set; } // Cover image for the program
@@ -1873,13 +1892,32 @@ public class ProgramSection
 
     [Required]
     [MaxLength(200)]
-    public string Title { get; set; } = string.Empty; // e.g., "第一乐章", "开场"
+    public string Title { get; set; } = string.Empty; // Legacy: keep for backwards compatibility
+
+    // Bilingual title
+    [MaxLength(200)]
+    public string? TitleZh { get; set; }
+
+    [MaxLength(200)]
+    public string? TitleEn { get; set; }
 
     [MaxLength(500)]
-    public string? Subtitle { get; set; }
+    public string? Subtitle { get; set; } // Legacy: keep for backwards compatibility
+
+    // Bilingual subtitle
+    [MaxLength(500)]
+    public string? SubtitleZh { get; set; }
+
+    [MaxLength(500)]
+    public string? SubtitleEn { get; set; }
 
     [MaxLength(2000)]
-    public string? Description { get; set; }
+    public string? Description { get; set; } // Legacy: keep for backwards compatibility
+
+    // Bilingual description
+    public string? DescriptionZh { get; set; }
+
+    public string? DescriptionEn { get; set; }
 
     public int DisplayOrder { get; set; } = 0;
 
@@ -1908,18 +1946,37 @@ public class ProgramItem
 
     [Required]
     [MaxLength(300)]
-    public string Title { get; set; } = string.Empty; // e.g., "《天鹅湖》", "《举杯吧朋友》"
+    public string Title { get; set; } = string.Empty; // Legacy: keep for backwards compatibility
+
+    // Bilingual title
+    [MaxLength(300)]
+    public string? TitleZh { get; set; }
+
+    [MaxLength(300)]
+    public string? TitleEn { get; set; }
 
     // Performance type (e.g., "芭蕾舞", "独唱", "现代舞/Hiphop", "古典舞")
     [MaxLength(100)]
-    public string? PerformanceType { get; set; }
+    public string? PerformanceType { get; set; } // Legacy: keep for backwards compatibility
+
+    // Bilingual performance type
+    [MaxLength(100)]
+    public string? PerformanceTypeZh { get; set; }
+
+    [MaxLength(100)]
+    public string? PerformanceTypeEn { get; set; }
 
     // Performer name(s) - can be a single name or multiple
     [MaxLength(500)]
     public string? PerformerNames { get; set; } // e.g., "杨心灵 Lynn Young"
 
     [MaxLength(2000)]
-    public string? Description { get; set; }
+    public string? Description { get; set; } // Legacy: keep for backwards compatibility
+
+    // Bilingual description
+    public string? DescriptionZh { get; set; }
+
+    public string? DescriptionEn { get; set; }
 
     [MaxLength(500)]
     public string? ImageUrl { get; set; }
@@ -2018,6 +2075,52 @@ public class Performer
     public virtual ProgramContent? ContentPage { get; set; }
 
     public virtual ICollection<ProgramItemPerformer> ProgramItems { get; set; } = new List<ProgramItemPerformer>();
+}
+
+// ContentCard Entity - Cards with rich content attached to program items or performers
+public class ContentCard
+{
+    [Key]
+    public int CardId { get; set; }
+
+    // Entity association (polymorphic: "ProgramItem" or "Performer")
+    [Required]
+    [MaxLength(50)]
+    public string EntityType { get; set; } = "ProgramItem";
+
+    [Required]
+    public int EntityId { get; set; }
+
+    // Bilingual title
+    [MaxLength(200)]
+    public string? TitleZh { get; set; }
+
+    [MaxLength(200)]
+    public string? TitleEn { get; set; }
+
+    // Bilingual body text
+    public string? BodyTextZh { get; set; }
+
+    public string? BodyTextEn { get; set; }
+
+    // Media
+    [MaxLength(500)]
+    public string? MediaUrl { get; set; }
+
+    [Required]
+    [MaxLength(20)]
+    public string MediaType { get; set; } = "image"; // "image" or "video"
+
+    // Layout: "left", "right", "top", "bottom", "overlay", "fullwidth"
+    [Required]
+    [MaxLength(20)]
+    public string LayoutType { get; set; } = "left";
+
+    public int DisplayOrder { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 // ProgramContent Entity - Rich content pages for programs, items, or performers

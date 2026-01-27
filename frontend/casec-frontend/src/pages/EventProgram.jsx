@@ -8,9 +8,11 @@ import {
   ExternalLink,
   Play,
   Globe,
+  Info,
 } from "lucide-react";
 import { eventProgramsAPI, getAssetUrl } from "../services/api";
 import SlideShow from "../components/SlideShow";
+import CardModal from "../components/CardModal";
 
 // Language configuration
 const LANGUAGES = {
@@ -20,6 +22,10 @@ const LANGUAGES = {
     footer: "节目内容可能会有所调整，以实际演出为准",
     replayButton: "重播幻灯片",
     viewMore: "查看更多",
+    learnMoreProgram: "了解节目",
+    learnMorePerformer: "了解演员",
+    aboutProgram: "节目介绍",
+    aboutPerformer: "演员介绍",
   },
   en: {
     locale: "en-US",
@@ -27,6 +33,10 @@ const LANGUAGES = {
     footer: "Program content is subject to change",
     replayButton: "Replay Slideshow",
     viewMore: "View More",
+    learnMoreProgram: "Learn more",
+    learnMorePerformer: "Learn more",
+    aboutProgram: "About this performance",
+    aboutPerformer: "About the performer",
   },
 };
 
@@ -38,6 +48,11 @@ export default function EventProgram() {
   const [error, setError] = useState(null);
   const [showSlideshow, setShowSlideshow] = useState(true);
   const [currentSlideshowIndex, setCurrentSlideshowIndex] = useState(0);
+
+  // Cards modal state
+  const [cardModalOpen, setCardModalOpen] = useState(false);
+  const [cardModalCards, setCardModalCards] = useState([]);
+  const [cardModalTitle, setCardModalTitle] = useState("");
 
   // Get language from query string, default to "zh"
   const langParam = searchParams.get("lang") || "zh";
@@ -89,6 +104,21 @@ export default function EventProgram() {
   // Handle skip - go directly to program content
   const handleSkip = () => {
     setShowSlideshow(false);
+  };
+
+  // Show cards in modal
+  const showCards = (cards, title) => {
+    setCardModalCards(cards);
+    setCardModalTitle(title);
+    setCardModalOpen(true);
+  };
+
+  // Helper to get bilingual text based on selected language
+  const getText = (zhField, enField, fallback) => {
+    if (lang === "zh") {
+      return zhField || fallback || enField || "";
+    }
+    return enField || fallback || zhField || "";
   };
 
   if (loading) {
@@ -165,13 +195,13 @@ export default function EventProgram() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          {program.subtitle && (
+          {getText(program.subtitleZh, program.subtitleEn, program.subtitle) && (
             <p className="text-yellow-400 text-xl mb-2 font-serif">
-              "{program.subtitle}"
+              "{getText(program.subtitleZh, program.subtitleEn, program.subtitle)}"
             </p>
           )}
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 font-serif">
-            {program.title}
+            {getText(program.titleZh, program.titleEn, program.title)}
           </h1>
 
           {/* Event Info */}
@@ -192,9 +222,9 @@ export default function EventProgram() {
             )}
           </div>
 
-          {program.description && (
+          {getText(program.descriptionZh, program.descriptionEn, program.description) && (
             <p className="text-white/70 mt-4 max-w-2xl mx-auto">
-              {program.description}
+              {getText(program.descriptionZh, program.descriptionEn, program.description)}
             </p>
           )}
         </div>
@@ -206,11 +236,11 @@ export default function EventProgram() {
               {/* Section Header */}
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-yellow-400 font-serif">
-                  {section.title}
+                  {getText(section.titleZh, section.titleEn, section.title)}
                 </h2>
-                {section.subtitle && (
+                {getText(section.subtitleZh, section.subtitleEn, section.subtitle) && (
                   <p className="text-white/60 text-sm mt-1">
-                    {section.subtitle}
+                    {getText(section.subtitleZh, section.subtitleEn, section.subtitle)}
                   </p>
                 )}
               </div>
@@ -223,6 +253,8 @@ export default function EventProgram() {
                     item={item}
                     itemNumber={item.itemNumber || itemIdx + 1}
                     lang={lang}
+                    onShowCards={showCards}
+                    getText={getText}
                   />
                 ))}
               </div>
@@ -235,20 +267,56 @@ export default function EventProgram() {
           <p>{t.footer}</p>
         </div>
       </div>
+
+      {/* Cards Modal */}
+      <CardModal
+        isOpen={cardModalOpen}
+        onClose={() => setCardModalOpen(false)}
+        cards={cardModalCards}
+        title={cardModalTitle}
+        lang={lang}
+      />
     </div>
   );
 }
 
 // Program Item Row Component
-function ProgramItemRow({ item, itemNumber, lang = "zh" }) {
+function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText }) {
   const [expanded, setExpanded] = useState(false);
   const t = LANGUAGES[lang] || LANGUAGES.zh;
 
+  // Item title and fields using bilingual support
+  const itemTitle = getText(item.titleZh, item.titleEn, item.title);
+  const itemPerformanceType = getText(item.performanceTypeZh, item.performanceTypeEn, item.performanceType);
+  const itemDescription = getText(item.descriptionZh, item.descriptionEn, item.description);
+
+  const hasCards = item.cards?.length > 0;
   const hasDetails =
-    item.description ||
+    itemDescription ||
     item.performers?.length > 0 ||
     item.imageUrl ||
-    item.contentPageId;
+    item.contentPageId ||
+    hasCards;
+
+  // Handle clicking on item cards
+  const handleItemCardsClick = (e) => {
+    e.stopPropagation();
+    if (hasCards && onShowCards) {
+      onShowCards(item.cards, `${t.aboutProgram}: ${itemTitle}`);
+    }
+  };
+
+  // Handle clicking on performer cards
+  const handlePerformerCardsClick = (e, performer) => {
+    e.stopPropagation();
+    const performerName =
+      lang === "zh"
+        ? performer.chineseName || performer.name
+        : performer.englishName || performer.name;
+    if (performer.cards?.length > 0 && onShowCards) {
+      onShowCards(performer.cards, `${t.aboutPerformer}: ${performerName}`);
+    }
+  };
 
   return (
     <div className="border-b border-white/10 last:border-0 pb-3 last:pb-0">
@@ -263,15 +331,18 @@ function ProgramItemRow({ item, itemNumber, lang = "zh" }) {
           {itemNumber}:
         </span>
 
-        {/* Title */}
-        <div className="flex-1 min-w-0">
-          <span className="text-white font-medium">{item.title}</span>
+        {/* Title with optional cards indicator */}
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <span className="text-white font-medium">{itemTitle}</span>
+          {hasCards && (
+            <Info className="w-3.5 h-3.5 text-yellow-400/70 flex-shrink-0" />
+          )}
         </div>
 
         {/* Performance Type */}
-        {item.performanceType && (
+        {itemPerformanceType && (
           <span className="text-white/60 text-sm flex-shrink-0 w-24 text-center">
-            {item.performanceType}
+            {itemPerformanceType}
           </span>
         )}
 
@@ -298,27 +369,49 @@ function ProgramItemRow({ item, itemNumber, lang = "zh" }) {
           {item.imageUrl && (
             <img
               src={getAssetUrl(item.imageUrl)}
-              alt={item.title}
+              alt={itemTitle}
               className="w-full max-w-sm rounded-lg"
             />
           )}
 
-          {item.description && (
-            <p className="text-white/70 text-sm">{item.description}</p>
+          {itemDescription && (
+            <p className="text-white/70 text-sm">{itemDescription}</p>
+          )}
+
+          {/* Learn more about this program (if cards exist) */}
+          {hasCards && (
+            <button
+              onClick={handleItemCardsClick}
+              className="inline-flex items-center gap-1.5 text-yellow-400 hover:text-yellow-300 text-sm transition-colors"
+            >
+              <Info className="w-4 h-4" />
+              {t.learnMoreProgram}
+            </button>
           )}
 
           {item.performers?.length > 0 && (
             <div className="flex flex-wrap gap-3">
               {item.performers.map((performer) => {
                 // Get performer name based on selected language
-                const performerName = lang === "zh"
-                  ? (performer.chineseName || performer.name)
-                  : (performer.englishName || performer.name);
+                const performerName =
+                  lang === "zh"
+                    ? performer.chineseName || performer.name
+                    : performer.englishName || performer.name;
+                const performerHasCards = performer.cards?.length > 0;
 
                 return (
                   <div
                     key={performer.performerId}
-                    className="flex items-center gap-2 bg-white/5 rounded-full px-3 py-1"
+                    className={`flex items-center gap-2 bg-white/5 rounded-full px-3 py-1 ${
+                      performerHasCards
+                        ? "cursor-pointer hover:bg-white/10 transition-colors"
+                        : ""
+                    }`}
+                    onClick={
+                      performerHasCards
+                        ? (e) => handlePerformerCardsClick(e, performer)
+                        : undefined
+                    }
                   >
                     {performer.photoUrl && (
                       <img
@@ -328,7 +421,10 @@ function ProgramItemRow({ item, itemNumber, lang = "zh" }) {
                       />
                     )}
                     <span className="text-white/80 text-sm">{performerName}</span>
-                    {performer.contentPageId && (
+                    {performerHasCards && (
+                      <Info className="w-3 h-3 text-yellow-400/70" />
+                    )}
+                    {performer.contentPageId && !performerHasCards && (
                       <Link
                         to={`/content/${performer.contentPageId}`}
                         className="text-yellow-400 hover:text-yellow-300"

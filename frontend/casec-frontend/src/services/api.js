@@ -469,4 +469,24 @@ export const eventProgramsAPI = {
     api.put(`/eventprograms/performers/${performerId}`, data),
 };
 
+// Content Cards APIs
+export const contentCardsAPI = {
+  getAll: (entityType, entityId) => {
+    let url = "/contentcards";
+    const params = [];
+    if (entityType) params.push(`entityType=${entityType}`);
+    if (entityId) params.push(`entityId=${entityId}`);
+    if (params.length > 0) url += `?${params.join("&")}`;
+    return api.get(url);
+  },
+  getById: (id) => api.get(`/contentcards/${id}`),
+  getByEntity: (entityType, entityId) =>
+    api.get(`/contentcards/entity/${entityType}/${entityId}`),
+  create: (data) => api.post("/contentcards", data),
+  update: (id, data) => api.put(`/contentcards/${id}`, data),
+  delete: (id) => api.delete(`/contentcards/${id}`),
+  getPerformersWithCards: () => api.get("/contentcards/performers"),
+  getProgramItemsWithCards: () => api.get("/contentcards/programitems"),
+};
+
 export default api;
