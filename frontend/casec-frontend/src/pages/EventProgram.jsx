@@ -232,9 +232,9 @@ export default function EventProgram() {
           )}
         </div>
 
-        {/* Program Sections */}
+        {/* Program Sections - filter out inactive sections */}
         <div className="space-y-8">
-          {program.sections?.map((section, sectionIdx) => (
+          {program.sections?.filter(s => s.isActive !== false).map((section, sectionIdx) => (
             <div key={section.sectionId} className="bg-white/5 rounded-xl p-6">
               {/* Section Header */}
               <div className="mb-6">
@@ -248,9 +248,9 @@ export default function EventProgram() {
                 )}
               </div>
 
-              {/* Section Items */}
+              {/* Section Items - filter out inactive items */}
               <div className="space-y-3">
-                {section.items?.map((item, itemIdx) => (
+                {section.items?.filter(i => i.isActive !== false).map((item, itemIdx) => (
                   <ProgramItemRow
                     key={item.itemId}
                     item={item}

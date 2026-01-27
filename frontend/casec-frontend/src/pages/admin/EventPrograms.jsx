@@ -941,9 +941,9 @@ function ProgramEditor({ program, onReload }) {
     <div className="space-y-4">
       {/* Sections */}
       {sortedSections.map((section, sectionIdx) => (
-        <div key={section.sectionId} className="border rounded-lg overflow-hidden">
+        <div key={section.sectionId} className={`border rounded-lg overflow-hidden ${section.isActive === false ? 'opacity-60' : ''}`}>
           {/* Section Header */}
-          <div className="bg-gray-50 p-3 flex items-center justify-between">
+          <div className={`p-3 flex items-center justify-between ${section.isActive === false ? 'bg-gray-200' : 'bg-gray-50'}`}>
             {editingSection?.sectionId === section.sectionId ? (
               <SectionEditor
                 section={section}
@@ -981,7 +981,12 @@ function ProgramEditor({ program, onReload }) {
                     </button>
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900">{section.title}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-gray-900">{section.title}</h4>
+                      {section.isActive === false && (
+                        <span className="text-xs bg-gray-400 text-white px-1.5 py-0.5 rounded">Inactive</span>
+                      )}
+                    </div>
                     {section.subtitle && (
                       <p className="text-gray-500 text-sm">{section.subtitle}</p>
                     )}
@@ -1016,7 +1021,7 @@ function ProgramEditor({ program, onReload }) {
             {[...(section.items || [])].sort((a, b) => a.displayOrder - b.displayOrder).map((item, itemIdx, sortedItems) => (
               <div
                 key={item.itemId}
-                className="p-3 flex items-center gap-3 hover:bg-gray-50"
+                className={`p-3 flex items-center gap-3 hover:bg-gray-50 ${item.isActive === false ? 'opacity-50 bg-gray-100' : ''}`}
               >
                 {/* Item Move Buttons */}
                 <div className="flex flex-col">
@@ -1062,6 +1067,9 @@ function ProgramEditor({ program, onReload }) {
                         <span className="text-gray-400 text-sm ml-2">
                           ({item.performanceType})
                         </span>
+                      )}
+                      {item.isActive === false && (
+                        <span className="text-xs bg-gray-400 text-white px-1.5 py-0.5 rounded ml-2">Inactive</span>
                       )}
                     </div>
                     {item.performerNames && (
@@ -1165,21 +1173,34 @@ function SectionEditor({ section, onSave, onCancel }) {
     descriptionZh: section.descriptionZh || "",
     descriptionEn: section.descriptionEn || "",
     displayOrder: section.displayOrder ?? 0,
+    isActive: section.isActive ?? true,
   });
 
   return (
     <div className="flex-1 space-y-3 p-3 bg-white rounded-lg border">
-      {/* Display Order */}
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-gray-600">Display Order</label>
-        <input
-          type="number"
-          value={data.displayOrder}
-          onChange={(e) => setData({ ...data, displayOrder: parseInt(e.target.value) || 0 })}
-          className="w-24 border rounded px-2 py-1 text-sm"
-          min="0"
-        />
-        <span className="text-xs text-gray-400 ml-2">Lower numbers appear first</span>
+      {/* Display Order & Active Status */}
+      <div className="flex items-center gap-6">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-600">Display Order</label>
+          <input
+            type="number"
+            value={data.displayOrder}
+            onChange={(e) => setData({ ...data, displayOrder: parseInt(e.target.value) || 0 })}
+            className="w-24 border rounded px-2 py-1 text-sm"
+            min="0"
+          />
+          <span className="text-xs text-gray-400 ml-2">Lower numbers appear first</span>
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={data.isActive}
+            onChange={(e) => setData({ ...data, isActive: e.target.checked })}
+            className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+          />
+          <span className="text-sm font-medium text-gray-700">Active</span>
+          <span className="text-xs text-gray-400">(visible to public)</span>
+        </label>
       </div>
 
       {/* Title - Bilingual */}
@@ -1297,6 +1318,7 @@ function ItemEditor({ item, performers = [], onSave, onCancel }) {
   const [data, setData] = useState({
     itemNumber: item.itemNumber,
     displayOrder: item.displayOrder ?? 0,
+    isActive: item.isActive ?? true,
     title: item.title || "",
     titleZh: item.titleZh || "",
     titleEn: item.titleEn || "",
@@ -1482,21 +1504,34 @@ function ItemEditor({ item, performers = [], onSave, onCancel }) {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-2 pt-2">
-        <button
-          onClick={onCancel}
-          className="text-sm text-gray-500 px-3 py-1 hover:text-gray-700"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() => onSave(data)}
-          className="flex items-center gap-1 text-sm bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700"
-        >
-          <Save className="w-3 h-3" />
-          Save
-        </button>
+      {/* Active Status & Action Buttons */}
+      <div className="flex items-center justify-between pt-2 border-t">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={data.isActive}
+            onChange={(e) => setData({ ...data, isActive: e.target.checked })}
+            className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+          />
+          <span className="text-sm font-medium text-gray-700">Active</span>
+          <span className="text-xs text-gray-400">(visible to public)</span>
+        </label>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onCancel}
+            className="text-sm text-gray-500 px-3 py-1 hover:text-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave(data)}
+            className="flex items-center gap-1 text-sm bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700"
+          >
+            <Save className="w-3 h-3" />
+            Save
+          </button>
+        </div>
       </div>
     </div>
   );
