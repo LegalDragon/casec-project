@@ -2129,7 +2129,7 @@ public class ContentCard
     [MaxLength(20)]
     public string LayoutType { get; set; } = "left";
 
-    // Aspect ratio for media: "original", "16:9", "4:3", "1:1", "3:2"
+    // Aspect ratio for media: "original", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"
     [MaxLength(20)]
     public string? AspectRatio { get; set; } = "original";
 

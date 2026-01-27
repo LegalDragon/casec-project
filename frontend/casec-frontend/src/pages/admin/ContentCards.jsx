@@ -72,10 +72,16 @@ const LAYOUT_TYPES = [
 
 const ASPECT_RATIO_TYPES = [
   { value: "original", label: "Original" },
+  // Landscape
   { value: "16:9", label: "16:9 (Widescreen)" },
   { value: "4:3", label: "4:3 (Standard)" },
-  { value: "1:1", label: "1:1 (Square)" },
   { value: "3:2", label: "3:2 (Photo)" },
+  // Square
+  { value: "1:1", label: "1:1 (Square)" },
+  // Portrait
+  { value: "2:3", label: "2:3 (Portrait)" },
+  { value: "3:4", label: "3:4 (Portrait)" },
+  { value: "9:16", label: "9:16 (Mobile/Vertical)" },
 ];
 
 export default function AdminContentCards() {

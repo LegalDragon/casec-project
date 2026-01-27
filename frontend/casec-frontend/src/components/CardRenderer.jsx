@@ -13,10 +13,16 @@ const LAYOUT_STYLES = {
 // Aspect ratio CSS classes
 const ASPECT_RATIO_CLASSES = {
   original: "", // No fixed aspect ratio - use natural dimensions
+  // Landscape ratios
   "16:9": "aspect-video",
   "4:3": "aspect-[4/3]",
-  "1:1": "aspect-square",
   "3:2": "aspect-[3/2]",
+  // Square
+  "1:1": "aspect-square",
+  // Portrait ratios
+  "2:3": "aspect-[2/3]",
+  "3:4": "aspect-[3/4]",
+  "9:16": "aspect-[9/16]",
 };
 
 export default function CardRenderer({ card, lang = "zh" }) {
