@@ -682,7 +682,7 @@ public class RolesController : ControllerBase
                     Data = new UserPermissionsDto
                     {
                         UserId = 0,
-                        Roles = new List<string>(),
+                        Roles = new List<UserRoleInfoDto>(),
                         Permissions = new List<AreaPermissionDto>()
                     }
                 });
@@ -713,7 +713,7 @@ public class RolesController : ControllerBase
                     Data = new UserPermissionsDto
                     {
                         UserId = userId.Value,
-                        Roles = new List<string> { "Admin" },
+                        Roles = new List<UserRoleInfoDto> { new UserRoleInfoDto { RoleId = 0, Name = "Admin" } },
                         Permissions = allAreas
                     }
                 });
