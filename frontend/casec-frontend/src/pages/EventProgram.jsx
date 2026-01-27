@@ -3,23 +3,21 @@ import { useParams, Link } from "react-router-dom";
 import {
   Calendar,
   MapPin,
-  Music,
-  Users,
   ChevronRight,
   Loader2,
   ExternalLink,
   Play,
 } from "lucide-react";
-import { eventProgramsAPI, slideShowsAPI, getAssetUrl } from "../services/api";
+import { eventProgramsAPI, getAssetUrl } from "../services/api";
+import SlideShow from "../components/SlideShow";
 
 export default function EventProgram() {
   const { slug } = useParams();
   const [program, setProgram] = useState(null);
-  const [slideshows, setSlideshows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showSlideshow, setShowSlideshow] = useState(true);
-  const [currentSlideshow, setCurrentSlideshow] = useState(null);
+  const [currentSlideshowIndex, setCurrentSlideshowIndex] = useState(0);
 
   useEffect(() => {
     loadProgram();
@@ -31,32 +29,9 @@ export default function EventProgram() {
       const response = await eventProgramsAPI.getById(slug);
       if (response.success) {
         setProgram(response.data);
-
-        // Load slideshows if any
-        if (response.data.slideShowIds?.length > 0) {
-          console.log("[EventProgram] Loading slideshows for IDs:", response.data.slideShowIds);
-          try {
-            const slideshowPromises = response.data.slideShowIds.map((id) =>
-              slideShowsAPI.getById(id).catch((err) => {
-                console.warn(`[EventProgram] Failed to load slideshow ${id}:`, err);
-                return null;
-              })
-            );
-            const results = await Promise.all(slideshowPromises);
-            console.log("[EventProgram] Slideshow API results:", results);
-            const programSlideshows = results
-              .filter((r) => r?.success)
-              .map((r) => r.data);
-            console.log("[EventProgram] Loaded slideshows:", programSlideshows);
-            setSlideshows(programSlideshows);
-            if (programSlideshows.length > 0) {
-              setCurrentSlideshow(programSlideshows[0]);
-            }
-          } catch (err) {
-            console.error("[EventProgram] Error loading slideshows:", err);
-          }
-        } else {
-          console.log("[EventProgram] No slideshow IDs in program data");
+        // If no slideshows, skip directly to content
+        if (!response.data.slideShowIds?.length) {
+          setShowSlideshow(false);
         }
       } else {
         setError(response.message || "Program not found");
@@ -66,6 +41,23 @@ export default function EventProgram() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle slideshow completion
+  const handleSlideshowComplete = () => {
+    const slideShowIds = program?.slideShowIds || [];
+    // If there are more slideshows, play the next one
+    if (currentSlideshowIndex < slideShowIds.length - 1) {
+      setCurrentSlideshowIndex((prev) => prev + 1);
+    } else {
+      // All slideshows complete, show program content
+      setShowSlideshow(false);
+    }
+  };
+
+  // Handle skip - go directly to program content
+  const handleSkip = () => {
+    setShowSlideshow(false);
   };
 
   if (loading) {
@@ -94,52 +86,35 @@ export default function EventProgram() {
 
   if (!program) return null;
 
+  const slideShowIds = program.slideShowIds || [];
+  const currentSlideshowId = slideShowIds[currentSlideshowIndex];
+
+  // Show slideshow if enabled and there are slideshows
+  if (showSlideshow && currentSlideshowId) {
+    return (
+      <SlideShow
+        id={currentSlideshowId}
+        onComplete={handleSlideshowComplete}
+        onSkip={handleSkip}
+      />
+    );
+  }
+
+  // Show program content
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-amber-900">
-      {/* Slideshow Section */}
-      {showSlideshow && slideshows.length > 0 && (
-        <div className="relative">
-          {/* Slideshow placeholder - integrate with your slideshow component */}
-          <div className="aspect-video max-h-[60vh] bg-black/50 flex items-center justify-center">
-            {currentSlideshow ? (
-              <Link
-                to={`/slideshow/${currentSlideshow.code}`}
-                className="flex flex-col items-center gap-4 text-white hover:text-yellow-400 transition-colors"
-              >
-                <Play className="w-16 h-16" />
-                <span className="text-lg">View Slideshow: {currentSlideshow.name}</span>
-              </Link>
-            ) : (
-              <span className="text-white/50">No slideshow available</span>
-            )}
-          </div>
-
-          {/* Multiple slideshow buttons */}
-          {slideshows.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-              {slideshows.map((slideshow, idx) => (
-                <button
-                  key={slideshow.slideShowId}
-                  onClick={() => setCurrentSlideshow(slideshow)}
-                  className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                    currentSlideshow?.slideShowId === slideshow.slideShowId
-                      ? "bg-yellow-500 text-black"
-                      : "bg-white/20 text-white hover:bg-white/30"
-                  }`}
-                >
-                  {slideshow.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={() => setShowSlideshow(false)}
-            className="absolute top-4 right-4 bg-black/50 text-white px-4 py-2 rounded-full text-sm hover:bg-black/70 transition-colors"
-          >
-            Skip to Program
-          </button>
-        </div>
+      {/* Replay slideshow button (if there were slideshows) */}
+      {slideShowIds.length > 0 && (
+        <button
+          onClick={() => {
+            setCurrentSlideshowIndex(0);
+            setShowSlideshow(true);
+          }}
+          className="fixed top-4 right-4 z-40 flex items-center gap-2 bg-black/50 text-white px-4 py-2 rounded-full text-sm hover:bg-black/70 transition-colors"
+        >
+          <Play className="w-4 h-4" />
+          Replay Slideshow
+        </button>
       )}
 
       {/* Program Content */}
