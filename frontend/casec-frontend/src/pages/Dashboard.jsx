@@ -6,7 +6,10 @@ import { useAuthStore } from '../store/useStore';
 import { useTheme } from '../components/ThemeProvider';
 
 export default function Dashboard() {
-  const user = useAuthStore((state) => state.user);
+  const { user, hasAdminAccess } = useAuthStore((state) => ({
+    user: state.user,
+    hasAdminAccess: state.hasAdminAccess,
+  }));
   const { theme } = useTheme();
   const appName = theme?.organizationName || 'Community';
   const [dashboardData, setDashboardData] = useState(null);
@@ -166,15 +169,17 @@ export default function Dashboard() {
           </a>
         </div>
 
-        {/* Admin Panel Card - Only visible to admins */}
-        {user?.isAdmin && (
+        {/* Admin Panel Card - Visible to admins and users with role-based admin access */}
+        {hasAdminAccess() && (
           <div className="card bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
             <div className="flex items-center space-x-3 mb-3">
               <Settings className="w-6 h-6 text-amber-600" />
               <h3 className="text-xl font-bold text-gray-900">Admin Panel</h3>
             </div>
             <p className="text-gray-600 mb-4 text-sm">
-              Manage users, payments, events, and customize the site.
+              {user?.isAdmin
+                ? "Manage users, payments, events, and customize the site."
+                : "Access your assigned admin areas and manage content."}
             </p>
             <Link to="/admin" className="btn bg-amber-600 text-white hover:bg-amber-700 inline-block text-sm">
               Open Admin

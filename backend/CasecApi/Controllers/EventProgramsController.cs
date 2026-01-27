@@ -27,7 +27,8 @@ public class EventProgramsController : ControllerBase
     {
         try
         {
-            var isAdmin = User.IsInRole("Admin");
+            // Check if user has admin access (legacy admin OR role-based permission for programs)
+            var hasAdminAccess = await HasAreaPermissionAsync("programs");
 
             var query = _context.EventPrograms
                 .Include(p => p.Sections)
@@ -35,7 +36,7 @@ public class EventProgramsController : ControllerBase
                 .AsQueryable();
 
             // Non-admins only see published programs
-            if (!isAdmin || !includeAll)
+            if (!hasAdminAccess || !includeAll)
             {
                 query = query.Where(p => p.Status == "Published");
             }
@@ -84,7 +85,8 @@ public class EventProgramsController : ControllerBase
     {
         try
         {
-            var isAdmin = User.IsInRole("Admin");
+            // Check if user has admin access (legacy admin OR role-based permission for programs)
+            var hasAdminAccess = await HasAreaPermissionAsync("programs");
 
             EventProgram? program;
 
@@ -119,7 +121,7 @@ public class EventProgramsController : ControllerBase
             }
 
             // Non-admins can only see published programs
-            if (!isAdmin && program.Status != "Published")
+            if (!hasAdminAccess && program.Status != "Published")
             {
                 return NotFound(new ApiResponse<EventProgramDto>
                 {
@@ -189,13 +191,19 @@ public class EventProgramsController : ControllerBase
         }
     }
 
-    // POST: /EventPrograms - Create new program (admin only)
-    [Authorize(Roles = "Admin")]
+    // POST: /EventPrograms - Create new program (requires edit permission for programs area)
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<EventProgramDto>>> CreateProgram([FromBody] CreateEventProgramRequest request)
     {
         try
         {
+            // Check permission (requires edit access)
+            if (!await HasAreaPermissionAsync("programs", requireEdit: true))
+            {
+                return ForbiddenResponse<EventProgramDto>();
+            }
+
             // Generate slug if not provided
             var slug = request.Slug ?? GenerateSlug(request.Title);
 
@@ -252,13 +260,19 @@ public class EventProgramsController : ControllerBase
         }
     }
 
-    // PUT: /EventPrograms/{id} - Update program (admin only)
-    [Authorize(Roles = "Admin")]
+    // PUT: /EventPrograms/{id} - Update program (requires edit permission for programs area)
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<EventProgramDto>>> UpdateProgram(int id, [FromBody] UpdateEventProgramRequest request)
     {
         try
         {
+            // Check permission (requires edit access)
+            if (!await HasAreaPermissionAsync("programs", requireEdit: true))
+            {
+                return ForbiddenResponse<EventProgramDto>();
+            }
+
             var program = await _context.EventPrograms
                 .Include(p => p.Sections)
                     .ThenInclude(s => s.Items)
@@ -327,13 +341,19 @@ public class EventProgramsController : ControllerBase
         }
     }
 
-    // DELETE: /EventPrograms/{id} - Delete program (admin only)
-    [Authorize(Roles = "Admin")]
+    // DELETE: /EventPrograms/{id} - Delete program (requires delete permission for programs area)
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProgram(int id)
     {
         try
         {
+            // Check permission (requires delete access)
+            if (!await HasAreaPermissionAsync("programs", requireDelete: true))
+            {
+                return ForbiddenResponse<bool>();
+            }
+
             var program = await _context.EventPrograms.FindAsync(id);
             if (program == null)
             {
@@ -368,12 +388,18 @@ public class EventProgramsController : ControllerBase
     // ============ SECTION ENDPOINTS ============
 
     // POST: /EventPrograms/{programId}/sections - Add section to program
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("{programId}/sections")]
     public async Task<ActionResult<ApiResponse<ProgramSectionDto>>> CreateSection(int programId, [FromBody] CreateProgramSectionRequest request)
     {
         try
         {
+            // Check permission (requires edit access)
+            if (!await HasAreaPermissionAsync("programs", requireEdit: true))
+            {
+                return ForbiddenResponse<ProgramSectionDto>();
+            }
+
             var program = await _context.EventPrograms.FindAsync(programId);
             if (program == null)
             {
@@ -423,12 +449,18 @@ public class EventProgramsController : ControllerBase
     }
 
     // PUT: /EventPrograms/sections/{sectionId} - Update section
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("sections/{sectionId}")]
     public async Task<ActionResult<ApiResponse<ProgramSectionDto>>> UpdateSection(int sectionId, [FromBody] UpdateProgramSectionRequest request)
     {
         try
         {
+            // Check permission (requires edit access)
+            if (!await HasAreaPermissionAsync("programs", requireEdit: true))
+            {
+                return ForbiddenResponse<ProgramSectionDto>();
+            }
+
             var section = await _context.ProgramSections
                 .Include(s => s.Items)
                 .FirstOrDefaultAsync(s => s.SectionId == sectionId);
@@ -475,12 +507,18 @@ public class EventProgramsController : ControllerBase
     }
 
     // DELETE: /EventPrograms/sections/{sectionId} - Delete section
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("sections/{sectionId}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteSection(int sectionId)
     {
         try
         {
+            // Check permission (requires delete access)
+            if (!await HasAreaPermissionAsync("programs", requireDelete: true))
+            {
+                return ForbiddenResponse<bool>();
+            }
+
             var section = await _context.ProgramSections.FindAsync(sectionId);
             if (section == null)
             {
@@ -515,12 +553,18 @@ public class EventProgramsController : ControllerBase
     // ============ ITEM ENDPOINTS ============
 
     // POST: /EventPrograms/sections/{sectionId}/items - Add item to section
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPost("sections/{sectionId}/items")]
     public async Task<ActionResult<ApiResponse<ProgramItemDto>>> CreateItem(int sectionId, [FromBody] CreateProgramItemRequest request)
     {
         try
         {
+            // Check permission (requires edit access)
+            if (!await HasAreaPermissionAsync("programs", requireEdit: true))
+            {
+                return ForbiddenResponse<ProgramItemDto>();
+            }
+
             var section = await _context.ProgramSections.FindAsync(sectionId);
             if (section == null)
             {
@@ -591,12 +635,18 @@ public class EventProgramsController : ControllerBase
     }
 
     // PUT: /EventPrograms/items/{itemId} - Update item
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpPut("items/{itemId}")]
     public async Task<ActionResult<ApiResponse<ProgramItemDto>>> UpdateItem(int itemId, [FromBody] UpdateProgramItemRequest request)
     {
         try
         {
+            // Check permission (requires edit access)
+            if (!await HasAreaPermissionAsync("programs", requireEdit: true))
+            {
+                return ForbiddenResponse<ProgramItemDto>();
+            }
+
             var item = await _context.ProgramItems
                 .Include(i => i.Performers)
                     .ThenInclude(ip => ip.Performer)
@@ -677,12 +727,18 @@ public class EventProgramsController : ControllerBase
     }
 
     // DELETE: /EventPrograms/items/{itemId} - Delete item
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [HttpDelete("items/{itemId}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteItem(int itemId)
     {
         try
         {
+            // Check permission (requires delete access)
+            if (!await HasAreaPermissionAsync("programs", requireDelete: true))
+            {
+                return ForbiddenResponse<bool>();
+            }
+
             var item = await _context.ProgramItems.FindAsync(itemId);
             if (item == null)
             {
@@ -758,13 +814,21 @@ public class EventProgramsController : ControllerBase
         }
     }
 
-    // POST: /EventPrograms/performers - Create performer (admin only)
-    [Authorize(Roles = "Admin")]
+    // POST: /EventPrograms/performers - Create performer (requires edit permission for programs or performers area)
+    [Authorize]
     [HttpPost("performers")]
     public async Task<ActionResult<ApiResponse<PerformerDto>>> CreatePerformer([FromBody] CreatePerformerRequest request)
     {
         try
         {
+            // Check permission (requires edit access for programs or performers area)
+            var hasProgramsPermission = await HasAreaPermissionAsync("programs", requireEdit: true);
+            var hasPerformersPermission = await HasAreaPermissionAsync("performers", requireEdit: true);
+            if (!hasProgramsPermission && !hasPerformersPermission)
+            {
+                return ForbiddenResponse<PerformerDto>();
+            }
+
             var performer = new Performer
             {
                 Name = request.Name,
@@ -802,13 +866,21 @@ public class EventProgramsController : ControllerBase
         }
     }
 
-    // PUT: /EventPrograms/performers/{performerId} - Update performer (admin only)
-    [Authorize(Roles = "Admin")]
+    // PUT: /EventPrograms/performers/{performerId} - Update performer (requires edit permission for programs or performers area)
+    [Authorize]
     [HttpPut("performers/{performerId}")]
     public async Task<ActionResult<ApiResponse<PerformerDto>>> UpdatePerformer(int performerId, [FromBody] UpdatePerformerRequest request)
     {
         try
         {
+            // Check permission (requires edit access for programs or performers area)
+            var hasProgramsPermission = await HasAreaPermissionAsync("programs", requireEdit: true);
+            var hasPerformersPermission = await HasAreaPermissionAsync("performers", requireEdit: true);
+            if (!hasProgramsPermission && !hasPerformersPermission)
+            {
+                return ForbiddenResponse<PerformerDto>();
+            }
+
             var performer = await _context.Performers.FindAsync(performerId);
             if (performer == null)
             {
@@ -1026,5 +1098,52 @@ public class EventProgramsController : ControllerBase
     {
         var userIdClaim = User.FindFirst("UserId")?.Value;
         return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    /// <summary>
+    /// Checks if the current user has permission for a specific admin area.
+    /// Returns true if user is legacy admin OR has role-based permission for the area.
+    /// </summary>
+    private async Task<bool> HasAreaPermissionAsync(string areaKey, bool requireEdit = false, bool requireDelete = false)
+    {
+        // Legacy admin check (from JWT token)
+        if (User.IsInRole("Admin"))
+        {
+            return true;
+        }
+
+        var userId = GetCurrentUserId();
+        if (userId == null) return false;
+
+        // Check role-based permissions
+        var hasPermission = await _context.UserRoles
+            .Where(ur => ur.UserId == userId.Value)
+            .Join(_context.RoleAreaPermissions,
+                ur => ur.RoleId,
+                rap => rap.RoleId,
+                (ur, rap) => rap)
+            .Join(_context.AdminAreas,
+                rap => rap.AreaId,
+                a => a.AreaId,
+                (rap, a) => new { rap, a })
+            .Where(x => x.a.AreaKey == areaKey)
+            .Where(x => x.rap.CanView)
+            .Where(x => !requireEdit || x.rap.CanEdit)
+            .Where(x => !requireDelete || x.rap.CanDelete)
+            .AnyAsync();
+
+        return hasPermission;
+    }
+
+    /// <summary>
+    /// Returns a 403 Forbidden response for unauthorized access.
+    /// </summary>
+    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    {
+        return StatusCode(403, new ApiResponse<T>
+        {
+            Success = false,
+            Message = message
+        });
     }
 }
