@@ -7,6 +7,7 @@ import {
   Loader2,
   ExternalLink,
   Play,
+  Globe,
 } from "lucide-react";
 import { eventProgramsAPI, getAssetUrl } from "../services/api";
 import SlideShow from "../components/SlideShow";
@@ -31,7 +32,7 @@ const LANGUAGES = {
 
 export default function EventProgram() {
   const { slug } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,6 +43,12 @@ export default function EventProgram() {
   const langParam = searchParams.get("lang") || "zh";
   const lang = LANGUAGES[langParam] ? langParam : "zh";
   const t = LANGUAGES[lang];
+
+  // Toggle language between Chinese and English
+  const toggleLanguage = () => {
+    const newLang = lang === "zh" ? "en" : "zh";
+    setSearchParams({ lang: newLang });
+  };
 
   useEffect(() => {
     loadProgram();
@@ -127,19 +134,32 @@ export default function EventProgram() {
   // Show program content
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-amber-900">
-      {/* Replay slideshow button (if there were slideshows) */}
-      {slideShowIds.length > 0 && (
+      {/* Top action buttons */}
+      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+        {/* Language Switcher */}
         <button
-          onClick={() => {
-            setCurrentSlideshowIndex(0);
-            setShowSlideshow(true);
-          }}
-          className="fixed top-4 right-4 z-40 flex items-center gap-2 bg-black/50 text-white px-4 py-2 rounded-full text-sm hover:bg-black/70 transition-colors"
+          onClick={toggleLanguage}
+          className="flex items-center gap-2 bg-black/50 text-white px-4 py-2 rounded-full text-sm hover:bg-black/70 transition-colors"
+          title={lang === "zh" ? "Switch to English" : "切换到中文"}
         >
-          <Play className="w-4 h-4" />
-          {t.replayButton}
+          <Globe className="w-4 h-4" />
+          <span className="font-medium">{lang === "zh" ? "EN" : "中文"}</span>
         </button>
-      )}
+
+        {/* Replay slideshow button (if there were slideshows) */}
+        {slideShowIds.length > 0 && (
+          <button
+            onClick={() => {
+              setCurrentSlideshowIndex(0);
+              setShowSlideshow(true);
+            }}
+            className="flex items-center gap-2 bg-black/50 text-white px-4 py-2 rounded-full text-sm hover:bg-black/70 transition-colors"
+          >
+            <Play className="w-4 h-4" />
+            {t.replayButton}
+          </button>
+        )}
+      </div>
 
       {/* Program Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -289,30 +309,37 @@ function ProgramItemRow({ item, itemNumber, lang = "zh" }) {
 
           {item.performers?.length > 0 && (
             <div className="flex flex-wrap gap-3">
-              {item.performers.map((performer) => (
-                <div
-                  key={performer.performerId}
-                  className="flex items-center gap-2 bg-white/5 rounded-full px-3 py-1"
-                >
-                  {performer.photoUrl && (
-                    <img
-                      src={getAssetUrl(performer.photoUrl)}
-                      alt={performer.name}
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                  )}
-                  <span className="text-white/80 text-sm">{performer.name}</span>
-                  {performer.contentPageId && (
-                    <Link
-                      to={`/content/${performer.contentPageId}`}
-                      className="text-yellow-400 hover:text-yellow-300"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </Link>
-                  )}
-                </div>
-              ))}
+              {item.performers.map((performer) => {
+                // Get performer name based on selected language
+                const performerName = lang === "zh"
+                  ? (performer.chineseName || performer.name)
+                  : (performer.englishName || performer.name);
+
+                return (
+                  <div
+                    key={performer.performerId}
+                    className="flex items-center gap-2 bg-white/5 rounded-full px-3 py-1"
+                  >
+                    {performer.photoUrl && (
+                      <img
+                        src={getAssetUrl(performer.photoUrl)}
+                        alt={performerName}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    )}
+                    <span className="text-white/80 text-sm">{performerName}</span>
+                    {performer.contentPageId && (
+                      <Link
+                        to={`/content/${performer.contentPageId}`}
+                        className="text-yellow-400 hover:text-yellow-300"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
