@@ -46,7 +46,7 @@ public class ThemeController : ControllerBase
             .AnyAsync();
     }
 
-    private ActionResult<T> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
+    private ActionResult<ApiResponse<T>> ForbiddenResponse<T>(string message = "You do not have permission to perform this action")
     {
         return StatusCode(403, new ApiResponse<T> { Success = false, Message = message });
     }
