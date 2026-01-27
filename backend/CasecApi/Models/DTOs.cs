@@ -1901,6 +1901,29 @@ public class UpdateProgramItemRequest
     public List<int>? PerformerIds { get; set; }
 }
 
+// Reorder Request DTOs
+public class ReorderSectionsRequest
+{
+    public List<SectionOrderItem> SectionOrder { get; set; } = new();
+}
+
+public class SectionOrderItem
+{
+    public int SectionId { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+public class ReorderItemsRequest
+{
+    public List<ItemOrderItem> ItemOrder { get; set; } = new();
+}
+
+public class ItemOrderItem
+{
+    public int ItemId { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
 // Performer DTOs
 public class PerformerDto
 {

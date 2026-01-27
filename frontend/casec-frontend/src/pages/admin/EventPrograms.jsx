@@ -6,6 +6,7 @@ import {
   Eye,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Save,
   X,
   Loader2,
@@ -18,6 +19,8 @@ import {
   Star,
   Copy,
   Check,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { eventProgramsAPI, slideShowsAPI, performersAPI, getAssetUrl } from "../../services/api";
 
@@ -870,10 +873,76 @@ function ProgramEditor({ program, onReload }) {
     }
   };
 
+  const handleMoveSection = async (sectionId, direction) => {
+    const sections = [...(program.sections || [])].sort((a, b) => a.displayOrder - b.displayOrder);
+    const currentIndex = sections.findIndex(s => s.sectionId === sectionId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= sections.length) return;
+
+    // Swap the sections
+    [sections[currentIndex], sections[newIndex]] = [sections[newIndex], sections[currentIndex]];
+
+    // Create new order
+    const sectionOrder = sections.map((s, idx) => ({
+      sectionId: s.sectionId,
+      displayOrder: idx,
+    }));
+
+    try {
+      setSaving(true);
+      const response = await eventProgramsAPI.reorderSections(program.programId, sectionOrder);
+      if (response.success) {
+        onReload();
+      }
+    } catch (err) {
+      console.error("Error reordering sections:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleMoveItem = async (sectionId, itemId, direction) => {
+    const section = program.sections?.find(s => s.sectionId === sectionId);
+    if (!section) return;
+
+    const items = [...(section.items || [])].sort((a, b) => a.displayOrder - b.displayOrder);
+    const currentIndex = items.findIndex(i => i.itemId === itemId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= items.length) return;
+
+    // Swap the items
+    [items[currentIndex], items[newIndex]] = [items[newIndex], items[currentIndex]];
+
+    // Create new order
+    const itemOrder = items.map((i, idx) => ({
+      itemId: i.itemId,
+      displayOrder: idx,
+    }));
+
+    try {
+      setSaving(true);
+      const response = await eventProgramsAPI.reorderItems(sectionId, itemOrder);
+      if (response.success) {
+        onReload();
+      }
+    } catch (err) {
+      console.error("Error reordering items:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Sort sections by displayOrder
+  const sortedSections = [...(program.sections || [])].sort((a, b) => a.displayOrder - b.displayOrder);
+
   return (
     <div className="space-y-4">
       {/* Sections */}
-      {program.sections?.map((section, sectionIdx) => (
+      {sortedSections.map((section, sectionIdx) => (
         <div key={section.sectionId} className="border rounded-lg overflow-hidden">
           {/* Section Header */}
           <div className="bg-gray-50 p-3 flex items-center justify-between">
@@ -893,11 +962,32 @@ function ProgramEditor({ program, onReload }) {
               />
             ) : (
               <>
-                <div>
-                  <h4 className="font-bold text-gray-900">{section.title}</h4>
-                  {section.subtitle && (
-                    <p className="text-gray-500 text-sm">{section.subtitle}</p>
-                  )}
+                <div className="flex items-center gap-2">
+                  {/* Section Move Buttons */}
+                  <div className="flex flex-col">
+                    <button
+                      onClick={() => handleMoveSection(section.sectionId, 'up')}
+                      disabled={sectionIdx === 0 || saving}
+                      className="p-0.5 text-gray-400 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Move section up"
+                    >
+                      <ArrowUp className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleMoveSection(section.sectionId, 'down')}
+                      disabled={sectionIdx === sortedSections.length - 1 || saving}
+                      className="p-0.5 text-gray-400 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Move section down"
+                    >
+                      <ArrowDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900">{section.title}</h4>
+                    {section.subtitle && (
+                      <p className="text-gray-500 text-sm">{section.subtitle}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -925,11 +1015,30 @@ function ProgramEditor({ program, onReload }) {
 
           {/* Section Items */}
           <div className="divide-y">
-            {section.items?.map((item, itemIdx) => (
+            {[...(section.items || [])].sort((a, b) => a.displayOrder - b.displayOrder).map((item, itemIdx, sortedItems) => (
               <div
                 key={item.itemId}
                 className="p-3 flex items-center gap-3 hover:bg-gray-50"
               >
+                {/* Item Move Buttons */}
+                <div className="flex flex-col">
+                  <button
+                    onClick={() => handleMoveItem(section.sectionId, item.itemId, 'up')}
+                    disabled={itemIdx === 0 || saving}
+                    className="p-0.5 text-gray-400 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Move item up"
+                  >
+                    <ArrowUp className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => handleMoveItem(section.sectionId, item.itemId, 'down')}
+                    disabled={itemIdx === sortedItems.length - 1 || saving}
+                    className="p-0.5 text-gray-400 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Move item down"
+                  >
+                    <ArrowDown className="w-3 h-3" />
+                  </button>
+                </div>
                 <span className="text-gray-400 text-sm w-8">{item.itemNumber}:</span>
 
                 {editingItem?.itemId === item.itemId ? (

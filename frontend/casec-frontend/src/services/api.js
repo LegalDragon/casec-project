@@ -455,12 +455,16 @@ export const eventProgramsAPI = {
     api.put(`/eventprograms/sections/${sectionId}`, data),
   deleteSection: (sectionId) =>
     api.delete(`/eventprograms/sections/${sectionId}`),
+  reorderSections: (programId, sectionOrder) =>
+    api.put(`/eventprograms/${programId}/sections/reorder`, { sectionOrder }),
 
   // Items
   createItem: (sectionId, data) =>
     api.post(`/eventprograms/sections/${sectionId}/items`, data),
   updateItem: (itemId, data) => api.put(`/eventprograms/items/${itemId}`, data),
   deleteItem: (itemId) => api.delete(`/eventprograms/items/${itemId}`),
+  reorderItems: (sectionId, itemOrder) =>
+    api.put(`/eventprograms/sections/${sectionId}/items/reorder`, { itemOrder }),
 
   // Performers (legacy - use performersAPI instead)
   getPerformers: () => api.get("/eventprograms/performers"),

@@ -506,6 +506,63 @@ public class EventProgramsController : ControllerBase
         }
     }
 
+    // PUT: /EventPrograms/{programId}/sections/reorder - Reorder sections within a program
+    [Authorize]
+    [HttpPut("{programId}/sections/reorder")]
+    public async Task<ActionResult<ApiResponse<bool>>> ReorderSections(int programId, [FromBody] ReorderSectionsRequest request)
+    {
+        try
+        {
+            // Check permission (requires edit access)
+            if (!await HasAreaPermissionAsync("programs", requireEdit: true))
+            {
+                return ForbiddenResponse<bool>();
+            }
+
+            var program = await _context.EventPrograms
+                .Include(p => p.Sections)
+                .FirstOrDefaultAsync(p => p.ProgramId == programId);
+
+            if (program == null)
+            {
+                return NotFound(new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Program not found"
+                });
+            }
+
+            // Update display order for each section
+            foreach (var orderItem in request.SectionOrder)
+            {
+                var section = program.Sections?.FirstOrDefault(s => s.SectionId == orderItem.SectionId);
+                if (section != null)
+                {
+                    section.DisplayOrder = orderItem.DisplayOrder;
+                    section.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<bool>
+            {
+                Success = true,
+                Data = true,
+                Message = "Sections reordered successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reordering sections for program {ProgramId}", programId);
+            return StatusCode(500, new ApiResponse<bool>
+            {
+                Success = false,
+                Message = "An error occurred while reordering sections"
+            });
+        }
+    }
+
     // DELETE: /EventPrograms/sections/{sectionId} - Delete section
     [Authorize]
     [HttpDelete("sections/{sectionId}")]
@@ -722,6 +779,63 @@ public class EventProgramsController : ControllerBase
             {
                 Success = false,
                 Message = "An error occurred while updating the item"
+            });
+        }
+    }
+
+    // PUT: /EventPrograms/sections/{sectionId}/items/reorder - Reorder items within a section
+    [Authorize]
+    [HttpPut("sections/{sectionId}/items/reorder")]
+    public async Task<ActionResult<ApiResponse<bool>>> ReorderItems(int sectionId, [FromBody] ReorderItemsRequest request)
+    {
+        try
+        {
+            // Check permission (requires edit access)
+            if (!await HasAreaPermissionAsync("programs", requireEdit: true))
+            {
+                return ForbiddenResponse<bool>();
+            }
+
+            var section = await _context.ProgramSections
+                .Include(s => s.Items)
+                .FirstOrDefaultAsync(s => s.SectionId == sectionId);
+
+            if (section == null)
+            {
+                return NotFound(new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Section not found"
+                });
+            }
+
+            // Update display order for each item
+            foreach (var orderItem in request.ItemOrder)
+            {
+                var item = section.Items?.FirstOrDefault(i => i.ItemId == orderItem.ItemId);
+                if (item != null)
+                {
+                    item.DisplayOrder = orderItem.DisplayOrder;
+                    item.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<bool>
+            {
+                Success = true,
+                Data = true,
+                Message = "Items reordered successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reordering items for section {SectionId}", sectionId);
+            return StatusCode(500, new ApiResponse<bool>
+            {
+                Success = false,
+                Message = "An error occurred while reordering items"
             });
         }
     }
