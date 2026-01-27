@@ -2115,9 +2115,15 @@ public class AssignRoleRequest
     public int RoleId { get; set; }
 }
 
+public class UserRoleInfoDto
+{
+    public int RoleId { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
 public class UserPermissionsDto
 {
     public int UserId { get; set; }
-    public List<string> Roles { get; set; } = new();
+    public List<UserRoleInfoDto> Roles { get; set; } = new();
     public List<AreaPermissionDto> Permissions { get; set; } = new();
 }

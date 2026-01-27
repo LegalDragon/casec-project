@@ -125,12 +125,12 @@ export default function ManageUsers() {
 
       // Add new roles
       for (const roleId of rolesToAdd) {
-        await rolesAPI.assignRole(roleId, { userId: editingUser.userId });
+        await rolesAPI.assignRole({ userId: editingUser.userId, roleId });
       }
 
       // Remove old roles
       for (const roleId of rolesToRemove) {
-        await rolesAPI.unassignRole(roleId, editingUser.userId);
+        await rolesAPI.unassignRoleFromUser(roleId, editingUser.userId);
       }
 
       alert('User updated successfully!');

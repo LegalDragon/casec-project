@@ -516,6 +516,7 @@ export const rolesAPI = {
   getRoleUsers: (roleId) => api.get(`/roles/${roleId}/users`),
   assignRole: (data) => api.post("/roles/assign", data),
   unassignRole: (userRoleId) => api.delete(`/roles/unassign/${userRoleId}`),
+  unassignRoleFromUser: (roleId, userId) => api.delete(`/roles/${roleId}/user/${userId}`),
 
   // User permissions
   getUserPermissions: (userId) => api.get(`/roles/user/${userId}/permissions`),

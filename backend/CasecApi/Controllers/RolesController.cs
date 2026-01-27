@@ -546,6 +546,45 @@ public class RolesController : ControllerBase
         }
     }
 
+    // DELETE: /Roles/{roleId}/user/{userId} - Remove a role from a user by roleId and userId
+    [HttpDelete("{roleId}/user/{userId}")]
+    public async Task<ActionResult<ApiResponse<bool>>> UnassignRoleByIds(int roleId, int userId)
+    {
+        try
+        {
+            var userRole = await _context.UserRoles
+                .FirstOrDefaultAsync(ur => ur.RoleId == roleId && ur.UserId == userId);
+
+            if (userRole == null)
+            {
+                return NotFound(new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "User role assignment not found"
+                });
+            }
+
+            _context.UserRoles.Remove(userRole);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<bool>
+            {
+                Success = true,
+                Data = true,
+                Message = "Role unassigned successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error unassigning role {RoleId} from user {UserId}", roleId, userId);
+            return StatusCode(500, new ApiResponse<bool>
+            {
+                Success = false,
+                Message = "An error occurred while unassigning the role"
+            });
+        }
+    }
+
     // GET: /Roles/user/{userId}/permissions - Get a user's permissions
     [HttpGet("user/{userId}/permissions")]
     public async Task<ActionResult<ApiResponse<UserPermissionsDto>>> GetUserPermissions(int userId)
@@ -559,7 +598,15 @@ public class RolesController : ControllerBase
                 .Where(ur => ur.UserId == userId && ur.Role!.IsActive)
                 .ToListAsync();
 
-            var roleNames = userRoles.Select(ur => ur.Role!.Name).Distinct().ToList();
+            var roleInfos = userRoles
+                .Where(ur => ur.Role != null)
+                .Select(ur => new UserRoleInfoDto
+                {
+                    RoleId = ur.Role!.RoleId,
+                    Name = ur.Role.Name
+                })
+                .DistinctBy(r => r.RoleId)
+                .ToList();
 
             // Merge permissions from all roles (take highest permission level)
             var permissionDict = new Dictionary<int, AreaPermissionDto>();
@@ -598,7 +645,7 @@ public class RolesController : ControllerBase
             var result = new UserPermissionsDto
             {
                 UserId = userId,
-                Roles = roleNames,
+                Roles = roleInfos,
                 Permissions = permissionDict.Values.ToList()
             };
 
