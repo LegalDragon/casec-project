@@ -306,7 +306,7 @@ public class SlideShowsController : ControllerBase
             return StatusCode(500, new ApiResponse<SlideShowDto>
             {
                 Success = false,
-                Message = "An error occurred while fetching slideshow"
+                Message = $"Error: {ex.Message}" + (ex.InnerException != null ? $" Inner: {ex.InnerException.Message}" : "")
             });
         }
     }
