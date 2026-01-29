@@ -1847,6 +1847,9 @@ public class EventProgram
     // Event details
     public DateTime? EventDate { get; set; }
 
+    [MaxLength(100)]
+    public string? TimeBlock { get; set; } // e.g., "7:00 PM - 9:00 PM"
+
     [MaxLength(200)]
     public string? Venue { get; set; }
 
@@ -1982,6 +1985,10 @@ public class ProgramItem
     // Second performer (optional)
     [MaxLength(500)]
     public string? PerformerNames2 { get; set; }
+
+    // Estimated length/duration (e.g., "5 min", "3分钟")
+    [MaxLength(50)]
+    public string? EstimatedLength { get; set; }
 
     [MaxLength(2000)]
     public string? Description { get; set; } // Legacy: keep for backwards compatibility

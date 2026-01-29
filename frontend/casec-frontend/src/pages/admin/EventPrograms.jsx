@@ -137,6 +137,7 @@ export default function AdminEventPrograms() {
     descriptionEn: "",
     imageUrl: "",
     eventDate: "",
+    timeBlock: "",
     venue: "",
     venueAddress: "",
     slideShowIds: [],
@@ -198,6 +199,7 @@ export default function AdminEventPrograms() {
       descriptionEn: "",
       imageUrl: "",
       eventDate: "",
+      timeBlock: "",
       venue: "",
       venueAddress: "",
       slideShowIds: [],
@@ -226,6 +228,7 @@ export default function AdminEventPrograms() {
           descriptionEn: p.descriptionEn || "",
           imageUrl: p.imageUrl || "",
           eventDate: p.eventDate ? p.eventDate.split("T")[0] : "",
+          timeBlock: p.timeBlock || "",
           venue: p.venue || "",
           venueAddress: p.venueAddress || "",
           slideShowIds: p.slideShowIds || [],
@@ -478,7 +481,7 @@ export default function AdminEventPrograms() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Event Date
@@ -489,6 +492,20 @@ export default function AdminEventPrograms() {
                     onChange={(e) =>
                       setFormData({ ...formData, eventDate: e.target.value })
                     }
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Time Block
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.timeBlock}
+                    onChange={(e) =>
+                      setFormData({ ...formData, timeBlock: e.target.value })
+                    }
+                    placeholder="e.g., 7:00 PM - 9:00 PM"
                     className="w-full border rounded-lg px-3 py-2"
                   />
                 </div>
@@ -1466,6 +1483,7 @@ function ItemEditor({ item, performers = [], onSave, onCancel }) {
     performanceTypeEn: item.performanceTypeEn || "",
     performerNames: item.performerNames || "",
     performerNames2: item.performerNames2 || "",
+    estimatedLength: item.estimatedLength || "",
     description: item.description || "",
     descriptionZh: item.descriptionZh || "",
     descriptionEn: item.descriptionEn || "",
@@ -1574,9 +1592,20 @@ function ItemEditor({ item, performers = [], onSave, onCancel }) {
         </div>
       </div>
 
-      {/* Row 1b: Performer 2 */}
+      {/* Row 1b: Estimated Length + Performer 2 */}
       <div className="grid grid-cols-12 gap-2">
-        <div className="col-span-9"></div>
+        <div className="col-span-7"></div>
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600">Length</label>
+          <input
+            type="text"
+            value={data.estimatedLength}
+            onChange={(e) => setData({ ...data, estimatedLength: e.target.value })}
+            className="w-full border rounded px-2 py-1 text-sm"
+            placeholder="e.g., 5 min"
+            title="Estimated duration (shown after title)"
+          />
+        </div>
         <div className="col-span-3">
           <label className="text-xs font-medium text-gray-600">Performer 2</label>
           <select

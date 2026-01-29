@@ -334,6 +334,7 @@ export default function EventProgram() {
                 <Calendar className="w-4 h-4" />
                 <span>
                   {new Date(program.eventDate).toLocaleDateString(t.locale, t.dateFormat)}
+                  {program.timeBlock && ` · ${program.timeBlock}`}
                 </span>
               </div>
             )}
@@ -423,6 +424,7 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
   const itemTitle = getText(item.titleZh, item.titleEn, item.title);
   const itemPerformanceType = getText(item.performanceTypeZh, item.performanceTypeEn, item.performanceType);
   const itemDescription = getText(item.descriptionZh, item.descriptionEn, item.description);
+  const estimatedLength = item.estimatedLength?.trim?.() || "";
 
   const hasCards = item.cards?.length > 0;
   const hasDescription = itemDescription || itemPerformanceType;
@@ -512,10 +514,14 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
               onMouseOut={(e) => e.currentTarget.style.color = 'white'}
             >
               {itemTitle}
+              {estimatedLength && <span className="text-white/50 font-normal text-sm">({estimatedLength})</span>}
               <Info className="w-3.5 h-3.5" style={{ color: `${primaryColor}99` }} />
             </button>
           ) : (
-            <span className="text-white font-medium">{itemTitle}</span>
+            <span className="text-white font-medium">
+              {itemTitle}
+              {estimatedLength && <span className="text-white/50 font-normal text-sm ml-1">({estimatedLength})</span>}
+            </span>
           )}
         </div>
 

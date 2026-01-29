@@ -227,6 +227,7 @@ public class EventProgramsController : ControllerBase
                 DescriptionEn = request.DescriptionEn,
                 ImageUrl = request.ImageUrl,
                 EventDate = request.EventDate,
+                TimeBlock = request.TimeBlock,
                 Venue = request.Venue,
                 VenueAddress = request.VenueAddress,
                 SlideShowIds = request.SlideShowIds != null ? JsonSerializer.Serialize(request.SlideShowIds) : null,
@@ -300,6 +301,7 @@ public class EventProgramsController : ControllerBase
             if (request.DescriptionEn != null) program.DescriptionEn = request.DescriptionEn;
             if (request.ImageUrl != null) program.ImageUrl = request.ImageUrl;
             if (request.EventDate.HasValue) program.EventDate = request.EventDate;
+            if (request.TimeBlock != null) program.TimeBlock = request.TimeBlock;
             if (request.Venue != null) program.Venue = request.Venue;
             if (request.VenueAddress != null) program.VenueAddress = request.VenueAddress;
             if (request.SlideShowIds != null) program.SlideShowIds = JsonSerializer.Serialize(request.SlideShowIds);
@@ -650,6 +652,7 @@ public class EventProgramsController : ControllerBase
                 PerformanceTypeEn = request.PerformanceTypeEn,
                 PerformerNames = request.PerformerNames,
                 PerformerNames2 = request.PerformerNames2,
+                EstimatedLength = request.EstimatedLength,
                 Description = request.Description,
                 DescriptionZh = request.DescriptionZh,
                 DescriptionEn = request.DescriptionEn,
@@ -734,6 +737,7 @@ public class EventProgramsController : ControllerBase
             if (request.PerformanceTypeEn != null) item.PerformanceTypeEn = request.PerformanceTypeEn;
             if (request.PerformerNames != null) item.PerformerNames = request.PerformerNames;
             if (request.PerformerNames2 != null) item.PerformerNames2 = request.PerformerNames2;
+            if (request.EstimatedLength != null) item.EstimatedLength = request.EstimatedLength;
             if (request.Description != null) item.Description = request.Description;
             if (request.DescriptionZh != null) item.DescriptionZh = request.DescriptionZh;
             if (request.DescriptionEn != null) item.DescriptionEn = request.DescriptionEn;
@@ -1092,6 +1096,7 @@ public class EventProgramsController : ControllerBase
             DescriptionEn = program.DescriptionEn,
             ImageUrl = program.ImageUrl,
             EventDate = program.EventDate,
+            TimeBlock = program.TimeBlock,
             Venue = program.Venue,
             VenueAddress = program.VenueAddress,
             SlideShowIds = slideShowIds,
@@ -1158,6 +1163,7 @@ public class EventProgramsController : ControllerBase
             PerformanceTypeEn = item.PerformanceTypeEn,
             PerformerNames = item.PerformerNames,
             PerformerNames2 = item.PerformerNames2,
+            EstimatedLength = item.EstimatedLength,
             Description = item.Description,
             DescriptionZh = item.DescriptionZh,
             DescriptionEn = item.DescriptionEn,

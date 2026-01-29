@@ -1729,6 +1729,7 @@ public class EventProgramDto
     public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public DateTime? EventDate { get; set; }
+    public string? TimeBlock { get; set; }
     public string? Venue { get; set; }
     public string? VenueAddress { get; set; }
     public List<int>? SlideShowIds { get; set; }
@@ -1771,6 +1772,7 @@ public class CreateEventProgramRequest
     public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public DateTime? EventDate { get; set; }
+    public string? TimeBlock { get; set; }
     public string? Venue { get; set; }
     public string? VenueAddress { get; set; }
     public List<int>? SlideShowIds { get; set; }
@@ -1792,6 +1794,7 @@ public class UpdateEventProgramRequest
     public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public DateTime? EventDate { get; set; }
+    public string? TimeBlock { get; set; }
     public string? Venue { get; set; }
     public string? VenueAddress { get; set; }
     public List<int>? SlideShowIds { get; set; }
@@ -1866,6 +1869,7 @@ public class ProgramItemDto
     public string? PerformanceTypeEn { get; set; }
     public string? PerformerNames { get; set; }
     public string? PerformerNames2 { get; set; }
+    public string? EstimatedLength { get; set; }
     public string? Description { get; set; }
     public string? DescriptionZh { get; set; }
     public string? DescriptionEn { get; set; }
@@ -1890,6 +1894,7 @@ public class CreateProgramItemRequest
     public string? PerformanceTypeEn { get; set; }
     public string? PerformerNames { get; set; }
     public string? PerformerNames2 { get; set; }
+    public string? EstimatedLength { get; set; }
     public string? Description { get; set; }
     public string? DescriptionZh { get; set; }
     public string? DescriptionEn { get; set; }
@@ -1912,6 +1917,7 @@ public class UpdateProgramItemRequest
     public string? PerformanceTypeEn { get; set; }
     public string? PerformerNames { get; set; }
     public string? PerformerNames2 { get; set; }
+    public string? EstimatedLength { get; set; }
     public string? Description { get; set; }
     public string? DescriptionZh { get; set; }
     public string? DescriptionEn { get; set; }
