@@ -191,6 +191,87 @@ public class EventProgramsController : ControllerBase
         }
     }
 
+    // GET: /EventPrograms/{idOrSlug}/og - Serve HTML with Open Graph meta tags for social sharing
+    // Social media crawlers don't execute JavaScript, so they need server-rendered meta tags
+    [HttpGet("{idOrSlug}/og")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetProgramOpenGraph(string idOrSlug)
+    {
+        try
+        {
+            EventProgram? program;
+
+            if (int.TryParse(idOrSlug, out int id))
+            {
+                program = await _context.EventPrograms
+                    .FirstOrDefaultAsync(p => p.ProgramId == id && p.Status == "Published");
+            }
+            else
+            {
+                program = await _context.EventPrograms
+                    .FirstOrDefaultAsync(p => p.Slug == idOrSlug && p.Status == "Published");
+            }
+
+            if (program == null)
+            {
+                return NotFound("Program not found");
+            }
+
+            var title = program.TitleZh ?? program.Title;
+            var description = program.SubtitleZh ?? program.Subtitle ?? program.DescriptionZh ?? program.Description ?? "";
+            // Strip HTML tags from description
+            description = System.Text.RegularExpressions.Regex.Replace(description, "<[^>]+>", "").Trim();
+            if (description.Length > 200) description = description.Substring(0, 200) + "...";
+
+            var slug = program.Slug ?? program.ProgramId.ToString();
+            var pageUrl = $"{Request.Scheme}://{Request.Host}/program/{slug}";
+
+            // Build absolute image URL
+            var imageUrl = "";
+            if (!string.IsNullOrEmpty(program.ImageUrl))
+            {
+                if (program.ImageUrl.StartsWith("http"))
+                {
+                    imageUrl = program.ImageUrl;
+                }
+                else
+                {
+                    imageUrl = $"{Request.Scheme}://{Request.Host}{program.ImageUrl}";
+                }
+            }
+
+            var html = $@"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=""UTF-8"" />
+    <title>{System.Net.WebUtility.HtmlEncode(title)}</title>
+    <meta name=""description"" content=""{System.Net.WebUtility.HtmlEncode(description)}"" />
+    <meta property=""og:title"" content=""{System.Net.WebUtility.HtmlEncode(title)}"" />
+    <meta property=""og:description"" content=""{System.Net.WebUtility.HtmlEncode(description)}"" />
+    <meta property=""og:type"" content=""article"" />
+    <meta property=""og:url"" content=""{System.Net.WebUtility.HtmlEncode(pageUrl)}"" />
+    {(string.IsNullOrEmpty(imageUrl) ? "" : $@"<meta property=""og:image"" content=""{System.Net.WebUtility.HtmlEncode(imageUrl)}"" />")}
+    <meta name=""twitter:card"" content=""summary_large_image"" />
+    <meta name=""twitter:title"" content=""{System.Net.WebUtility.HtmlEncode(title)}"" />
+    <meta name=""twitter:description"" content=""{System.Net.WebUtility.HtmlEncode(description)}"" />
+    {(string.IsNullOrEmpty(imageUrl) ? "" : $@"<meta name=""twitter:image"" content=""{System.Net.WebUtility.HtmlEncode(imageUrl)}"" />")}
+    <meta http-equiv=""refresh"" content=""0;url={System.Net.WebUtility.HtmlEncode(pageUrl)}"" />
+</head>
+<body>
+    <p>Redirecting to <a href=""{System.Net.WebUtility.HtmlEncode(pageUrl)}"">{System.Net.WebUtility.HtmlEncode(title)}</a>...</p>
+    <script>window.location.replace(""{pageUrl.Replace("\"", "\\\"")}"");</script>
+</body>
+</html>";
+
+            return Content(html, "text/html");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating OG tags for program {IdOrSlug}", idOrSlug);
+            return StatusCode(500, "Error generating page");
+        }
+    }
+
     // POST: /EventPrograms - Create new program (requires edit permission for programs area)
     [Authorize]
     [HttpPost]
