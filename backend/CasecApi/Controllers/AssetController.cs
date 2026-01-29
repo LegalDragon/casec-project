@@ -77,6 +77,13 @@ public class AssetController : ControllerBase
                 }
 
                 var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                
+                // Serve images inline (needed for OG/social media previews)
+                // Other files get content-disposition: attachment
+                if (asset.ContentType != null && asset.ContentType.StartsWith("image/"))
+                {
+                    return File(fileStream, asset.ContentType);
+                }
                 return File(fileStream, asset.ContentType, asset.OriginalFileName);
             }
         }
