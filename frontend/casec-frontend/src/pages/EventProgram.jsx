@@ -512,14 +512,28 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
   // Feature style: larger item name + larger performer avatar, no performer name, no description
   if (isFeatureStyle) {
     const allPerformers = item.performers || [];
+    // Use description field as a link URL for the title
+    const featureLink = itemDescription?.trim() || "";
 
     return (
       <div className="border-b border-white/10 last:border-0 pb-3 last:pb-0">
         <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-2">
-          {/* Item Title - larger */}
-          <span className="text-lg font-semibold" style={{ color: primaryColor }}>
-            {itemTitle}
-          </span>
+          {/* Item Title - larger, linked if description has a URL */}
+          {featureLink ? (
+            <a
+              href={featureLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lg font-semibold transition-opacity hover:opacity-80"
+              style={{ color: linkColor }}
+            >
+              {itemTitle}
+            </a>
+          ) : (
+            <span className="text-lg font-semibold" style={{ color: primaryColor }}>
+              {itemTitle}
+            </span>
+          )}
 
           {/* Performer avatars only (no names) - larger */}
           {allPerformers.map((performer, idx) => (
