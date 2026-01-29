@@ -229,6 +229,14 @@ public class ThemeController : ControllerBase
             if (request.HeroVideoUrls != null)
                 theme.HeroVideoUrls = request.HeroVideoUrls;
 
+            // Chatbot visibility
+            if (request.ChatbotVisibility != null)
+            {
+                var validValues = new[] { "off", "admins-only", "everyone" };
+                if (validValues.Contains(request.ChatbotVisibility.ToLower()))
+                    theme.ChatbotVisibility = request.ChatbotVisibility.ToLower();
+            }
+
             theme.UpdatedBy = currentUserId;
             theme.UpdatedAt = DateTime.UtcNow;
 
@@ -702,6 +710,7 @@ public class ThemeController : ControllerBase
             HomeQuote = theme.HomeQuote,
             HomeQuoteSubtext = theme.HomeQuoteSubtext,
             HeroVideoUrls = theme.HeroVideoUrls,
+            ChatbotVisibility = theme.ChatbotVisibility,
             UpdatedAt = theme.UpdatedAt
         };
     }
@@ -729,7 +738,8 @@ public class ThemeController : ControllerBase
             BorderColor = "#e5e7eb",
             ShadowColor = "#00000026",
             FontFamily = "Inter, system-ui, sans-serif",
-            HeadingFontFamily = "Playfair Display, serif"
+            HeadingFontFamily = "Playfair Display, serif",
+            ChatbotVisibility = "off"
         };
     }
 }
