@@ -697,6 +697,28 @@ export default function ThemeCustomization() {
         </div>
       </div>
 
+      {/* Chatbot Settings */}
+      <div className="card">
+        <h2 className="text-2xl font-bold mb-6">Chatbot</h2>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Chatbot Visibility
+          </label>
+          <select
+            value={theme.chatbotVisibility || 'off'}
+            onChange={(e) => setTheme({ ...theme, chatbotVisibility: e.target.value })}
+            className="input w-full max-w-xs"
+          >
+            <option value="off">Off</option>
+            <option value="admins-only">Admins Only</option>
+            <option value="everyone">Everyone</option>
+          </select>
+          <p className="text-sm text-gray-500 mt-2">
+            Controls who can see the chat widget. The chatbot gateway must be configured in appsettings.json for this to work.
+          </p>
+        </div>
+      </div>
+
       {/* Custom CSS */}
       <div className="card">
         <h2 className="text-2xl font-bold mb-6">Custom CSS (Advanced)</h2>
