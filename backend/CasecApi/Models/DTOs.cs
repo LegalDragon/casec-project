@@ -574,6 +574,9 @@ public class ThemeSettingsDto
     // Hero video URLs (JSON array of YouTube/TikTok URLs)
     public string? HeroVideoUrls { get; set; }
 
+    // Chatbot visibility: "off", "admins-only", "everyone"
+    public string ChatbotVisibility { get; set; } = "off";
+
     public bool IsActive { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -627,6 +630,15 @@ public class UpdateThemeRequest
 
     // Hero video URLs (JSON array of YouTube/TikTok URLs)
     public string? HeroVideoUrls { get; set; }
+
+    // Chatbot visibility: "off", "admins-only", "everyone"
+    public string? ChatbotVisibility { get; set; }
+}
+
+// Chat Availability DTO
+public class ChatAvailabilityDto
+{
+    public bool Available { get; set; }
 }
 
 // Theme Preset DTO

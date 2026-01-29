@@ -527,4 +527,9 @@ export const rolesAPI = {
   getMyPermissions: () => api.get("/roles/my-permissions"),
 };
 
+// Chat API
+export const chatAPI = {
+  getAvailability: () => api.get("/chat/availability"),
+};
+
 export default api;

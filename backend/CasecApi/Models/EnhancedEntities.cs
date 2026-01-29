@@ -592,6 +592,11 @@ public class ThemeSettings
     // Hero video URLs (JSON array of YouTube/TikTok URLs)
     public string? HeroVideoUrls { get; set; }
 
+    // Chatbot visibility: "off", "admins-only", "everyone"
+    [Required]
+    [MaxLength(20)]
+    public string ChatbotVisibility { get; set; } = "off";
+
     public bool IsActive { get; set; } = true;
 
     public int? UpdatedBy { get; set; }
