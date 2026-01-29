@@ -193,9 +193,10 @@ public class EventProgramsController : ControllerBase
 
     // GET: /EventPrograms/{idOrSlug}/og - Serve HTML with Open Graph meta tags for social sharing
     // Social media crawlers don't execute JavaScript, so they need server-rendered meta tags
+    // Supports ?lang=en for English or ?lang=zh (default) for Chinese
     [HttpGet("{idOrSlug}/og")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetProgramOpenGraph(string idOrSlug)
+    public async Task<IActionResult> GetProgramOpenGraph(string idOrSlug, [FromQuery] string? lang = null)
     {
         try
         {
@@ -217,14 +218,29 @@ public class EventProgramsController : ControllerBase
                 return NotFound("Program not found");
             }
 
-            var title = program.TitleZh ?? program.Title;
-            var description = program.SubtitleZh ?? program.Subtitle ?? program.DescriptionZh ?? program.Description ?? "";
+            // Select title/description based on language
+            string title;
+            string description;
+            var isEnglish = string.Equals(lang, "en", StringComparison.OrdinalIgnoreCase);
+
+            if (isEnglish)
+            {
+                title = program.TitleEn ?? program.Title ?? program.TitleZh ?? "Event Program";
+                description = program.SubtitleEn ?? program.Subtitle ?? program.DescriptionEn ?? program.Description ?? "";
+            }
+            else
+            {
+                title = program.TitleZh ?? program.Title ?? program.TitleEn ?? "Event Program";
+                description = program.SubtitleZh ?? program.Subtitle ?? program.DescriptionZh ?? program.Description ?? "";
+            }
+
             // Strip HTML tags from description
             description = System.Text.RegularExpressions.Regex.Replace(description, "<[^>]+>", "").Trim();
             if (description.Length > 200) description = description.Substring(0, 200) + "...";
 
             var slug = program.Slug ?? program.ProgramId.ToString();
-            var pageUrl = $"{Request.Scheme}://{Request.Host}/program/{slug}";
+            var langParam = !string.IsNullOrEmpty(lang) ? $"?lang={lang}" : "";
+            var pageUrl = $"{Request.Scheme}://{Request.Host}/program/{slug}{langParam}";
 
             // Build absolute image URL
             var imageUrl = "";
