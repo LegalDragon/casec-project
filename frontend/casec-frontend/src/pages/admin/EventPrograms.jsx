@@ -1241,6 +1241,9 @@ function ProgramEditor({ program, onReload }) {
                       {item.displayStyle === "credits" && (
                         <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded ml-2">Credits</span>
                       )}
+                      {item.displayStyle === "feature" && (
+                        <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded ml-2">Feature</span>
+                      )}
                       {item.isActive === false && (
                         <span className="text-xs bg-gray-400 text-white px-1.5 py-0.5 rounded ml-2">Inactive</span>
                       )}
@@ -1576,6 +1579,7 @@ function ItemEditor({ item, performers = [], onSave, onCancel }) {
           >
             <option value="default">Default</option>
             <option value="credits">Credits</option>
+            <option value="feature">Feature</option>
           </select>
         </div>
         <div className="col-span-3">

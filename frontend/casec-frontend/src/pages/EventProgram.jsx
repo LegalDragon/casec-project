@@ -438,12 +438,13 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
   const itemDescription = getText(item.descriptionZh, item.descriptionEn, item.description);
   const estimatedLength = item.estimatedLength?.trim?.() || "";
 
-  // Display style: "default" or "credits"
+  // Display style: "default", "credits", or "feature"
   const displayStyle = item.displayStyle || "default";
   const isCreditsStyle = displayStyle === "credits";
+  const isFeatureStyle = displayStyle === "feature";
 
   const hasCards = item.cards?.length > 0;
-  const hasDescription = !isCreditsStyle && (itemDescription || itemPerformanceType);
+  const hasDescription = !isCreditsStyle && !isFeatureStyle && (itemDescription || itemPerformanceType);
 
   // Handle clicking on item cards (for later use)
   const handleItemCardsClick = (e) => {
@@ -505,8 +506,43 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
   const performer1Clickable = !!performer1;
   const performer2Clickable = !!performer2;
 
-  // Whether to show item number (hide if 0 or credits style)
-  const showNumber = !isCreditsStyle && itemNumber > 0;
+  // Whether to show item number (hide if 0, credits, or feature style)
+  const showNumber = !isCreditsStyle && !isFeatureStyle && itemNumber > 0;
+
+  // Feature style: larger item name + larger performer avatar, no performer name, no description
+  if (isFeatureStyle) {
+    const allPerformers = item.performers || [];
+
+    return (
+      <div className="border-b border-white/10 last:border-0 pb-3 last:pb-0">
+        <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
+          {/* Item Title - larger */}
+          <span className="text-lg font-semibold" style={{ color: primaryColor }}>
+            {itemTitle}
+          </span>
+
+          {/* Performer avatars only (no names) - larger */}
+          {allPerformers.map((performer, idx) => (
+            performer.photoUrl ? (
+              <button
+                key={performer.performerId || idx}
+                onClick={(e) => handlePerformerCardsClick(e, performer)}
+                className="transition-opacity"
+                onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                <img
+                  src={getAssetUrl(performer.photoUrl)}
+                  alt=""
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              </button>
+            ) : null
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Credits style: show item title followed by performer avatars and names inline
   if (isCreditsStyle) {
