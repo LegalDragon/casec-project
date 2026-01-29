@@ -369,7 +369,7 @@ export default function EventProgram() {
         {/* Program Sections - filter out inactive sections */}
         <div className="space-y-8">
           {program.sections?.filter(s => s.isActive !== false).map((section, sectionIdx) => (
-            <div key={section.sectionId} className="bg-white/5 rounded-xl p-6">
+            <div key={section.sectionId} className="bg-black/20 backdrop-blur-sm rounded-xl p-6">
               {/* Section Header */}
               <div className="mb-6">
                 <h2 className="text-xl font-bold font-serif" style={{ color: currentTheme.primary }}>
@@ -697,7 +697,7 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
 
       {/* Description Box - always visible if has content (not shown in credits style) */}
       {hasDescription && (
-        <div className={`${showNumber ? 'ml-10' : 'ml-0'} mt-2 p-3 bg-white/5 rounded-lg`}>
+        <div className={`${showNumber ? 'ml-10' : 'ml-0'} mt-2 p-3 bg-black/15 rounded-lg`}>
           {/* Performance Type as first line */}
           {itemPerformanceType && (
             <p className="text-sm" style={{ color: `${primaryColor}99` }}>
