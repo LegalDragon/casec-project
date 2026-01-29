@@ -21,6 +21,7 @@ GO
 --   {
 --     "name": "Theme 1",
 --     "primary": "#facc15",
+--     "link": "#60a5fa",
 --     "bgFrom": "#7f1d1d",
 --     "bgVia": "#991b1b",
 --     "bgTo": "#78350f"
@@ -28,6 +29,7 @@ GO
 --   {
 --     "name": "Theme 2",
 --     "primary": "#60a5fa",
+--     "link": "#93c5fd",
 --     "bgFrom": "#1e3a5f",
 --     "bgVia": "#1e40af",
 --     "bgTo": "#3730a3"

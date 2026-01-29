@@ -661,6 +661,7 @@ public class EventProgramsController : ControllerBase
                 DisplayOrder = request.DisplayOrder,
                 DurationMinutes = request.DurationMinutes,
                 IsActive = request.IsActive,
+                DisplayStyle = request.DisplayStyle ?? "default",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -746,6 +747,7 @@ public class EventProgramsController : ControllerBase
             if (request.DisplayOrder.HasValue) item.DisplayOrder = request.DisplayOrder.Value;
             if (request.DurationMinutes.HasValue) item.DurationMinutes = request.DurationMinutes;
             if (request.IsActive.HasValue) item.IsActive = request.IsActive.Value;
+            if (request.DisplayStyle != null) item.DisplayStyle = request.DisplayStyle;
 
             // Update performers if specified
             if (request.PerformerIds != null)
@@ -1172,6 +1174,7 @@ public class EventProgramsController : ControllerBase
             DisplayOrder = item.DisplayOrder,
             DurationMinutes = item.DurationMinutes,
             IsActive = item.IsActive,
+            DisplayStyle = item.DisplayStyle ?? "default",
             Performers = item.Performers?
                 .OrderBy(ip => ip.DisplayOrder)
                 .Where(ip => ip.Performer != null)

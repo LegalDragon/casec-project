@@ -227,13 +227,19 @@ export default function EventProgram() {
   const defaultTheme = {
     name: "Default",
     primary: "#facc15",
+    link: "#60a5fa",
     bgFrom: "#7f1d1d",
     bgVia: "#991b1b",
     bgTo: "#78350f"
   };
-  const currentTheme = colorThemes.length > 0
+  const rawTheme = colorThemes.length > 0
     ? (colorThemes[selectedThemeIndex] || colorThemes[0])
     : defaultTheme;
+  // Ensure link color exists (fallback to a complementary blue)
+  const currentTheme = {
+    ...rawTheme,
+    link: rawTheme.link || "#60a5fa"
+  };
   const hasMultipleThemes = colorThemes.length > 1;
 
   // Background image URL
@@ -260,11 +266,14 @@ export default function EventProgram() {
         background: `linear-gradient(to bottom right, ${currentTheme.bgFrom}, ${currentTheme.bgVia}, ${currentTheme.bgTo})`
       }}
     >
-      {/* Background Image Overlay */}
+      {/* Background Image Overlay - full width, auto height, fixed at top */}
       {backgroundImageUrl && (
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none"
-          style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+          className="absolute inset-0 bg-top bg-no-repeat opacity-20 pointer-events-none"
+          style={{
+            backgroundImage: `url(${backgroundImageUrl})`,
+            backgroundSize: '100% auto'
+          }}
         />
       )}
 
@@ -323,12 +332,12 @@ export default function EventProgram() {
               "{getText(program.subtitleZh, program.subtitleEn, program.subtitle)}"
             </p>
           )}
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 font-serif">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4 font-serif" style={{ color: currentTheme.primary }}>
             {getText(program.titleZh, program.titleEn, program.title)}
           </h1>
 
           {/* Event Info */}
-          <div className="flex flex-wrap justify-center gap-6 text-white/80 text-sm">
+          <div className="flex flex-wrap justify-center gap-6 text-sm" style={{ color: `${currentTheme.primary}cc` }}>
             {program.eventDate && (
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
@@ -348,7 +357,8 @@ export default function EventProgram() {
 
           {getText(program.descriptionZh, program.descriptionEn, program.description) && (
             <div
-              className="text-white/70 mt-4 max-w-2xl mx-auto prose prose-sm prose-invert"
+              className="mt-4 max-w-2xl mx-auto prose prose-sm prose-invert"
+              style={{ color: `${currentTheme.primary}b3` }}
               dangerouslySetInnerHTML={{
                 __html: getText(program.descriptionZh, program.descriptionEn, program.description)
               }}
@@ -366,13 +376,14 @@ export default function EventProgram() {
                   {getText(section.titleZh, section.titleEn, section.title)}
                 </h2>
                 {getText(section.subtitleZh, section.subtitleEn, section.subtitle) && (
-                  <p className="text-white/60 text-sm mt-1">
+                  <p className="text-sm mt-1" style={{ color: `${currentTheme.primary}99` }}>
                     {getText(section.subtitleZh, section.subtitleEn, section.subtitle)}
                   </p>
                 )}
                 {getText(section.descriptionZh, section.descriptionEn, section.description) && (
                   <div
-                    className="text-white/70 text-sm mt-2 prose prose-sm prose-invert max-w-none"
+                    className="text-sm mt-2 prose prose-sm prose-invert max-w-none"
+                    style={{ color: `${currentTheme.primary}b3` }}
                     dangerouslySetInnerHTML={{
                       __html: getText(section.descriptionZh, section.descriptionEn, section.description)
                     }}
@@ -391,6 +402,7 @@ export default function EventProgram() {
                     onShowCards={showCards}
                     getText={getText}
                     primaryColor={currentTheme.primary}
+                    linkColor={currentTheme.link}
                   />
                 ))}
               </div>
@@ -399,7 +411,7 @@ export default function EventProgram() {
         </div>
 
         {/* Footer */}
-        <div className="mt-12 text-center text-white/50 text-sm">
+        <div className="mt-12 text-center text-sm" style={{ color: `${currentTheme.primary}80` }}>
           <p>{t.footer}</p>
         </div>
       </div>
@@ -417,7 +429,7 @@ export default function EventProgram() {
 }
 
 // Program Item Row Component
-function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, primaryColor = "#facc15" }) {
+function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, primaryColor = "#facc15", linkColor = "#60a5fa" }) {
   const t = LANGUAGES[lang] || LANGUAGES.zh;
 
   // Item title and fields using bilingual support
@@ -426,8 +438,12 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
   const itemDescription = getText(item.descriptionZh, item.descriptionEn, item.description);
   const estimatedLength = item.estimatedLength?.trim?.() || "";
 
+  // Display style: "default" or "credits"
+  const displayStyle = item.displayStyle || "default";
+  const isCreditsStyle = displayStyle === "credits";
+
   const hasCards = item.cards?.length > 0;
-  const hasDescription = itemDescription || itemPerformanceType;
+  const hasDescription = !isCreditsStyle && (itemDescription || itemPerformanceType);
 
   // Handle clicking on item cards (for later use)
   const handleItemCardsClick = (e) => {
@@ -489,9 +505,72 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
   const performer1Clickable = !!performer1;
   const performer2Clickable = !!performer2;
 
-  // Whether to show item number (hide if 0)
-  const showNumber = itemNumber > 0;
+  // Whether to show item number (hide if 0 or credits style)
+  const showNumber = !isCreditsStyle && itemNumber > 0;
 
+  // Credits style: show item title followed by performer avatars and names inline
+  if (isCreditsStyle) {
+    // Get all performers (from linked performers list)
+    const allPerformers = item.performers || [];
+
+    // Helper to get performer display name
+    const getPerformerName = (performer) => {
+      if (!performer) return "";
+      return lang === "zh"
+        ? performer.chineseName || performer.name || performer.englishName
+        : performer.englishName || performer.name || performer.chineseName;
+    };
+
+    return (
+      <div className="border-b border-white/10 last:border-0 pb-2 last:pb-0">
+        <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+          {/* Item Title */}
+          <span className="font-medium" style={{ color: primaryColor }}>
+            {itemTitle}
+          </span>
+
+          {/* Performer avatars and names */}
+          {allPerformers.length > 0 ? (
+            allPerformers.map((performer, idx) => (
+              <button
+                key={performer.performerId || idx}
+                onClick={(e) => handlePerformerCardsClick(e, performer)}
+                className="inline-flex items-center gap-1.5 text-sm transition-colors"
+                style={{ color: linkColor }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                {performer.photoUrl && (
+                  <img
+                    src={getAssetUrl(performer.photoUrl)}
+                    alt={getPerformerName(performer)}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                )}
+                <span>{getPerformerName(performer)}</span>
+              </button>
+            ))
+          ) : (
+            // Fallback to performer names if no linked performers
+            <>
+              {item.performerNames && (
+                <span className="text-sm" style={{ color: linkColor }}>
+                  {item.performerNames}
+                </span>
+              )}
+              {item.performerNames2 && (
+                <span className="text-sm" style={{ color: linkColor }}>
+                  {item.performerNames2}
+                </span>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Default style rendering
   return (
     <div className="border-b border-white/10 last:border-0 pb-3 last:pb-0">
       {/* Main Row: Number, Title, Performers */}
@@ -508,19 +587,19 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
           {hasCards ? (
             <button
               onClick={handleItemCardsClick}
-              className="text-white font-medium transition-colors inline-flex items-center gap-1.5 text-left"
-              style={{ '--hover-color': primaryColor }}
-              onMouseOver={(e) => e.currentTarget.style.color = primaryColor}
-              onMouseOut={(e) => e.currentTarget.style.color = 'white'}
+              className="font-medium transition-colors inline-flex items-center gap-1.5 text-left"
+              style={{ color: linkColor }}
+              onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
+              onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
             >
               {itemTitle}
-              {estimatedLength && <span className="text-white/50 font-normal text-sm">({estimatedLength})</span>}
-              <Info className="w-3.5 h-3.5" style={{ color: `${primaryColor}99` }} />
+              {estimatedLength && <span style={{ color: `${primaryColor}80` }} className="font-normal text-sm">({estimatedLength})</span>}
+              <Info className="w-3.5 h-3.5" style={{ color: `${linkColor}99` }} />
             </button>
           ) : (
-            <span className="text-white font-medium">
+            <span className="font-medium" style={{ color: primaryColor }}>
               {itemTitle}
-              {estimatedLength && <span className="text-white/50 font-normal text-sm ml-1">({estimatedLength})</span>}
+              {estimatedLength && <span style={{ color: `${primaryColor}80` }} className="font-normal text-sm ml-1">({estimatedLength})</span>}
             </span>
           )}
         </div>
@@ -532,12 +611,12 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
               <button
                 onClick={(e) => handlePerformerCardsClick(e, performer1)}
                 className="text-sm transition-colors inline-flex items-center gap-1"
-                style={{ color: `${primaryColor}cc` }}
-                onMouseOver={(e) => e.currentTarget.style.color = primaryColor}
-                onMouseOut={(e) => e.currentTarget.style.color = `${primaryColor}cc`}
+                style={{ color: linkColor }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
               >
                 {item.performerNames}
-                <Info className="w-3 h-3" style={{ color: `${primaryColor}80` }} />
+                <Info className="w-3 h-3" style={{ color: `${linkColor}80` }} />
               </button>
             ) : (
               <span className="text-sm" style={{ color: `${primaryColor}cc` }}>
@@ -550,12 +629,12 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
               <button
                 onClick={(e) => handlePerformerCardsClick(e, performer2)}
                 className="text-sm transition-colors inline-flex items-center gap-1"
-                style={{ color: `${primaryColor}cc` }}
-                onMouseOver={(e) => e.currentTarget.style.color = primaryColor}
-                onMouseOut={(e) => e.currentTarget.style.color = `${primaryColor}cc`}
+                style={{ color: linkColor }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
               >
                 {item.performerNames2}
-                <Info className="w-3 h-3" style={{ color: `${primaryColor}80` }} />
+                <Info className="w-3 h-3" style={{ color: `${linkColor}80` }} />
               </button>
             ) : (
               <span className="text-sm" style={{ color: `${primaryColor}cc` }}>
@@ -566,12 +645,12 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
         </div>
       </div>
 
-      {/* Description Box - always visible if has content */}
+      {/* Description Box - always visible if has content (not shown in credits style) */}
       {hasDescription && (
         <div className={`${showNumber ? 'ml-10' : 'ml-0'} mt-2 p-3 bg-white/5 rounded-lg`}>
           {/* Performance Type as first line */}
           {itemPerformanceType && (
-            <p className="text-white/60 text-sm">
+            <p className="text-sm" style={{ color: `${primaryColor}99` }}>
               {itemPerformanceType}
             </p>
           )}
@@ -579,7 +658,8 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, p
           {/* Description - supports HTML */}
           {itemDescription && (
             <div
-              className="text-white/70 text-sm mt-1 prose prose-sm prose-invert max-w-none"
+              className="text-sm mt-1 prose prose-sm prose-invert max-w-none"
+              style={{ color: `${primaryColor}b3` }}
               dangerouslySetInnerHTML={{ __html: itemDescription }}
             />
           )}

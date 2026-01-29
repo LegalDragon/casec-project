@@ -1878,6 +1878,7 @@ public class ProgramItemDto
     public int DisplayOrder { get; set; }
     public int? DurationMinutes { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? DisplayStyle { get; set; } = "default";
     public List<PerformerDto>? Performers { get; set; }
     public List<ContentCardDto>? Cards { get; set; }
 }
@@ -1903,6 +1904,7 @@ public class CreateProgramItemRequest
     public int DisplayOrder { get; set; }
     public int? DurationMinutes { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? DisplayStyle { get; set; } = "default";
     public List<int>? PerformerIds { get; set; }
 }
 
@@ -1926,6 +1928,7 @@ public class UpdateProgramItemRequest
     public int? DisplayOrder { get; set; }
     public int? DurationMinutes { get; set; }
     public bool? IsActive { get; set; }
+    public string? DisplayStyle { get; set; }
     public List<int>? PerformerIds { get; set; }
 }
 

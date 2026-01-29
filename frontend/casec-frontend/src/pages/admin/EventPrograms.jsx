@@ -643,7 +643,7 @@ export default function AdminEventPrograms() {
                           Remove
                         </button>
                       </div>
-                      <div className="grid grid-cols-5 gap-2 text-xs">
+                      <div className="grid grid-cols-6 gap-2 text-xs">
                         <div>
                           <label className="block text-gray-500">Primary</label>
                           <input
@@ -652,6 +652,19 @@ export default function AdminEventPrograms() {
                             onChange={(e) => {
                               const themes = [...(formData.colorThemes || [])];
                               themes[idx] = { ...themes[idx], primary: e.target.value };
+                              setFormData({ ...formData, colorThemes: themes });
+                            }}
+                            className="w-full h-8 rounded cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-500">Link</label>
+                          <input
+                            type="color"
+                            value={theme.link || "#60a5fa"}
+                            onChange={(e) => {
+                              const themes = [...(formData.colorThemes || [])];
+                              themes[idx] = { ...themes[idx], link: e.target.value };
                               setFormData({ ...formData, colorThemes: themes });
                             }}
                             className="w-full h-8 rounded cursor-pointer"
@@ -714,6 +727,7 @@ export default function AdminEventPrograms() {
                         themes.push({
                           name: `Theme ${themes.length + 1}`,
                           primary: "#facc15",
+                          link: "#60a5fa",
                           bgFrom: "#7f1d1d",
                           bgVia: "#991b1b",
                           bgTo: "#78350f"
@@ -1224,6 +1238,9 @@ function ProgramEditor({ program, onReload }) {
                           ({item.performanceType})
                         </span>
                       )}
+                      {item.displayStyle === "credits" && (
+                        <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded ml-2">Credits</span>
+                      )}
                       {item.isActive === false && (
                         <span className="text-xs bg-gray-400 text-white px-1.5 py-0.5 rounded ml-2">Inactive</span>
                       )}
@@ -1475,6 +1492,7 @@ function ItemEditor({ item, performers = [], onSave, onCancel }) {
     itemNumber: item.itemNumber,
     displayOrder: item.displayOrder ?? 0,
     isActive: item.isActive ?? true,
+    displayStyle: item.displayStyle || "default",
     title: item.title || "",
     titleZh: item.titleZh || "",
     titleEn: item.titleEn || "",
@@ -1520,7 +1538,7 @@ function ItemEditor({ item, performers = [], onSave, onCancel }) {
 
   return (
     <div className="flex-1 space-y-3 p-3 bg-white rounded-lg border">
-      {/* Row 1: Item Number + Display Order + Title (Bilingual) */}
+      {/* Row 1: Item Number + Display Order + Style + Title (Bilingual) */}
       <div className="grid grid-cols-12 gap-2">
         <div className="col-span-1">
           <label className="text-xs font-medium text-gray-600" title="Set to 0 to hide number"># (0=hide)</label>
@@ -1548,6 +1566,18 @@ function ItemEditor({ item, performers = [], onSave, onCancel }) {
             title="Display order - lower numbers appear first"
           />
         </div>
+        <div className="col-span-1">
+          <label className="text-xs font-medium text-gray-600">Style</label>
+          <select
+            value={data.displayStyle}
+            onChange={(e) => setData({ ...data, displayStyle: e.target.value })}
+            className="w-full border rounded px-2 py-1 text-sm"
+            title="Display style: default or credits (avatar + name, no description)"
+          >
+            <option value="default">Default</option>
+            <option value="credits">Credits</option>
+          </select>
+        </div>
         <div className="col-span-3">
           <label className="text-xs font-medium text-gray-600">Title 中文</label>
           <input
@@ -1558,7 +1588,7 @@ function ItemEditor({ item, performers = [], onSave, onCancel }) {
             placeholder="中文标题"
           />
         </div>
-        <div className="col-span-4">
+        <div className="col-span-3">
           <label className="text-xs font-medium text-gray-600">Title English</label>
           <input
             type="text"

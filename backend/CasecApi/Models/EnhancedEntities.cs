@@ -2008,6 +2008,12 @@ public class ProgramItem
 
     public bool IsActive { get; set; } = true;
 
+    // Display style for the item (e.g., "default", "credits")
+    // "default" - shows item number, title, performer names, description
+    // "credits" - shows performer avatar and name after item title, no description
+    [MaxLength(50)]
+    public string? DisplayStyle { get; set; } = "default";
+
     // Duration in minutes (optional)
     public int? DurationMinutes { get; set; }
 
