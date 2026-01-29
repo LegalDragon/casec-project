@@ -1,11 +1,20 @@
 -- Migration: Add ColorThemes and ShowBackgroundImage to EventPrograms table
+-- Database: MS SQL Server 2014
 -- Run this migration to add color theme customization and background image support
 
--- Add ColorThemes column (JSON array of theme objects)
-ALTER TABLE EventPrograms ADD COLUMN IF NOT EXISTS ColorThemes TEXT NULL;
+-- Add ColorThemes column (JSON stored as NVARCHAR for theme objects)
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'EventPrograms') AND name = 'ColorThemes')
+BEGIN
+    ALTER TABLE EventPrograms ADD ColorThemes NVARCHAR(MAX) NULL;
+END
+GO
 
 -- Add ShowBackgroundImage column (whether to show cover image as background)
-ALTER TABLE EventPrograms ADD COLUMN IF NOT EXISTS ShowBackgroundImage BOOLEAN NOT NULL DEFAULT FALSE;
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'EventPrograms') AND name = 'ShowBackgroundImage')
+BEGIN
+    ALTER TABLE EventPrograms ADD ShowBackgroundImage BIT NOT NULL DEFAULT 0;
+END
+GO
 
 -- Example of ColorThemes JSON structure:
 -- [
