@@ -4,6 +4,7 @@ import ThemeProvider from './components/ThemeProvider';
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import ChatWidget from './components/ChatWidget';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -73,6 +74,7 @@ function App() {
   return (
     <ThemeProvider>
       <PWAInstallPrompt />
+      <ChatWidget />
       <Router>
         <Routes>
         {/* Public Home Page */}
