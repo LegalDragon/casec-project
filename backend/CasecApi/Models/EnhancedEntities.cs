@@ -1857,6 +1857,13 @@ public class EventProgram
     // Stored as JSON array of slideshow IDs: [1, 2, 3]
     public string? SlideShowIds { get; set; }
 
+    // Page styling - color themes stored as JSON array
+    // Each theme: { "name": "Theme Name", "primary": "#hex", "bgFrom": "#hex", "bgVia": "#hex", "bgTo": "#hex" }
+    public string? ColorThemes { get; set; }
+
+    // Whether to show the cover image as background
+    public bool ShowBackgroundImage { get; set; } = false;
+
     // Status: Draft, Published, Archived
     [Required]
     [MaxLength(50)]

@@ -54,6 +54,9 @@ export default function EventProgram() {
   const [cardModalCards, setCardModalCards] = useState([]);
   const [cardModalTitle, setCardModalTitle] = useState("");
 
+  // Color theme state
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState(0);
+
   // Get language from query string, default to "zh"
   const langParam = searchParams.get("lang") || "zh";
   const lang = LANGUAGES[langParam] ? langParam : "zh";
@@ -215,6 +218,25 @@ export default function EventProgram() {
   const slideShowIds = program.slideShowIds || [];
   const currentSlideshowId = slideShowIds[currentSlideshowIndex];
 
+  // Color theme logic
+  const colorThemes = program.colorThemes || [];
+  const defaultTheme = {
+    name: "Default",
+    primary: "#facc15",
+    bgFrom: "#7f1d1d",
+    bgVia: "#991b1b",
+    bgTo: "#78350f"
+  };
+  const currentTheme = colorThemes.length > 0
+    ? (colorThemes[selectedThemeIndex] || colorThemes[0])
+    : defaultTheme;
+  const hasMultipleThemes = colorThemes.length > 1;
+
+  // Background image URL
+  const backgroundImageUrl = program.showBackgroundImage && program.imageUrl
+    ? getAssetUrl(program.imageUrl)
+    : null;
+
   // Show slideshow if enabled and there are slideshows
   if (showSlideshow && currentSlideshowId) {
     return (
@@ -228,9 +250,41 @@ export default function EventProgram() {
 
   // Show program content
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-amber-900">
+    <div
+      className="min-h-screen relative"
+      style={{
+        background: `linear-gradient(to bottom right, ${currentTheme.bgFrom}, ${currentTheme.bgVia}, ${currentTheme.bgTo})`
+      }}
+    >
+      {/* Background Image Overlay */}
+      {backgroundImageUrl && (
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none"
+          style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+        />
+      )}
+
       {/* Top action buttons */}
       <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+        {/* Theme Switcher - only show if multiple themes */}
+        {hasMultipleThemes && (
+          <div className="flex items-center gap-1 bg-black/50 rounded-full px-2 py-1">
+            {colorThemes.map((theme, idx) => (
+              <button
+                key={idx}
+                onClick={() => setSelectedThemeIndex(idx)}
+                className={`w-6 h-6 rounded-full border-2 transition-all ${
+                  idx === selectedThemeIndex ? 'border-white scale-110' : 'border-transparent hover:border-white/50'
+                }`}
+                style={{
+                  background: `linear-gradient(to bottom right, ${theme.bgFrom}, ${theme.bgVia}, ${theme.bgTo})`
+                }}
+                title={theme.name || `Theme ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Language Switcher */}
         <button
           onClick={toggleLanguage}
@@ -257,11 +311,11 @@ export default function EventProgram() {
       </div>
 
       {/* Program Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 relative z-10">
         {/* Header */}
         <div className="text-center mb-12">
           {getText(program.subtitleZh, program.subtitleEn, program.subtitle) && (
-            <p className="text-yellow-400 text-xl mb-2 font-serif">
+            <p className="text-xl mb-2 font-serif" style={{ color: currentTheme.primary }}>
               "{getText(program.subtitleZh, program.subtitleEn, program.subtitle)}"
             </p>
           )}
@@ -303,7 +357,7 @@ export default function EventProgram() {
             <div key={section.sectionId} className="bg-white/5 rounded-xl p-6">
               {/* Section Header */}
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-yellow-400 font-serif">
+                <h2 className="text-xl font-bold font-serif" style={{ color: currentTheme.primary }}>
                   {getText(section.titleZh, section.titleEn, section.title)}
                 </h2>
                 {getText(section.subtitleZh, section.subtitleEn, section.subtitle) && (
@@ -331,6 +385,7 @@ export default function EventProgram() {
                     lang={lang}
                     onShowCards={showCards}
                     getText={getText}
+                    primaryColor={currentTheme.primary}
                   />
                 ))}
               </div>
@@ -357,7 +412,7 @@ export default function EventProgram() {
 }
 
 // Program Item Row Component
-function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText }) {
+function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText, primaryColor = "#facc15" }) {
   const t = LANGUAGES[lang] || LANGUAGES.zh;
 
   // Item title and fields using bilingual support
@@ -437,7 +492,7 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText })
       <div className="flex items-start gap-4">
         {/* Item Number - hidden when set to 0 */}
         {showNumber && (
-          <span className="text-yellow-400/70 font-mono text-sm w-6 text-right flex-shrink-0 pt-0.5">
+          <span className="font-mono text-sm w-6 text-right flex-shrink-0 pt-0.5" style={{ color: `${primaryColor}b3` }}>
             {itemNumber}:
           </span>
         )}
@@ -447,10 +502,13 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText })
           {hasCards ? (
             <button
               onClick={handleItemCardsClick}
-              className="text-white font-medium hover:text-yellow-400 transition-colors inline-flex items-center gap-1.5 text-left"
+              className="text-white font-medium transition-colors inline-flex items-center gap-1.5 text-left"
+              style={{ '--hover-color': primaryColor }}
+              onMouseOver={(e) => e.currentTarget.style.color = primaryColor}
+              onMouseOut={(e) => e.currentTarget.style.color = 'white'}
             >
               {itemTitle}
-              <Info className="w-3.5 h-3.5 text-yellow-400/60" />
+              <Info className="w-3.5 h-3.5" style={{ color: `${primaryColor}99` }} />
             </button>
           ) : (
             <span className="text-white font-medium">{itemTitle}</span>
@@ -463,13 +521,16 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText })
             performer1Clickable ? (
               <button
                 onClick={(e) => handlePerformerCardsClick(e, performer1)}
-                className="text-yellow-400/80 text-sm hover:text-yellow-300 transition-colors inline-flex items-center gap-1"
+                className="text-sm transition-colors inline-flex items-center gap-1"
+                style={{ color: `${primaryColor}cc` }}
+                onMouseOver={(e) => e.currentTarget.style.color = primaryColor}
+                onMouseOut={(e) => e.currentTarget.style.color = `${primaryColor}cc`}
               >
                 {item.performerNames}
-                <Info className="w-3 h-3 text-yellow-400/50" />
+                <Info className="w-3 h-3" style={{ color: `${primaryColor}80` }} />
               </button>
             ) : (
-              <span className="text-yellow-400/80 text-sm">
+              <span className="text-sm" style={{ color: `${primaryColor}cc` }}>
                 {item.performerNames}
               </span>
             )
@@ -478,13 +539,16 @@ function ProgramItemRow({ item, itemNumber, lang = "zh", onShowCards, getText })
             performer2Clickable ? (
               <button
                 onClick={(e) => handlePerformerCardsClick(e, performer2)}
-                className="text-yellow-400/80 text-sm hover:text-yellow-300 transition-colors inline-flex items-center gap-1"
+                className="text-sm transition-colors inline-flex items-center gap-1"
+                style={{ color: `${primaryColor}cc` }}
+                onMouseOver={(e) => e.currentTarget.style.color = primaryColor}
+                onMouseOut={(e) => e.currentTarget.style.color = `${primaryColor}cc`}
               >
                 {item.performerNames2}
-                <Info className="w-3 h-3 text-yellow-400/50" />
+                <Info className="w-3 h-3" style={{ color: `${primaryColor}80` }} />
               </button>
             ) : (
-              <span className="text-yellow-400/80 text-sm">
+              <span className="text-sm" style={{ color: `${primaryColor}cc` }}>
                 {item.performerNames2}
               </span>
             )

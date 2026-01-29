@@ -140,6 +140,8 @@ export default function AdminEventPrograms() {
     venue: "",
     venueAddress: "",
     slideShowIds: [],
+    colorThemes: [],
+    showBackgroundImage: false,
     slug: "",
   });
   const [saving, setSaving] = useState(false);
@@ -199,6 +201,8 @@ export default function AdminEventPrograms() {
       venue: "",
       venueAddress: "",
       slideShowIds: [],
+      colorThemes: [],
+      showBackgroundImage: false,
       slug: "",
     });
     setShowForm(true);
@@ -225,6 +229,8 @@ export default function AdminEventPrograms() {
           venue: p.venue || "",
           venueAddress: p.venueAddress || "",
           slideShowIds: p.slideShowIds || [],
+          colorThemes: p.colorThemes || [],
+          showBackgroundImage: p.showBackgroundImage || false,
           slug: p.slug || "",
           status: p.status || "Draft",
           isFeatured: p.isFeatured || false,
@@ -587,6 +593,139 @@ export default function AdminEventPrograms() {
                     <p className="text-gray-400 text-sm">No slideshows available</p>
                   )}
                 </div>
+              </div>
+
+              {/* Color Themes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Color Themes (up to 3 - viewers can switch between them)
+                </label>
+                <div className="space-y-3 border rounded-lg p-3">
+                  {(formData.colorThemes || []).map((theme, idx) => (
+                    <div key={idx} className="bg-gray-50 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <input
+                          type="text"
+                          placeholder="Theme name"
+                          value={theme.name || ""}
+                          onChange={(e) => {
+                            const themes = [...(formData.colorThemes || [])];
+                            themes[idx] = { ...themes[idx], name: e.target.value };
+                            setFormData({ ...formData, colorThemes: themes });
+                          }}
+                          className="border rounded px-2 py-1 text-sm flex-1 mr-2"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const themes = formData.colorThemes.filter((_, i) => i !== idx);
+                            setFormData({ ...formData, colorThemes: themes });
+                          }}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-5 gap-2 text-xs">
+                        <div>
+                          <label className="block text-gray-500">Primary</label>
+                          <input
+                            type="color"
+                            value={theme.primary || "#facc15"}
+                            onChange={(e) => {
+                              const themes = [...(formData.colorThemes || [])];
+                              themes[idx] = { ...themes[idx], primary: e.target.value };
+                              setFormData({ ...formData, colorThemes: themes });
+                            }}
+                            className="w-full h-8 rounded cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-500">BG From</label>
+                          <input
+                            type="color"
+                            value={theme.bgFrom || "#7f1d1d"}
+                            onChange={(e) => {
+                              const themes = [...(formData.colorThemes || [])];
+                              themes[idx] = { ...themes[idx], bgFrom: e.target.value };
+                              setFormData({ ...formData, colorThemes: themes });
+                            }}
+                            className="w-full h-8 rounded cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-500">BG Via</label>
+                          <input
+                            type="color"
+                            value={theme.bgVia || "#991b1b"}
+                            onChange={(e) => {
+                              const themes = [...(formData.colorThemes || [])];
+                              themes[idx] = { ...themes[idx], bgVia: e.target.value };
+                              setFormData({ ...formData, colorThemes: themes });
+                            }}
+                            className="w-full h-8 rounded cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-500">BG To</label>
+                          <input
+                            type="color"
+                            value={theme.bgTo || "#78350f"}
+                            onChange={(e) => {
+                              const themes = [...(formData.colorThemes || [])];
+                              themes[idx] = { ...themes[idx], bgTo: e.target.value };
+                              setFormData({ ...formData, colorThemes: themes });
+                            }}
+                            className="w-full h-8 rounded cursor-pointer"
+                          />
+                        </div>
+                        <div
+                          className="h-8 rounded mt-4"
+                          style={{
+                            background: `linear-gradient(to bottom right, ${theme.bgFrom || "#7f1d1d"}, ${theme.bgVia || "#991b1b"}, ${theme.bgTo || "#78350f"})`
+                          }}
+                          title="Preview"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {(formData.colorThemes?.length || 0) < 3 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const themes = [...(formData.colorThemes || [])];
+                        themes.push({
+                          name: `Theme ${themes.length + 1}`,
+                          primary: "#facc15",
+                          bgFrom: "#7f1d1d",
+                          bgVia: "#991b1b",
+                          bgTo: "#78350f"
+                        });
+                        setFormData({ ...formData, colorThemes: themes });
+                      }}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      + Add Color Theme
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Show Background Image */}
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.showBackgroundImage || false}
+                    onChange={(e) =>
+                      setFormData({ ...formData, showBackgroundImage: e.target.checked })
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Show cover image as page background
+                  </span>
+                </label>
               </div>
 
               {editingProgram && (

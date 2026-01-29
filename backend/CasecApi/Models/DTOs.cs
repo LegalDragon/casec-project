@@ -1704,6 +1704,16 @@ public class RaffleResendOtpRequest
 
 // ============ EVENT PROGRAM DTOs ============
 
+// Color theme for EventProgram styling
+public class ColorThemeDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Primary { get; set; } = "#facc15"; // Yellow accent
+    public string BgFrom { get; set; } = "#7f1d1d"; // Red-900
+    public string BgVia { get; set; } = "#991b1b"; // Red-800
+    public string BgTo { get; set; } = "#78350f"; // Amber-900
+}
+
 // EventProgram DTOs
 public class EventProgramDto
 {
@@ -1722,6 +1732,8 @@ public class EventProgramDto
     public string? Venue { get; set; }
     public string? VenueAddress { get; set; }
     public List<int>? SlideShowIds { get; set; }
+    public List<ColorThemeDto>? ColorThemes { get; set; }
+    public bool ShowBackgroundImage { get; set; }
     public string Status { get; set; } = "Draft";
     public bool IsFeatured { get; set; }
     public string? Slug { get; set; }
@@ -1762,6 +1774,8 @@ public class CreateEventProgramRequest
     public string? Venue { get; set; }
     public string? VenueAddress { get; set; }
     public List<int>? SlideShowIds { get; set; }
+    public List<ColorThemeDto>? ColorThemes { get; set; }
+    public bool ShowBackgroundImage { get; set; } = false;
     public string? Slug { get; set; }
 }
 
@@ -1781,6 +1795,8 @@ public class UpdateEventProgramRequest
     public string? Venue { get; set; }
     public string? VenueAddress { get; set; }
     public List<int>? SlideShowIds { get; set; }
+    public List<ColorThemeDto>? ColorThemes { get; set; }
+    public bool? ShowBackgroundImage { get; set; }
     public string? Status { get; set; }
     public bool? IsFeatured { get; set; }
     public string? Slug { get; set; }

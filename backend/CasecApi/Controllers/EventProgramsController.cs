@@ -230,6 +230,8 @@ public class EventProgramsController : ControllerBase
                 Venue = request.Venue,
                 VenueAddress = request.VenueAddress,
                 SlideShowIds = request.SlideShowIds != null ? JsonSerializer.Serialize(request.SlideShowIds) : null,
+                ColorThemes = request.ColorThemes != null ? JsonSerializer.Serialize(request.ColorThemes) : null,
+                ShowBackgroundImage = request.ShowBackgroundImage,
                 Slug = slug,
                 Status = "Draft",
                 CreatedBy = GetCurrentUserId(),
@@ -301,6 +303,8 @@ public class EventProgramsController : ControllerBase
             if (request.Venue != null) program.Venue = request.Venue;
             if (request.VenueAddress != null) program.VenueAddress = request.VenueAddress;
             if (request.SlideShowIds != null) program.SlideShowIds = JsonSerializer.Serialize(request.SlideShowIds);
+            if (request.ColorThemes != null) program.ColorThemes = JsonSerializer.Serialize(request.ColorThemes);
+            if (request.ShowBackgroundImage.HasValue) program.ShowBackgroundImage = request.ShowBackgroundImage.Value;
             if (request.Status != null) program.Status = request.Status;
             if (request.IsFeatured.HasValue) program.IsFeatured = request.IsFeatured.Value;
             if (request.Slug != null)
@@ -1064,6 +1068,16 @@ public class EventProgramsController : ControllerBase
             catch { }
         }
 
+        List<ColorThemeDto>? colorThemes = null;
+        if (!string.IsNullOrEmpty(program.ColorThemes))
+        {
+            try
+            {
+                colorThemes = JsonSerializer.Deserialize<List<ColorThemeDto>>(program.ColorThemes);
+            }
+            catch { }
+        }
+
         return new EventProgramDto
         {
             ProgramId = program.ProgramId,
@@ -1081,6 +1095,8 @@ public class EventProgramsController : ControllerBase
             Venue = program.Venue,
             VenueAddress = program.VenueAddress,
             SlideShowIds = slideShowIds,
+            ColorThemes = colorThemes,
+            ShowBackgroundImage = program.ShowBackgroundImage,
             Status = program.Status,
             IsFeatured = program.IsFeatured,
             Slug = program.Slug,
