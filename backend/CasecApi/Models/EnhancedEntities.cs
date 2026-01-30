@@ -2342,3 +2342,36 @@ public class UserRole
     [ForeignKey("AssignedBy")]
     public virtual User? AssignedByUser { get; set; }
 }
+
+// ============ PROGRAM RATINGS ============
+
+// ProgramRating Entity - Ratings for event program items by attendees
+public class ProgramRating
+{
+    [Key]
+    public int ProgramRatingId { get; set; }
+
+    [Required]
+    public int EventProgramId { get; set; }
+
+    // Null = overall event rating; non-null = specific program item rating
+    public int? ProgramItemId { get; set; }
+
+    [Required]
+    [MaxLength(20)]
+    public string PhoneNumber { get; set; } = string.Empty;
+
+    [Required]
+    public int Rating { get; set; } // 1-5
+
+    [MaxLength(500)]
+    public string? Comment { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    [ForeignKey("EventProgramId")]
+    public virtual EventProgram? EventProgram { get; set; }
+}

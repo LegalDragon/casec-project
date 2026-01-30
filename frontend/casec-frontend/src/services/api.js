@@ -527,6 +527,15 @@ export const rolesAPI = {
   getMyPermissions: () => api.get("/roles/my-permissions"),
 };
 
+// Program Ratings API (public, no auth)
+export const programRatingsAPI = {
+  submitRating: (data) => api.post("/programratings/rate", data),
+  getEventRatings: (eventProgramId, phone) =>
+    api.get(`/programratings/event/${eventProgramId}${phone ? `?phone=${encodeURIComponent(phone)}` : ""}`),
+  getItemRatings: (programItemId) =>
+    api.get(`/programratings/item/${programItemId}`),
+};
+
 // Chat API
 export const chatAPI = {
   getAvailability: () => api.get("/chat/availability"),

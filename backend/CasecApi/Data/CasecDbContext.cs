@@ -80,6 +80,9 @@ public class CasecDbContext : DbContext
     public DbSet<ProgramContent> ProgramContents { get; set; }
     public DbSet<ContentCard> ContentCards { get; set; }
 
+    // Program Rating entities
+    public DbSet<ProgramRating> ProgramRatings { get; set; }
+
     // Role-based access control entities
     public DbSet<Role> Roles { get; set; }
     public DbSet<AdminArea> AdminAreas { get; set; }
@@ -722,6 +725,25 @@ public class CasecDbContext : DbContext
             entity.HasIndex(e => e.Slug);
             entity.HasIndex(e => e.ContentType);
             entity.HasIndex(e => e.Status);
+        });
+
+        // ProgramRating entity configuration
+        modelBuilder.Entity<ProgramRating>(entity =>
+        {
+            entity.HasKey(e => e.ProgramRatingId);
+            entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Rating).IsRequired();
+            entity.Property(e => e.Comment).HasMaxLength(500);
+
+            entity.HasOne(e => e.EventProgram)
+                .WithMany()
+                .HasForeignKey(e => e.EventProgramId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.EventProgramId);
+            entity.HasIndex(e => new { e.ProgramItemId, e.PhoneNumber })
+                .IsUnique()
+                .HasFilter("[ProgramItemId] IS NOT NULL");
         });
 
         // ContentCard entity configuration

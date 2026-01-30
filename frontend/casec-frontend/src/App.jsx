@@ -42,6 +42,9 @@ import Membership from './pages/Membership';
 import Raffle from './pages/Raffle';
 import RaffleDrawing from './pages/RaffleDrawing';
 import EventProgram from './pages/EventProgram';
+import LivePoll from './pages/LivePoll';
+import PollVoter from './pages/PollVoter';
+import ProgramRating from './pages/ProgramRating';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -92,6 +95,9 @@ function App() {
         <Route path="/raffle/:raffleId" element={<Raffle />} />
         <Route path="/raffle/:raffleId/drawing" element={<RaffleDrawing />} />
         <Route path="/program/:slug" element={<EventProgram />} />
+        <Route path="/live-poll/:pollId" element={<LivePoll />} />
+        <Route path="/vote/:pollId" element={<PollVoter />} />
+        <Route path="/rate/:eventSlug" element={<ProgramRating />} />
 
         {/* Protected Routes */}
         <Route path="/" element={
