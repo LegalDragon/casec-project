@@ -103,7 +103,7 @@ jobs:
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           $headers = @{ "X-Deploy-Key" = $env:DEPLOY_API_KEY }
           # Try local first (runner is on IIS server), fall back to public URL
-          $urls = @("https://app.casecflorida.org/api/admin/migrations/run", "http://app.casecflorida.org/api/admin/migrations/run")
+          $urls = @("https://app.casecflorida.org/api/api/admin/migrations/run", "http://app.casecflorida.org/api/api/admin/migrations/run")
           $success = $false
           foreach ($url in $urls) {
             Write-Host "[MIGRATIONS] Trying $url ..."
