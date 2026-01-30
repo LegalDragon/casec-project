@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Deploy CASEC project to IIS (frontend + backend virtual app).
+    Deploy CASEC project to IIS (frontend + backend).
 
 .DESCRIPTION
     Stops the app pool, copies frontend dist + published backend,
@@ -11,6 +11,12 @@
 
 .PARAMETER AppPoolName
     IIS app pool name (defaults to SiteName)
+
+.PARAMETER FrontendPath
+    Physical path for the frontend site root
+
+.PARAMETER BackendPath
+    Physical path for the backend API application
 
 .PARAMETER FrontendArtifact
     Path to the frontend build output (dist folder)
@@ -33,6 +39,10 @@ param(
 
     [string]$AppPoolName,
 
+    [string]$FrontendPath = "F:\New_WWW\CASEC\WWW",
+
+    [string]$BackendPath = "F:\New_WWW\CASEC\API",
+
     [Parameter(Mandatory=$true)]
     [string]$FrontendArtifact,
 
@@ -51,26 +61,15 @@ $ErrorActionPreference = "Stop"
 # Default app pool to site name
 if (-not $AppPoolName) { $AppPoolName = $SiteName }
 
-# -- Import IIS module --
-Import-Module WebAdministration -ErrorAction Stop
-
-# -- Resolve paths from IIS --
+# -- Resolve paths --
 Write-Host "===========================================================" -ForegroundColor Cyan
 Write-Host "  DEPLOYING: $SiteName" -ForegroundColor Cyan
 Write-Host "===========================================================" -ForegroundColor Cyan
 
-$site = Get-Website -Name $SiteName -ErrorAction Stop
-$frontendPath = $site.PhysicalPath -replace '%SystemDrive%', $env:SystemDrive
-Write-Host "[INFO] Frontend path: $frontendPath"
+$frontendPath = $FrontendPath
+$backendPath = $BackendPath
 
-# Backend is the /api virtual application under the site
-$apiApp = Get-WebApplication -Site $SiteName -Name "api" -ErrorAction SilentlyContinue
-if ($apiApp) {
-    $backendPath = $apiApp.PhysicalPath -replace '%SystemDrive%', $env:SystemDrive
-} else {
-    # Fallback: assume backend is in an 'api' subfolder
-    $backendPath = Join-Path $frontendPath "api"
-}
+Write-Host "[INFO] Frontend path: $frontendPath"
 Write-Host "[INFO] Backend path:  $backendPath"
 
 # Verify artifacts exist
@@ -79,6 +78,14 @@ if (-not (Test-Path $FrontendArtifact)) {
 }
 if (-not (Test-Path $BackendArtifact)) {
     throw "Backend artifact not found: $BackendArtifact"
+}
+
+# Verify target paths exist
+if (-not (Test-Path $frontendPath)) {
+    throw "Frontend target path not found: $frontendPath"
+}
+if (-not (Test-Path $backendPath)) {
+    throw "Backend target path not found: $backendPath"
 }
 
 # -- Backup current deployment --
@@ -92,7 +99,6 @@ if (-not $SkipBackup) {
     New-Item -ItemType Directory -Path "$backupDir\backend" -Force | Out-Null
 
     if (Test-Path $frontendPath) {
-        # Backup frontend (exclude the api virtual app folder)
         Get-ChildItem $frontendPath -Exclude "api" | Copy-Item -Destination "$backupDir\frontend" -Recurse -Force
     }
     if (Test-Path $backendPath) {
@@ -102,34 +108,33 @@ if (-not $SkipBackup) {
     Write-Host "[BACKUP] Done" -ForegroundColor Green
 
     # Keep only last 5 backups
-    $allBackups = Get-ChildItem (Join-Path $BackupRoot $SiteName) -Directory | Sort-Object Name -Descending
-    if ($allBackups.Count -gt 5) {
-        $allBackups | Select-Object -Skip 5 | ForEach-Object {
-            Write-Host "[BACKUP] Removing old backup: $($_.Name)" -ForegroundColor DarkGray
-            Remove-Item $_.FullName -Recurse -Force
+    $backupSiteDir = Join-Path $BackupRoot $SiteName
+    if (Test-Path $backupSiteDir) {
+        $allBackups = Get-ChildItem $backupSiteDir -Directory | Sort-Object Name -Descending
+        if ($allBackups.Count -gt 5) {
+            $allBackups | Select-Object -Skip 5 | ForEach-Object {
+                Write-Host "[BACKUP] Removing old backup: $($_.Name)" -ForegroundColor DarkGray
+                Remove-Item $_.FullName -Recurse -Force
+            }
         }
     }
 }
 
-# -- Stop app pool --
+# -- Stop app pool using appcmd --
 Write-Host "`n[DEPLOY] Stopping app pool: $AppPoolName" -ForegroundColor Yellow
-$pool = Get-WebAppPoolState -Name $AppPoolName -ErrorAction SilentlyContinue
-if ($pool.Value -eq "Started") {
-    Stop-WebAppPool -Name $AppPoolName
-    # Wait for pool to fully stop
-    $maxWait = 30
-    $waited = 0
-    while ((Get-WebAppPoolState -Name $AppPoolName).Value -ne "Stopped" -and $waited -lt $maxWait) {
-        Start-Sleep -Seconds 1
-        $waited++
+$appcmd = "$env:SystemRoot\System32\inetsrv\appcmd.exe"
+
+try {
+    $poolState = & $appcmd list apppool $AppPoolName /text:state 2>$null
+    if ($poolState -eq "Started") {
+        & $appcmd stop apppool $AppPoolName
+        Start-Sleep -Seconds 3
     }
-    if ($waited -ge $maxWait) {
-        Write-Host "[WARN] App pool did not stop within ${maxWait}s, forcing..." -ForegroundColor Red
-        Stop-WebAppPool -Name $AppPoolName -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 2
-    }
+    Write-Host "[DEPLOY] App pool stopped" -ForegroundColor Green
+} catch {
+    Write-Host "[WARN] Could not stop app pool: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "[WARN] Continuing with deployment..." -ForegroundColor Yellow
 }
-Write-Host "[DEPLOY] App pool stopped" -ForegroundColor Green
 
 # -- Deploy frontend --
 Write-Host "`n[DEPLOY] Copying frontend..." -ForegroundColor Yellow
@@ -144,7 +149,7 @@ Write-Host "[DEPLOY] Frontend deployed" -ForegroundColor Green
 # -- Deploy backend --
 Write-Host "`n[DEPLOY] Copying backend..." -ForegroundColor Yellow
 
-# Remove old backend files (but preserve appsettings.Production.json and uploads)
+# Remove old backend files (but preserve config and data)
 $preserveFiles = @("appsettings.Production.json", "appsettings.production.json", "web.config", "uploads", "wwwroot", "logs")
 Get-ChildItem $backendPath -Exclude $preserveFiles | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
@@ -152,22 +157,20 @@ Get-ChildItem $backendPath -Exclude $preserveFiles | Remove-Item -Recurse -Force
 Copy-Item -Path "$BackendArtifact\*" -Destination $backendPath -Recurse -Force
 Write-Host "[DEPLOY] Backend deployed" -ForegroundColor Green
 
-# -- Start app pool --
+# -- Start app pool using appcmd --
 Write-Host "`n[DEPLOY] Starting app pool: $AppPoolName" -ForegroundColor Yellow
-Start-WebAppPool -Name $AppPoolName
-
-$maxWait = 15
-$waited = 0
-while ((Get-WebAppPoolState -Name $AppPoolName).Value -ne "Started" -and $waited -lt $maxWait) {
-    Start-Sleep -Seconds 1
-    $waited++
+try {
+    & $appcmd start apppool $AppPoolName
+    Start-Sleep -Seconds 2
+    Write-Host "[DEPLOY] App pool started" -ForegroundColor Green
+} catch {
+    Write-Host "[WARN] Could not start app pool: $($_.Exception.Message)" -ForegroundColor Yellow
 }
-Write-Host "[DEPLOY] App pool started" -ForegroundColor Green
 
 # -- Health check --
 if ($HealthCheckUrl) {
     Write-Host "`n[HEALTH] Checking $HealthCheckUrl..." -ForegroundColor Yellow
-    Start-Sleep -Seconds 3  # Give the app a moment to warm up
+    Start-Sleep -Seconds 3
 
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
