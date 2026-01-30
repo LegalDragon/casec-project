@@ -93,20 +93,79 @@ jobs:
         run: |
           & artifacts\scripts\deploy-iis.ps1 -SiteName "Asso_CASEC" -AppPoolName "Asso_CASEC" -FrontendArtifact "artifacts\frontend" -BackendArtifact "artifacts\backend"
 
+      - name: Bootstrap migration history
+        shell: powershell
+        env:
+          DEPLOY_API_KEY: ${{ secrets.DEPLOY_API_KEY }}
+        run: |
+          Write-Host "[MIGRATIONS] Bootstrapping migration history for pre-existing scripts..."
+          Start-Sleep -Seconds 10
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          $headers = @{
+            "X-Deploy-Key" = $env:DEPLOY_API_KEY
+            "Content-Type" = "application/json"
+          }
+          # Seed all pre-existing scripts as already applied (idempotent)
+          $seedSql = @"
+          IF NOT EXISTS (SELECT 1 FROM _MigrationHistory WHERE Folder = 'Database' AND ScriptName = '001_CreateTables.sql' AND Success = 1)
+          BEGIN
+            INSERT INTO _MigrationHistory (ScriptName, Folder, AppliedAt, Success, DurationMs)
+            VALUES
+              ('001_CreateTables.sql','Database',GETUTCDATE(),1,0),
+              ('002_AddEventTypes.sql','Database',GETUTCDATE(),1,0),
+              ('003_AddClubsAndFamilyFeatures.sql','Database',GETUTCDATE(),1,0),
+              ('004_AddThemeCustomization.sql','Database',GETUTCDATE(),1,0),
+              ('005_AddBoardMembersAndAvatar.sql','Database',GETUTCDATE(),1,0),
+              ('006_AddEventTypes.sql','Database',GETUTCDATE(),1,0),
+              ('007_CreateAssets.sql','Database',GETUTCDATE(),1,0),
+              ('008_CreateActivityLogs.sql','Database',GETUTCDATE(),1,0),
+              ('009_AddMissingColumns.sql','Database',GETUTCDATE(),1,0),
+              ('010_AddHeroVideoUrls.sql','Database',GETUTCDATE(),1,0),
+              ('011_AddAssetStatusSortOrder.sql','Database',GETUTCDATE(),1,0),
+              ('012_MembershipDurations.sql','Database',GETUTCDATE(),1,0),
+              ('013_MembershipPaymentTracking.sql','Database',GETUTCDATE(),1,0),
+              ('014_AddPolls.sql','Database',GETUTCDATE(),1,0),
+              ('015_AddSurveys.sql','Database',GETUTCDATE(),1,0),
+              ('016_AddPaymentMethods.sql','Database',GETUTCDATE(),1,0),
+              ('017_AddSlideShows.sql','Database',GETUTCDATE(),1,0),
+              ('018_AddSlideObjectsAndBackgroundVideos.sql','Database',GETUTCDATE(),1,0),
+              ('019_AddRaffles.sql','Database',GETUTCDATE(),1,0),
+              ('020_AddProgramRatings.sql','Database',GETUTCDATE(),1,0),
+              ('021_AddAssetFileTypes.sql','Database',GETUTCDATE(),1,0);
+          END
+          "@
+          $body = @{ sql = $seedSql } | ConvertTo-Json
+          $urls = @("https://app.casecflorida.org/api/admin/migrations/run-sql", "http://app.casecflorida.org/api/admin/migrations/run-sql")
+          $success = $false
+          foreach ($url in $urls) {
+            Write-Host "[MIGRATIONS] Seeding via $url ..."
+            try {
+              $response = Invoke-RestMethod -Uri $url -Method POST -Headers $headers -Body $body -TimeoutSec 60
+              Write-Host "[MIGRATIONS] Bootstrap: $($response.message)"
+              $success = $true
+              break
+            } catch {
+              Write-Host "[MIGRATIONS] Bootstrap failed on $url : $($_.Exception.Message)"
+            }
+          }
+          if (-not $success) {
+            Write-Host "[MIGRATIONS] WARN: Bootstrap failed. Migrations may re-run old scripts."
+          }
+
       - name: Run SQL migrations
         shell: powershell
         env:
           DEPLOY_API_KEY: ${{ secrets.DEPLOY_API_KEY }}
         run: |
-          Write-Host "[MIGRATIONS] Waiting for IIS to warm up..."
-          Start-Sleep -Seconds 10
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          $headers = @{ "X-Deploy-Key" = $env:DEPLOY_API_KEY }
-          # Try local first (runner is on IIS server), fall back to public URL
+          $headers = @{
+            "X-Deploy-Key" = $env:DEPLOY_API_KEY
+            "Content-Type" = "application/json"
+          }
           $urls = @("https://app.casecflorida.org/api/admin/migrations/run", "http://app.casecflorida.org/api/admin/migrations/run")
           $success = $false
           foreach ($url in $urls) {
-            Write-Host "[MIGRATIONS] Trying $url ..."
+            Write-Host "[MIGRATIONS] Running pending migrations via $url ..."
             try {
               $response = Invoke-RestMethod -Uri $url -Method POST -Headers $headers -TimeoutSec 120
               Write-Host "[MIGRATIONS] $($response.message)"
