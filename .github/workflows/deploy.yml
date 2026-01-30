@@ -139,3 +139,37 @@ jobs:
           if (-not $success) {
             Write-Host "[MIGRATIONS] WARN: Could not create Deployments table."
           }
+
+      - name: Record deployment
+        if: always()
+        shell: powershell
+        env:
+          DEPLOY_API_KEY: ${{ secrets.DEPLOY_API_KEY }}
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          $headers = @{
+            "X-Deploy-Key" = $env:DEPLOY_API_KEY
+            "Content-Type" = "application/json"
+          }
+          # Get commit info from the checked-out source (build job uploaded it)
+          $commitHash = "${{ github.sha }}".Substring(0,7)
+          $branch = "${{ github.ref_name }}"
+          $summary = "${{ github.event.head_commit.message }}".Split("`n")[0]
+          if (-not $summary -or $summary -eq "") { $summary = "Manual deployment" }
+          # Determine status from previous steps
+          $status = if ("${{ job.status }}" -eq "success") { "success" } else { "failed" }
+          $body = @{
+            summary = $summary
+            commitHash = $commitHash
+            branch = $branch
+            deployedBy = "GitHub Actions"
+            status = $status
+          } | ConvertTo-Json -Depth 3
+          $url = "https://app.casecflorida.org/api/deployments"
+          Write-Host "[DEPLOY] Recording deployment: $summary ($commitHash) [$status]"
+          try {
+            $response = Invoke-RestMethod -Uri $url -Method POST -Headers $headers -Body $body -TimeoutSec 30
+            Write-Host "[DEPLOY] Recorded successfully"
+          } catch {
+            Write-Host "[DEPLOY] Could not record: $($_.Exception.Message)"
+          }
