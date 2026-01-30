@@ -92,3 +92,27 @@ jobs:
         shell: powershell
         run: |
           & artifacts\scripts\deploy-iis.ps1 -SiteName "Asso_CASEC" -AppPoolName "Asso_CASEC" -FrontendArtifact "artifacts\frontend" -BackendArtifact "artifacts\backend"
+
+      - name: Run SQL migrations
+        shell: powershell
+        env:
+          DEPLOY_API_KEY: ${{ secrets.DEPLOY_API_KEY }}
+        run: |
+          Start-Sleep -Seconds 5  # Let IIS warm up
+          $headers = @{ "X-Deploy-Key" = $env:DEPLOY_API_KEY }
+          try {
+            $response = Invoke-RestMethod -Uri "https://casecflorida.org/api/admin/migrations/run" -Method POST -Headers $headers -TimeoutSec 120
+            Write-Host "[MIGRATIONS] $($response.message)"
+            if ($response.results) {
+              foreach ($r in $response.results) {
+                Write-Host "  $($r.status): $($r.folder)/$($r.script) ($($r.durationMs)ms)"
+              }
+            }
+          } catch {
+            $code = $_.Exception.Response.StatusCode.value__
+            if ($code -eq 401) {
+              Write-Host "[MIGRATIONS] WARN: Deploy API key not configured on server. Skipping migrations."
+            } else {
+              Write-Host "[MIGRATIONS] WARN: Migration call failed (HTTP $code): $($_.Exception.Message)"
+            }
+          }
