@@ -154,8 +154,20 @@ jobs:
           # Get commit info from the checked-out source (build job uploaded it)
           $commitHash = "${{ github.sha }}".Substring(0,7)
           $branch = "${{ github.ref_name }}"
-          $summary = "${{ github.event.head_commit.message }}".Split("`n")[0]
-          if (-not $summary -or $summary -eq "") { $summary = "Manual deployment" }
+          # head_commit.message is empty for workflow_dispatch, so fetch from git
+          $summary = ""
+          try {
+            $summary = (git -C artifacts\backend\..\.. log -1 --pretty=format:"%s" 2>$null)
+          } catch {}
+          if (-not $summary -or $summary -eq "") {
+            try {
+              # Fallback: use GitHub API
+              $apiUrl = "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}"
+              $commit = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "deploy" } -TimeoutSec 10
+              $summary = $commit.commit.message.Split("`n")[0]
+            } catch {}
+          }
+          if (-not $summary -or $summary -eq "") { $summary = "Deployment $commitHash" }
           # Determine status from previous steps
           $status = if ("${{ job.status }}" -eq "success") { "success" } else { "failed" }
           $body = @{
