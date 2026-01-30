@@ -93,122 +93,49 @@ jobs:
         run: |
           & artifacts\scripts\deploy-iis.ps1 -SiteName "Asso_CASEC" -AppPoolName "Asso_CASEC" -FrontendArtifact "artifacts\frontend" -BackendArtifact "artifacts\backend"
 
-      - name: Bootstrap migration history
+      - name: Run SQL migrations
         shell: powershell
         env:
           DEPLOY_API_KEY: ${{ secrets.DEPLOY_API_KEY }}
         run: |
-          Write-Host "[MIGRATIONS] Bootstrapping migration history for pre-existing scripts..."
+          Write-Host "[MIGRATIONS] Running deployment SQL..."
           Start-Sleep -Seconds 10
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           $headers = @{
             "X-Deploy-Key" = $env:DEPLOY_API_KEY
             "Content-Type" = "application/json"
           }
-          # Seed all pre-existing scripts as already applied (idempotent)
-          # Covers both Database/ and Migrations/ folders
-          $seedSql = @"
-          -- Seed Database folder (001-021)
-          IF NOT EXISTS (SELECT 1 FROM _MigrationHistory WHERE Folder = 'Database' AND ScriptName = '001_CreateTables.sql' AND Success = 1)
+          # Create Deployments table if it doesn't exist
+          $sql = @"
+          IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Deployments')
           BEGIN
-            INSERT INTO _MigrationHistory (ScriptName, Folder, AppliedAt, Success, DurationMs)
-            VALUES
-              ('001_CreateTables.sql','Database',GETUTCDATE(),1,0),
-              ('002_AddEventTypes.sql','Database',GETUTCDATE(),1,0),
-              ('003_AddClubsAndFamilyFeatures.sql','Database',GETUTCDATE(),1,0),
-              ('004_AddThemeCustomization.sql','Database',GETUTCDATE(),1,0),
-              ('005_AddBoardMembersAndAvatar.sql','Database',GETUTCDATE(),1,0),
-              ('006_AddEventTypes.sql','Database',GETUTCDATE(),1,0),
-              ('007_CreateAssets.sql','Database',GETUTCDATE(),1,0),
-              ('008_CreateActivityLogs.sql','Database',GETUTCDATE(),1,0),
-              ('009_AddMissingColumns.sql','Database',GETUTCDATE(),1,0),
-              ('010_AddHeroVideoUrls.sql','Database',GETUTCDATE(),1,0),
-              ('011_AddAssetStatusSortOrder.sql','Database',GETUTCDATE(),1,0),
-              ('012_MembershipDurations.sql','Database',GETUTCDATE(),1,0),
-              ('013_MembershipPaymentTracking.sql','Database',GETUTCDATE(),1,0),
-              ('014_AddPolls.sql','Database',GETUTCDATE(),1,0),
-              ('015_AddSurveys.sql','Database',GETUTCDATE(),1,0),
-              ('016_AddPaymentMethods.sql','Database',GETUTCDATE(),1,0),
-              ('017_AddSlideShows.sql','Database',GETUTCDATE(),1,0),
-              ('018_AddSlideObjectsAndBackgroundVideos.sql','Database',GETUTCDATE(),1,0),
-              ('019_AddRaffles.sql','Database',GETUTCDATE(),1,0),
-              ('020_AddProgramRatings.sql','Database',GETUTCDATE(),1,0),
-              ('021_AddAssetFileTypes.sql','Database',GETUTCDATE(),1,0);
-          END
-
-          -- Seed Migrations folder (001-010)
-          IF NOT EXISTS (SELECT 1 FROM _MigrationHistory WHERE Folder = 'Migrations' AND ScriptName = '001_AddSharedImageStatusColumn.sql' AND Success = 1)
-          BEGIN
-            INSERT INTO _MigrationHistory (ScriptName, Folder, AppliedAt, Success, DurationMs)
-            VALUES
-              ('001_AddSharedImageStatusColumn.sql','Migrations',GETUTCDATE(),1,0),
-              ('002_AddSlideObjectTables.sql','Migrations',GETUTCDATE(),1,0),
-              ('003_AddSlideShowDefaultInterval.sql','Migrations',GETUTCDATE(),1,0),
-              ('004_AddEventProgramTables.sql','Migrations',GETUTCDATE(),1,0),
-              ('005_AddContentCards.sql','Migrations',GETUTCDATE(),1,0),
-              ('006_AddBilingualProgramFields.sql','Migrations',GETUTCDATE(),1,0),
-              ('007_AddPerformerNames2.sql','Migrations',GETUTCDATE(),1,0),
-              ('008_MigratePerformerNames.sql','Migrations',GETUTCDATE(),1,0),
-              ('009_AddRolesAndPermissions.sql','Migrations',GETUTCDATE(),1,0),
-              ('010_AddChatbotVisibility.sql','Migrations',GETUTCDATE(),1,0);
+            CREATE TABLE Deployments (
+              DeploymentId INT IDENTITY(1,1) PRIMARY KEY,
+              Summary NVARCHAR(500) NOT NULL,
+              CommitHash NVARCHAR(40) NULL,
+              Branch NVARCHAR(100) NULL DEFAULT 'main',
+              DeployedBy NVARCHAR(100) NULL DEFAULT 'GitHub Actions',
+              Status NVARCHAR(20) NOT NULL DEFAULT 'success',
+              DurationSeconds INT NULL,
+              DeployedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+            );
+            CREATE INDEX IX_Deployments_DeployedAt ON Deployments (DeployedAt DESC);
           END
           "@
-          $body = @{ sql = $seedSql } | ConvertTo-Json
+          $body = @{ sql = $sql } | ConvertTo-Json
           $urls = @("https://app.casecflorida.org/api/admin/migrations/run-sql", "http://app.casecflorida.org/api/admin/migrations/run-sql")
           $success = $false
           foreach ($url in $urls) {
-            Write-Host "[MIGRATIONS] Seeding via $url ..."
+            Write-Host "[MIGRATIONS] Trying $url ..."
             try {
               $response = Invoke-RestMethod -Uri $url -Method POST -Headers $headers -Body $body -TimeoutSec 60
-              Write-Host "[MIGRATIONS] Bootstrap: $($response.message)"
+              Write-Host "[MIGRATIONS] $($response.message)"
               $success = $true
               break
             } catch {
-              Write-Host "[MIGRATIONS] Bootstrap failed on $url : $($_.Exception.Message)"
+              Write-Host "[MIGRATIONS] Failed on $url : $($_.Exception.Message)"
             }
           }
           if (-not $success) {
-            Write-Host "[MIGRATIONS] WARN: Bootstrap failed. Migrations may re-run old scripts."
-          }
-
-      - name: Run SQL migrations
-        shell: powershell
-        env:
-          DEPLOY_API_KEY: ${{ secrets.DEPLOY_API_KEY }}
-        run: |
-          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          $headers = @{
-            "X-Deploy-Key" = $env:DEPLOY_API_KEY
-            "Content-Type" = "application/json"
-          }
-          $urls = @("https://app.casecflorida.org/api/admin/migrations/run", "http://app.casecflorida.org/api/admin/migrations/run")
-          $success = $false
-          foreach ($url in $urls) {
-            Write-Host "[MIGRATIONS] Running pending migrations via $url ..."
-            try {
-              # Use Invoke-WebRequest to get response body even on errors
-              $resp = Invoke-WebRequest -Uri $url -Method POST -Headers $headers -TimeoutSec 120 -UseBasicParsing
-              $json = $resp.Content | ConvertFrom-Json
-              Write-Host "[MIGRATIONS] $($json.message)"
-              if ($json.results) {
-                foreach ($r in $json.results) {
-                  Write-Host "  $($r.status): $($r.folder)/$($r.script) ($($r.durationMs)ms)"
-                }
-              }
-              $success = $true
-              break
-            } catch {
-              $code = $_.Exception.Response.StatusCode.value__
-              $body = ""
-              try {
-                $stream = $_.Exception.Response.GetResponseStream()
-                $reader = New-Object System.IO.StreamReader($stream)
-                $body = $reader.ReadToEnd()
-              } catch {}
-              Write-Host "[MIGRATIONS] Failed on $url (HTTP $code): $($_.Exception.Message)"
-              Write-Host "[MIGRATIONS] Response body: $body"
-            }
-          }
-          if (-not $success) {
-            Write-Host "[MIGRATIONS] WARN: Could not run migrations. You may need to run them manually."
+            Write-Host "[MIGRATIONS] WARN: Could not create Deployments table."
           }
