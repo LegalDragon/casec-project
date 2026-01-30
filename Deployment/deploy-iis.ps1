@@ -51,13 +51,13 @@ $ErrorActionPreference = "Stop"
 # Default app pool to site name
 if (-not $AppPoolName) { $AppPoolName = $SiteName }
 
-# ── Import IIS module ─────────────────────────────────────────────────
+# -- Import IIS module --
 Import-Module WebAdministration -ErrorAction Stop
 
-# ── Resolve paths from IIS ────────────────────────────────────────────
-Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
+# -- Resolve paths from IIS --
+Write-Host "===========================================================" -ForegroundColor Cyan
 Write-Host "  DEPLOYING: $SiteName" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "===========================================================" -ForegroundColor Cyan
 
 $site = Get-Website -Name $SiteName -ErrorAction Stop
 $frontendPath = $site.PhysicalPath -replace '%SystemDrive%', $env:SystemDrive
@@ -81,7 +81,7 @@ if (-not (Test-Path $BackendArtifact)) {
     throw "Backend artifact not found: $BackendArtifact"
 }
 
-# ── Backup current deployment ─────────────────────────────────────────
+# -- Backup current deployment --
 if (-not $SkipBackup) {
     $timestamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
     $backupDir = Join-Path $BackupRoot "$SiteName\$timestamp"
@@ -111,7 +111,7 @@ if (-not $SkipBackup) {
     }
 }
 
-# ── Stop app pool ─────────────────────────────────────────────────────
+# -- Stop app pool --
 Write-Host "`n[DEPLOY] Stopping app pool: $AppPoolName" -ForegroundColor Yellow
 $pool = Get-WebAppPoolState -Name $AppPoolName -ErrorAction SilentlyContinue
 if ($pool.Value -eq "Started") {
@@ -131,7 +131,7 @@ if ($pool.Value -eq "Started") {
 }
 Write-Host "[DEPLOY] App pool stopped" -ForegroundColor Green
 
-# ── Deploy frontend ───────────────────────────────────────────────────
+# -- Deploy frontend --
 Write-Host "`n[DEPLOY] Copying frontend..." -ForegroundColor Yellow
 
 # Remove old frontend files (but preserve api folder and web.config)
@@ -141,7 +141,7 @@ Get-ChildItem $frontendPath -Exclude "api", "web.config", "uploads", "wwwroot" |
 Copy-Item -Path "$FrontendArtifact\*" -Destination $frontendPath -Recurse -Force
 Write-Host "[DEPLOY] Frontend deployed" -ForegroundColor Green
 
-# ── Deploy backend ────────────────────────────────────────────────────
+# -- Deploy backend --
 Write-Host "`n[DEPLOY] Copying backend..." -ForegroundColor Yellow
 
 # Remove old backend files (but preserve appsettings.Production.json and uploads)
@@ -152,7 +152,7 @@ Get-ChildItem $backendPath -Exclude $preserveFiles | Remove-Item -Recurse -Force
 Copy-Item -Path "$BackendArtifact\*" -Destination $backendPath -Recurse -Force
 Write-Host "[DEPLOY] Backend deployed" -ForegroundColor Green
 
-# ── Start app pool ────────────────────────────────────────────────────
+# -- Start app pool --
 Write-Host "`n[DEPLOY] Starting app pool: $AppPoolName" -ForegroundColor Yellow
 Start-WebAppPool -Name $AppPoolName
 
@@ -164,7 +164,7 @@ while ((Get-WebAppPoolState -Name $AppPoolName).Value -ne "Started" -and $waited
 }
 Write-Host "[DEPLOY] App pool started" -ForegroundColor Green
 
-# ── Health check ──────────────────────────────────────────────────────
+# -- Health check --
 if ($HealthCheckUrl) {
     Write-Host "`n[HEALTH] Checking $HealthCheckUrl..." -ForegroundColor Yellow
     Start-Sleep -Seconds 3  # Give the app a moment to warm up
@@ -173,18 +173,18 @@ if ($HealthCheckUrl) {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         $response = Invoke-WebRequest -Uri $HealthCheckUrl -UseBasicParsing -TimeoutSec 15
         if ($response.StatusCode -eq 200) {
-            Write-Host "[HEALTH] ✓ Health check passed (HTTP $($response.StatusCode))" -ForegroundColor Green
+            Write-Host "[HEALTH] OK - Health check passed (HTTP $($response.StatusCode))" -ForegroundColor Green
         } else {
-            Write-Host "[HEALTH] ✗ Unexpected status: $($response.StatusCode)" -ForegroundColor Red
+            Write-Host "[HEALTH] FAIL - Unexpected status: $($response.StatusCode)" -ForegroundColor Red
             exit 1
         }
     } catch {
-        Write-Host "[HEALTH] ✗ Health check failed: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[HEALTH] FAIL - Health check failed: $($_.Exception.Message)" -ForegroundColor Red
         exit 1
     }
 }
 
-# ── Done ──────────────────────────────────────────────────────────────
-Write-Host "`n═══════════════════════════════════════════════════════════" -ForegroundColor Green
+# -- Done --
+Write-Host "`n===========================================================" -ForegroundColor Green
 Write-Host "  DEPLOYMENT COMPLETE: $SiteName" -ForegroundColor Green
-Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Green
+Write-Host "===========================================================" -ForegroundColor Green
