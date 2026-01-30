@@ -192,18 +192,16 @@ function PosterSection({ section, sectionIndex, lang, getText, getBilingual }) {
 
   return (
     <div style={styles.section}>
-      {/* Section Banner */}
-      <div style={styles.sectionBanner}>
-        <div style={styles.sectionBannerLine} />
-        <div style={styles.sectionBannerContent}>
-          <span style={styles.sectionBannerTitle}>
-            {sectionTitle.zh}
-            {sectionTitle.en && (
-              <span style={styles.sectionBannerEn}> · {sectionTitle.en}</span>
-            )}
-          </span>
+      {/* Section Header — red banner image with text overlay */}
+      <div style={styles.sectionHeader}>
+        <img src={POSTER.bannerTop} alt="" style={styles.sectionBannerImg} />
+        <div style={styles.sectionTitleOverlay}>
+          <span style={styles.sectionTitleZh}>{sectionTitle.zh}</span>
+          {sectionTitle.en && (
+            <span style={styles.sectionTitleEn}>{sectionTitle.en}</span>
+          )}
         </div>
-        <div style={styles.sectionBannerLine} />
+        <img src={POSTER.bannerBottom} alt="" style={styles.sectionBannerImg} />
       </div>
 
       {/* Section Description */}
@@ -483,39 +481,43 @@ const styles = {
 
   // ── Section ──
   section: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
 
-  sectionBanner: {
+  sectionHeader: {
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
-    gap: 12,
-    margin: "0 0 10px",
-    padding: "8px 0",
+    margin: "0 0 12px",
   },
 
-  sectionBannerLine: {
-    flex: 1,
-    height: 1,
-    background: "linear-gradient(90deg, transparent, rgba(255,215,0,0.4), transparent)",
+  sectionBannerImg: {
+    width: "80%",
+    maxWidth: 360,
+    height: "auto",
+    display: "block",
   },
 
-  sectionBannerContent: {
+  sectionTitleOverlay: {
     textAlign: "center",
-    flexShrink: 0,
+    padding: "8px 20px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 2,
   },
 
-  sectionBannerTitle: {
+  sectionTitleZh: {
     color: "#ffd700",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 700,
-    letterSpacing: 2,
-    textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+    letterSpacing: 3,
+    textShadow: "0 1px 4px rgba(0,0,0,0.5)",
   },
 
-  sectionBannerEn: {
+  sectionTitleEn: {
     color: "rgba(255,215,0,0.6)",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 400,
     letterSpacing: 1,
   },
