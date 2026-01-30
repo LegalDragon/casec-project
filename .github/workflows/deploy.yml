@@ -106,7 +106,9 @@ jobs:
             "Content-Type" = "application/json"
           }
           # Seed all pre-existing scripts as already applied (idempotent)
+          # Covers both Database/ and Migrations/ folders
           $seedSql = @"
+          -- Seed Database folder (001-021)
           IF NOT EXISTS (SELECT 1 FROM _MigrationHistory WHERE Folder = 'Database' AND ScriptName = '001_CreateTables.sql' AND Success = 1)
           BEGIN
             INSERT INTO _MigrationHistory (ScriptName, Folder, AppliedAt, Success, DurationMs)
@@ -132,6 +134,23 @@ jobs:
               ('019_AddRaffles.sql','Database',GETUTCDATE(),1,0),
               ('020_AddProgramRatings.sql','Database',GETUTCDATE(),1,0),
               ('021_AddAssetFileTypes.sql','Database',GETUTCDATE(),1,0);
+          END
+
+          -- Seed Migrations folder (001-010)
+          IF NOT EXISTS (SELECT 1 FROM _MigrationHistory WHERE Folder = 'Migrations' AND ScriptName = '001_AddSharedImageStatusColumn.sql' AND Success = 1)
+          BEGIN
+            INSERT INTO _MigrationHistory (ScriptName, Folder, AppliedAt, Success, DurationMs)
+            VALUES
+              ('001_AddSharedImageStatusColumn.sql','Migrations',GETUTCDATE(),1,0),
+              ('002_AddSlideObjectTables.sql','Migrations',GETUTCDATE(),1,0),
+              ('003_AddSlideShowDefaultInterval.sql','Migrations',GETUTCDATE(),1,0),
+              ('004_AddEventProgramTables.sql','Migrations',GETUTCDATE(),1,0),
+              ('005_AddContentCards.sql','Migrations',GETUTCDATE(),1,0),
+              ('006_AddBilingualProgramFields.sql','Migrations',GETUTCDATE(),1,0),
+              ('007_AddPerformerNames2.sql','Migrations',GETUTCDATE(),1,0),
+              ('008_MigratePerformerNames.sql','Migrations',GETUTCDATE(),1,0),
+              ('009_AddRolesAndPermissions.sql','Migrations',GETUTCDATE(),1,0),
+              ('010_AddChatbotVisibility.sql','Migrations',GETUTCDATE(),1,0);
           END
           "@
           $body = @{ sql = $seedSql } | ConvertTo-Json
