@@ -169,7 +169,8 @@ jobs:
           }
           if (-not $summary -or $summary -eq "") { $summary = "Deployment $commitHash" }
           # Determine status from previous steps
-          $status = if ("${{ job.status }}" -eq "success") { "success" } else { "failed" }
+          $jobStatus = "${{ job.status }}"
+          if ($jobStatus -eq "success") { $status = "success" } else { $status = "failed" }
           $body = @{
             summary = $summary
             commitHash = $commitHash
