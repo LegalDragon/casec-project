@@ -2210,3 +2210,308 @@ public class UserPermissionsDto
     public List<UserRoleInfoDto> Roles { get; set; } = new();
     public List<AreaPermissionDto> Permissions { get; set; } = new();
 }
+
+// ============ SEATING CHART DTOs ============
+
+public class SeatingChartDto
+{
+    public int ChartId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int? EventId { get; set; }
+    public string? EventName { get; set; }
+    public string Status { get; set; } = "Draft";
+    public int TotalSeats { get; set; }
+    public int OccupiedSeats { get; set; }
+    public int SectionCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class SeatingChartDetailDto : SeatingChartDto
+{
+    public List<SeatingSectionDto> Sections { get; set; } = new();
+    public List<SeatingSeatDto> Seats { get; set; } = new();
+}
+
+public class SeatingSectionDto
+{
+    public int SectionId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string ShortName { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
+    public string? RowPrefix { get; set; }
+    public int SeatsPerRow { get; set; }
+    public string? RowLabels { get; set; }
+    public int StartSeatNumber { get; set; }
+    public int SeatCount { get; set; }
+}
+
+public class SeatingSeatDto
+{
+    public int SeatId { get; set; }
+    public int SectionId { get; set; }
+    public string RowLabel { get; set; } = string.Empty;
+    public int SeatNumber { get; set; }
+    public string? SeatLabel { get; set; }
+    public string Status { get; set; } = "Available";
+    public string? AttendeeName { get; set; }
+    public string? AttendeePhone { get; set; }
+    public string? AttendeeEmail { get; set; }
+    public string? AttendeeNotes { get; set; }
+    public int? TableNumber { get; set; }
+    public bool IsVIP { get; set; }
+    public bool IsAccessible { get; set; }
+}
+
+public class CreateSeatingChartRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int? EventId { get; set; }
+}
+
+public class UpdateSeatingChartRequest
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public int? EventId { get; set; }
+    public string? Status { get; set; }
+}
+
+public class CreateSeatingSectionRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string? ShortName { get; set; }
+    public int DisplayOrder { get; set; }
+    public string? RowPrefix { get; set; }
+    public int SeatsPerRow { get; set; } = 10;
+    public string? RowLabels { get; set; }
+    public int StartSeatNumber { get; set; } = 1;
+}
+
+public class UpdateSeatingSectionRequest
+{
+    public string? Name { get; set; }
+    public string? ShortName { get; set; }
+    public int? DisplayOrder { get; set; }
+    public int? SeatsPerRow { get; set; }
+    public string? RowLabels { get; set; }
+    public int? StartSeatNumber { get; set; }
+}
+
+public class UpdateSeatingSeatRequest
+{
+    public string? Status { get; set; }
+    public string? AttendeeName { get; set; }
+    public string? AttendeePhone { get; set; }
+    public string? AttendeeEmail { get; set; }
+    public string? AttendeeNotes { get; set; }
+    public int? TableNumber { get; set; }
+    public bool? IsVIP { get; set; }
+    public bool? IsAccessible { get; set; }
+}
+
+public class BulkUpdateSeatsRequest
+{
+    public List<int> SeatIds { get; set; } = new();
+    public string? Status { get; set; }
+    public bool? IsVIP { get; set; }
+}
+
+public class ImportSeatsRequest
+{
+    public List<ImportSeatRow> Seats { get; set; } = new();
+}
+
+public class ImportSeatRow
+{
+    public string? SectionName { get; set; }
+    public string RowLabel { get; set; } = string.Empty;
+    public int SeatNumber { get; set; }
+    public string? AttendeeName { get; set; }
+    public string? AttendeePhone { get; set; }
+    public string? AttendeeEmail { get; set; }
+    public int? TableNumber { get; set; }
+    public bool IsVIP { get; set; }
+}
+
+public class ImportSeatsResult
+{
+    public int Imported { get; set; }
+    public int Updated { get; set; }
+    public List<string> Errors { get; set; } = new();
+}
+
+// ============ SEAT RAFFLE DTOs ============
+
+public class SeatRaffleDto
+{
+    public int SeatRaffleId { get; set; }
+    public int ChartId { get; set; }
+    public string? ChartName { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Status { get; set; } = "Draft";
+    public string? PrizeName { get; set; }
+    public decimal? PrizeValue { get; set; }
+    public int ExclusionCount { get; set; }
+    public int TargetCount { get; set; }
+    public int WinnerCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SeatRaffleDetailDto : SeatRaffleDto
+{
+    // Theme settings
+    public string? BackgroundImageUrl { get; set; }
+    public string? BackgroundColor { get; set; }
+    public string? BackgroundGradient { get; set; }
+    public string? PrimaryColor { get; set; }
+    public string? SecondaryColor { get; set; }
+    public string? WinnerColor { get; set; }
+    public string? TextColor { get; set; }
+    public string? SeatColor { get; set; }
+    public string? SeatHighlightColor { get; set; }
+
+    // Raffle settings
+    public bool RequireOccupied { get; set; }
+    public bool AllowRepeatWinners { get; set; }
+    public int AnimationSpeed { get; set; }
+    public int AnimationSteps { get; set; }
+    public bool ShowAttendeeName { get; set; }
+    public bool ShowAttendeePhone { get; set; }
+
+    // Prize
+    public string? PrizeDescription { get; set; }
+    public string? PrizeImageUrl { get; set; }
+
+    // Exclusions and targets
+    public List<int> ExcludedSeatIds { get; set; } = new();
+    public List<int> TargetSeatIds { get; set; } = new();
+    public List<SeatRaffleWinnerDto> Winners { get; set; } = new();
+
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class SeatRaffleDrawingDto
+{
+    public int SeatRaffleId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Status { get; set; } = "Draft";
+
+    // Theme
+    public string? BackgroundImageUrl { get; set; }
+    public string? BackgroundColor { get; set; }
+    public string? BackgroundGradient { get; set; }
+    public string? PrimaryColor { get; set; }
+    public string? SecondaryColor { get; set; }
+    public string? WinnerColor { get; set; }
+    public string? TextColor { get; set; }
+    public string? SeatColor { get; set; }
+    public string? SeatHighlightColor { get; set; }
+
+    // Settings
+    public int AnimationSpeed { get; set; }
+    public int AnimationSteps { get; set; }
+    public bool ShowAttendeeName { get; set; }
+    public bool ShowAttendeePhone { get; set; }
+
+    // Prize
+    public string? PrizeName { get; set; }
+    public string? PrizeDescription { get; set; }
+    public string? PrizeImageUrl { get; set; }
+    public decimal? PrizeValue { get; set; }
+
+    // Chart structure
+    public List<SeatingSectionDto> Sections { get; set; } = new();
+    public List<SeatRaffleDrawingSeatDto> Seats { get; set; } = new();
+
+    // Stats
+    public int TotalSeats { get; set; }
+    public int EligibleSeats { get; set; }
+    public int ExcludedSeats { get; set; }
+    public int TargetedSeats { get; set; }
+
+    // Winners
+    public List<SeatRaffleWinnerDto> Winners { get; set; } = new();
+}
+
+public class SeatRaffleDrawingSeatDto
+{
+    public int SeatId { get; set; }
+    public int SectionId { get; set; }
+    public string RowLabel { get; set; } = string.Empty;
+    public int SeatNumber { get; set; }
+    public string? AttendeeName { get; set; }
+    public string? AttendeePhone { get; set; }
+    public bool IsEligible { get; set; }
+    public bool IsExcluded { get; set; }
+    public bool IsTarget { get; set; }
+    public bool IsWinner { get; set; }
+    public bool IsOccupied { get; set; }
+}
+
+public class SeatRaffleWinnerDto
+{
+    public int WinnerId { get; set; }
+    public int SeatId { get; set; }
+    public int DrawNumber { get; set; }
+    public string? AttendeeName { get; set; }
+    public string? AttendeePhone { get; set; }
+    public string? SectionName { get; set; }
+    public string? RowLabel { get; set; }
+    public int? SeatNumber { get; set; }
+    public bool IsTestDraw { get; set; }
+    public DateTime DrawnAt { get; set; }
+}
+
+public class CreateSeatRaffleRequest
+{
+    public int ChartId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? PrizeName { get; set; }
+    public string? PrizeDescription { get; set; }
+    public decimal? PrizeValue { get; set; }
+    public bool? RequireOccupied { get; set; }
+    public bool? ShowAttendeeName { get; set; }
+}
+
+public class UpdateSeatRaffleRequest
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public string? Status { get; set; }
+
+    // Theme
+    public string? BackgroundImageUrl { get; set; }
+    public string? BackgroundColor { get; set; }
+    public string? BackgroundGradient { get; set; }
+    public string? PrimaryColor { get; set; }
+    public string? SecondaryColor { get; set; }
+    public string? WinnerColor { get; set; }
+    public string? TextColor { get; set; }
+    public string? SeatColor { get; set; }
+    public string? SeatHighlightColor { get; set; }
+
+    // Settings
+    public bool? RequireOccupied { get; set; }
+    public bool? AllowRepeatWinners { get; set; }
+    public int? AnimationSpeed { get; set; }
+    public int? AnimationSteps { get; set; }
+    public bool? ShowAttendeeName { get; set; }
+    public bool? ShowAttendeePhone { get; set; }
+
+    // Prize
+    public string? PrizeName { get; set; }
+    public string? PrizeDescription { get; set; }
+    public string? PrizeImageUrl { get; set; }
+    public decimal? PrizeValue { get; set; }
+}
+
+public class AddSeatExclusionsRequest
+{
+    public List<int> SeatIds { get; set; } = new();
+    public string? Reason { get; set; }
+}

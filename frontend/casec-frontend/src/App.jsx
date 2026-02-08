@@ -40,6 +40,12 @@ import AdminPerformers from './pages/admin/Performers';
 import AdminRoles from './pages/admin/Roles';
 import AdminAssetManager from './pages/admin/AssetManager';
 import AdminAssetFileTypes from './pages/admin/AssetFileTypes';
+import AdminSeatingCharts from './pages/admin/SeatingCharts';
+import AdminSeatingChartDetail from './pages/admin/SeatingChartDetail';
+import AdminSeatRaffles from './pages/admin/SeatRaffles';
+import SeatRaffleDrawing from './pages/SeatRaffleDrawing';
+import LiveTranscriptionCapture from './pages/LiveTranscriptionCapture';
+import LiveTranscriptionDisplay from './pages/LiveTranscriptionDisplay';
 import Membership from './pages/Membership';
 import Raffle from './pages/Raffle';
 import RaffleDrawing from './pages/RaffleDrawing';
@@ -98,6 +104,9 @@ function App() {
         <Route path="/preview/slideshow/:code" element={<SlideShowPreview />} />
         <Route path="/raffle/:raffleId" element={<Raffle />} />
         <Route path="/raffle/:raffleId/drawing" element={<RaffleDrawing />} />
+        <Route path="/seat-raffle/:raffleId" element={<SeatRaffleDrawing />} />
+        <Route path="/live-transcription/capture" element={<LiveTranscriptionCapture />} />
+        <Route path="/live-transcription" element={<LiveTranscriptionDisplay />} />
         <Route path="/program/:slug" element={<EventProgram />} />
         <Route path="/program/:slug/poster" element={<ProgramPoster />} />
         <Route path="/live-poll/:pollId" element={<LivePoll />} />
@@ -148,6 +157,9 @@ function App() {
           <Route path="roles" element={<AdminRoles />} />
           <Route path="assets" element={<AdminAssetManager />} />
           <Route path="asset-file-types" element={<AdminAssetFileTypes />} />
+          <Route path="seating-charts" element={<AdminSeatingCharts />} />
+          <Route path="seating-charts/:chartId" element={<AdminSeatingChartDetail />} />
+          <Route path="seat-raffles" element={<AdminSeatRaffles />} />
           {/* Admin Routes */}
           <Route path="admin/users" element={
             <AdminRoute><AdminUsers /></AdminRoute>

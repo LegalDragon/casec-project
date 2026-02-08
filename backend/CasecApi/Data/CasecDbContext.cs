@@ -95,6 +95,15 @@ public class CasecDbContext : DbContext
     // Deployment history
     public DbSet<Deployment> Deployments { get; set; }
 
+    // Seating Chart entities
+    public DbSet<SeatingChart> SeatingCharts { get; set; }
+    public DbSet<SeatingSection> SeatingSections { get; set; }
+    public DbSet<SeatingSeat> SeatingSeats { get; set; }
+    public DbSet<SeatRaffle> SeatRaffles { get; set; }
+    public DbSet<SeatRaffleExclusion> SeatRaffleExclusions { get; set; }
+    public DbSet<SeatRaffleTarget> SeatRaffleTargets { get; set; }
+    public DbSet<SeatRaffleWinner> SeatRaffleWinners { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

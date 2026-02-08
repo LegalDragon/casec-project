@@ -572,4 +572,46 @@ export const assetFileTypesAPI = {
   toggleEnabled: (id) => api.post(`/assetfiletype/${id}/toggle`),
 };
 
+// Seating Charts APIs (admin)
+export const seatingChartsAPI = {
+  // Charts
+  getAll: () => api.get("/seatingcharts"),
+  getById: (id) => api.get(`/seatingcharts/${id}`),
+  create: (data) => api.post("/seatingcharts", data),
+  update: (id, data) => api.put(`/seatingcharts/${id}`, data),
+  delete: (id) => api.delete(`/seatingcharts/${id}`),
+
+  // Sections
+  addSection: (chartId, data) => api.post(`/seatingcharts/${chartId}/sections`, data),
+  updateSection: (chartId, sectionId, data) => api.put(`/seatingcharts/${chartId}/sections/${sectionId}`, data),
+  deleteSection: (chartId, sectionId) => api.delete(`/seatingcharts/${chartId}/sections/${sectionId}`),
+  generateSeats: (chartId, sectionId) => api.post(`/seatingcharts/${chartId}/sections/${sectionId}/generate-seats`),
+
+  // Seats
+  updateSeat: (chartId, seatId, data) => api.put(`/seatingcharts/${chartId}/seats/${seatId}`, data),
+  bulkUpdateSeats: (chartId, data) => api.post(`/seatingcharts/${chartId}/seats/bulk-update`, data),
+  importSeats: (chartId, data) => api.post(`/seatingcharts/${chartId}/import`, data),
+};
+
+// Seat Raffles APIs (admin)
+export const seatRafflesAPI = {
+  // Raffles
+  getAll: () => api.get("/seatraffles"),
+  getById: (id) => api.get(`/seatraffles/${id}`),
+  getDrawingData: (id) => api.get(`/seatraffles/${id}/drawing`),
+  create: (data) => api.post("/seatraffles", data),
+  update: (id, data) => api.put(`/seatraffles/${id}`, data),
+  delete: (id) => api.delete(`/seatraffles/${id}`),
+
+  // Exclusions & Targets
+  addExclusions: (id, data) => api.post(`/seatraffles/${id}/exclusions`, data),
+  removeExclusions: (id, seatIds) => api.delete(`/seatraffles/${id}/exclusions`, { data: seatIds }),
+  setTargets: (id, seatIds) => api.post(`/seatraffles/${id}/targets`, seatIds),
+  clearTargets: (id) => api.delete(`/seatraffles/${id}/targets`),
+
+  // Drawing
+  draw: (id, isTest = false) => api.post(`/seatraffles/${id}/draw?isTest=${isTest}`),
+  reset: (id, testOnly = false) => api.post(`/seatraffles/${id}/reset?testOnly=${testOnly}`),
+};
+
 export default api;

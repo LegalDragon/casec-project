@@ -5,6 +5,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using CasecApi.Data;
 using CasecApi.Services;
+using CasecApi.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +54,12 @@ builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>(
 // Add HttpClient for URL metadata fetching
 builder.Services.AddHttpClient();
 
+// Add SignalR for real-time features
+builder.Services.AddSignalR();
+
+// Add Translation Service for live transcription
+builder.Services.AddSingleton<CasecApi.Hubs.ITranslationService, OpenAITranslationService>();
+
 // Add Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "DefaultSecretKeyForDevelopmentOnly123!";
 var key = Encoding.ASCII.GetBytes(jwtKey);
@@ -86,9 +93,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true) // Allow any origin
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // Required for SignalR
     });
 
     // Load production CORS origins from configuration
@@ -190,6 +198,9 @@ app.UseAuthorization();
 app.UseStaticFiles();
 
 app.MapControllers();
+
+// Map SignalR Hubs
+app.MapHub<TranscriptionHub>("/hubs/transcription");
 
 // Default route for API info
 app.MapGet("/", () => new
