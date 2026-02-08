@@ -348,7 +348,7 @@ function AnimatedCounter({ value, label, color = "text-green-400" }) {
 /* ═══════════════════════════════════════════════════════════════════
    WINNER OVERLAY — dramatic spotlight reveal
    ═══════════════════════════════════════════════════════════════════ */
-function WinnerOverlay({ winner, grandPrize, totalDigits, winningNumber }) {
+function WinnerOverlay({ winner, grandPrize, totalDigits, winningNumber, onClose }) {
   const [stage, setStage] = useState("dark"); // dark → spotlight → card
 
   useEffect(() => {
@@ -362,6 +362,41 @@ function WinnerOverlay({ winner, grandPrize, totalDigits, winningNumber }) {
 
   return (
     <div className={`winner-overlay winner-stage-${stage}`}>
+      {/* Close button */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          style={{
+            position: "absolute",
+            top: "1.5rem",
+            right: "1.5rem",
+            zIndex: 110,
+            background: "rgba(255,255,255,0.1)",
+            border: "1px solid rgba(255,255,255,0.2)",
+            borderRadius: "50%",
+            width: "48px",
+            height: "48px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: "rgba(255,255,255,0.7)",
+            fontSize: "1.5rem",
+            transition: "all 0.2s",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.2)";
+            e.currentTarget.style.color = "#fff";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+            e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+          }}
+          title="Close"
+        >
+          ✕
+        </button>
+      )}
       {/* Confetti rain */}
       <div className="confetti-container">
         {Array.from({ length: 60 }).map((_, i) => (
@@ -2213,6 +2248,7 @@ export default function RaffleDrawing() {
               grandPrize={grandPrize}
               totalDigits={totalDigits}
               winningNumber={drawingData.winningNumber}
+              onClose={() => setShowWinnerOverlay(false)}
             />
           )}
 
