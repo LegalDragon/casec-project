@@ -3,8 +3,8 @@ import { Mic, MicOff, Loader2, Wifi, WifiOff, Volume2 } from "lucide-react";
 import * as signalR from "@microsoft/signalr";
 import { API_BASE_URL } from "../services/api";
 
-// Deepgram streaming configuration
-const DEEPGRAM_API_KEY = "7b6dcb8a7b12b97ab4196cec7ee1163ac8f792c7";
+// Deepgram streaming via gateway proxy (handles auth server-side)
+const DEEPGRAM_PROXY = "wss://gw.synthia.bot/dgproxy";
 const SUPPORTED_LANGUAGES = ["en", "es", "zh", "fr"];
 
 export default function LiveTranscriptionCapture() {
@@ -92,18 +92,18 @@ export default function LiveTranscriptionCapture() {
       });
       streamRef.current = stream;
 
-      // Set up audio level monitoring
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      // Set up audio context with 16kHz sample rate for Deepgram
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
       analyserRef.current = audioContextRef.current.createAnalyser();
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      source.connect(analyserRef.current);
       analyserRef.current.fftSize = 256;
       monitorAudioLevel();
 
-      // Connect to Deepgram - use English as base with language detection
-      const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=en&detect_language=true&punctuate=true&interim_results=true&smart_format=true`;
+      // Connect to Deepgram via gateway proxy (handles auth)
+      const params = "model=nova-2&encoding=linear16&sample_rate=16000&channels=1&punctuate=true&interim_results=true&smart_format=true&language=en&detect_language=true";
+      const deepgramUrl = `${DEEPGRAM_PROXY}?${params}`;
       
-      const socket = new WebSocket(deepgramUrl, ["token", DEEPGRAM_API_KEY]);
+      const socket = new WebSocket(deepgramUrl);
+      socket.binaryType = "arraybuffer";
       deepgramSocketRef.current = socket;
 
       socket.onopen = () => {
@@ -141,18 +141,26 @@ export default function LiveTranscriptionCapture() {
   };
 
   const startRecording = (stream, socket) => {
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: "audio/webm;codecs=opus"
-    });
-    mediaRecorderRef.current = mediaRecorder;
-
-    mediaRecorder.ondataavailable = async (event) => {
-      if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
-        socket.send(event.data);
+    // Use ScriptProcessorNode to get raw PCM data (linear16)
+    const source = audioContextRef.current.createMediaStreamSource(stream);
+    const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+    
+    processor.onaudioprocess = (e) => {
+      if (socket.readyState === WebSocket.OPEN) {
+        const inputData = e.inputBuffer.getChannelData(0);
+        // Convert float32 to int16
+        const int16Data = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        socket.send(int16Data.buffer);
       }
     };
-
-    mediaRecorder.start(250); // Send audio every 250ms
+    
+    source.connect(processor);
+    processor.connect(audioContextRef.current.destination);
+    mediaRecorderRef.current = processor; // Store for cleanup
   };
 
   const handleDeepgramResponse = (data) => {
@@ -205,7 +213,8 @@ export default function LiveTranscriptionCapture() {
     setStatus("idle");
 
     if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
+      // ScriptProcessorNode - disconnect it
+      mediaRecorderRef.current.disconnect();
       mediaRecorderRef.current = null;
     }
 
