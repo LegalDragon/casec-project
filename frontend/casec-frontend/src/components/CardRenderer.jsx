@@ -1,3 +1,4 @@
+import { useRef, useEffect } from "react";
 import { getAssetUrl } from "../services/api";
 
 // Card layouts: left, right, top, bottom, overlay, fullwidth
@@ -26,6 +27,19 @@ const ASPECT_RATIO_CLASSES = {
 };
 
 export default function CardRenderer({ card, lang = "zh" }) {
+  const videoRef = useRef(null);
+  
+  // Cleanup video on unmount to prevent blank page issues
+  useEffect(() => {
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.src = "";
+        videoRef.current.load();
+      }
+    };
+  }, []);
+
   const title = lang === "zh" ? card.titleZh : card.titleEn;
   const bodyText = lang === "zh" ? card.bodyTextZh : card.bodyTextEn;
   const hasMedia = !!card.mediaUrl;
@@ -42,6 +56,7 @@ export default function CardRenderer({ card, lang = "zh" }) {
           <div className={`w-full ${aspectClass || "aspect-video"}`}>
             {isVideo ? (
               <video
+                ref={videoRef}
                 src={getAssetUrl(card.mediaUrl)}
                 className="w-full h-full object-cover"
                 autoPlay
@@ -83,6 +98,7 @@ export default function CardRenderer({ card, lang = "zh" }) {
           <div className={`w-full rounded-xl overflow-hidden ${aspectClass}`}>
             {isVideo ? (
               <video
+                ref={videoRef}
                 src={getAssetUrl(card.mediaUrl)}
                 className={`w-full ${aspectClass ? "h-full object-cover" : ""}`}
                 autoPlay
@@ -134,6 +150,7 @@ export default function CardRenderer({ card, lang = "zh" }) {
         >
           {isVideo ? (
             <video
+              ref={videoRef}
               src={getAssetUrl(card.mediaUrl)}
               className={`w-full ${aspectClass ? "h-full object-cover" : ""}`}
               autoPlay

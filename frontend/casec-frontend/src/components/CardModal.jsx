@@ -70,7 +70,12 @@ export default function CardModal({
           // Carousel view for 3 or fewer cards
           <div className="relative">
             <div className="p-6">
-              <CardRenderer card={cards[currentIndex]} lang={lang} />
+              {/* Key forces remount when switching cards - fixes video player issues */}
+              <CardRenderer 
+                key={cards[currentIndex]?.cardId || currentIndex} 
+                card={cards[currentIndex]} 
+                lang={lang} 
+              />
             </div>
 
             {/* Navigation arrows (only show if more than 1 card) */}
