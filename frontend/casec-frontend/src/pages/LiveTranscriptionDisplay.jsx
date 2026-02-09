@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Wifi, WifiOff, Globe } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Wifi, WifiOff, Globe, Settings } from "lucide-react";
 import * as signalR from "@microsoft/signalr";
 import { API_BASE_URL } from "../services/api";
 
@@ -10,12 +10,30 @@ const LANGUAGES = [
   { code: "fr", name: "Français", flag: "🇫🇷" },
 ];
 
+// URL Params: ?duration=8000&maxLines=5&fadeMode=true&showHeader=true
+function useQueryParams() {
+  return useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      duration: parseInt(params.get("duration") || "8000"), // ms before line fades (0 = never)
+      maxLines: parseInt(params.get("maxLines") || "5"),    // max lines per column
+      fadeMode: params.get("fadeMode") !== "false",         // auto-remove old lines
+      showHeader: params.get("showHeader") !== "false",     // show language headers
+      showFooter: params.get("showFooter") !== "false",     // show footer
+      fontSize: params.get("fontSize") || "lg",             // sm, md, lg, xl, 2xl
+    };
+  }, []);
+}
+
 export default function LiveTranscriptionDisplay() {
+  const config = useQueryParams();
   const [status, setStatus] = useState("connecting");
   const [statusMessage, setStatusMessage] = useState("Connecting to server...");
   const [transcriptions, setTranscriptions] = useState({}); // { [langCode]: { lines: [], currentText: "" } }
   const [activeLanguage, setActiveLanguage] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
   const scrollRefs = useRef({});
+  const timersRef = useRef({});
 
   useEffect(() => {
     // Initialize transcriptions for all languages
@@ -34,6 +52,27 @@ export default function LiveTranscriptionDisplay() {
       .configureLogging(signalR.LogLevel.Information)
       .build();
 
+    // Helper to schedule line removal
+    const scheduleRemoval = (lineId, lang) => {
+      if (config.fadeMode && config.duration > 0) {
+        const key = `${lang}-${lineId}`;
+        if (timersRef.current[key]) clearTimeout(timersRef.current[key]);
+        timersRef.current[key] = setTimeout(() => {
+          setTranscriptions(prev => {
+            const updated = { ...prev };
+            if (updated[lang]) {
+              updated[lang] = {
+                ...updated[lang],
+                lines: updated[lang].lines.filter(l => l.id !== lineId)
+              };
+            }
+            return updated;
+          });
+          delete timersRef.current[key];
+        }, config.duration);
+      }
+    };
+
     connection.on("ReceiveTranscription", (message) => {
       console.log("Received transcription:", message);
       setActiveLanguage(message.language);
@@ -48,14 +87,18 @@ export default function LiveTranscriptionDisplay() {
 
         if (message.isFinal) {
           // Add to history, clear current
+          const newLine = { 
+            id: message.id, 
+            text: message.text,
+            timestamp: new Date(message.timestamp),
+            fading: false
+          };
           updated[lang] = {
-            lines: [...updated[lang].lines, { 
-              id: message.id, 
-              text: message.text,
-              timestamp: new Date(message.timestamp)
-            }].slice(-20), // Keep last 20 lines
+            lines: [...updated[lang].lines, newLine].slice(-config.maxLines),
             currentText: ""
           };
+          // Schedule removal after render
+          setTimeout(() => scheduleRemoval(message.id, lang), 0);
         } else {
           // Update interim text
           updated[lang] = {
@@ -86,14 +129,18 @@ export default function LiveTranscriptionDisplay() {
           updated[lang].lines[existingIndex].text = message.text;
         } else {
           // Add new translation
+          const newLine = {
+            id: message.transcriptionId,
+            text: message.text,
+            timestamp: new Date(message.timestamp),
+            fading: false
+          };
           updated[lang] = {
             ...updated[lang],
-            lines: [...updated[lang].lines, {
-              id: message.transcriptionId,
-              text: message.text,
-              timestamp: new Date(message.timestamp)
-            }].slice(-20)
+            lines: [...updated[lang].lines, newLine].slice(-config.maxLines)
           };
+          // Schedule removal after render
+          setTimeout(() => scheduleRemoval(message.transcriptionId, lang), 0);
         }
         
         return updated;
@@ -136,8 +183,11 @@ export default function LiveTranscriptionDisplay() {
 
     return () => {
       connection.stop();
+      // Clear all fade timers
+      Object.values(timersRef.current).forEach(t => clearTimeout(t));
+      timersRef.current = {};
     };
-  }, []);
+  }, [config.duration, config.fadeMode, config.maxLines]);
 
   // Auto-scroll to bottom when new content arrives
   useEffect(() => {
@@ -161,21 +211,54 @@ export default function LiveTranscriptionDisplay() {
     }
   };
 
+  const fontSizeClass = {
+    sm: "text-sm",
+    md: "text-base", 
+    lg: "text-lg",
+    xl: "text-xl",
+    "2xl": "text-2xl"
+  }[config.fontSize] || "text-lg";
+
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Globe className="w-6 h-6 text-purple-400" />
-          <h1 className="text-xl font-bold">Live Transcription</h1>
+      {config.showHeader && (
+        <div className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Globe className="w-6 h-6 text-purple-400" />
+            <h1 className="text-xl font-bold">Live Transcription</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              {getStatusIcon()}
+              <span className={status === "capturing" ? "text-green-400" : "text-gray-400"}>
+                {statusMessage}
+              </span>
+            </div>
+            <button 
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-2 hover:bg-gray-700 rounded"
+            >
+              <Settings className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          {getStatusIcon()}
-          <span className={status === "capturing" ? "text-green-400" : "text-gray-400"}>
-            {statusMessage}
-          </span>
+      )}
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="bg-gray-800 border-b border-gray-700 px-6 py-3 text-sm">
+          <div className="flex flex-wrap gap-4 items-center">
+            <span className="text-gray-400">URL Params:</span>
+            <code className="bg-gray-900 px-2 py-1 rounded text-purple-300">
+              ?duration={config.duration}&maxLines={config.maxLines}&fontSize={config.fontSize}&fadeMode={config.fadeMode}
+            </code>
+            <span className="text-gray-500">
+              (duration=0 for no auto-fade)
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Language Columns */}
       <div className="flex-1 flex overflow-hidden">
@@ -209,23 +292,20 @@ export default function LiveTranscriptionDisplay() {
                 {data.lines.map((line, idx) => (
                   <div
                     key={line.id || idx}
-                    className={`p-3 rounded-lg transition-all duration-300 ${
+                    className={`p-3 rounded-lg transition-all duration-500 animate-fadeIn ${
                       idx === data.lines.length - 1
                         ? "bg-gray-800 border-l-4 border-purple-500"
                         : "bg-gray-800/50"
                     }`}
                   >
-                    <p className="text-lg leading-relaxed">{line.text}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {line.timestamp.toLocaleTimeString()}
-                    </p>
+                    <p className={`${fontSizeClass} leading-relaxed`}>{line.text}</p>
                   </div>
                 ))}
 
                 {/* Interim/Current Text */}
                 {data.currentText && (
                   <div className="p-3 rounded-lg bg-gray-800/30 border border-dashed border-gray-600">
-                    <p className="text-lg leading-relaxed text-gray-300 italic">
+                    <p className={`${fontSizeClass} leading-relaxed text-gray-300 italic`}>
                       {data.currentText}
                       <span className="animate-pulse">▊</span>
                     </p>
@@ -245,9 +325,11 @@ export default function LiveTranscriptionDisplay() {
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-900 border-t border-gray-800 px-6 py-2 text-center text-xs text-gray-500">
-        CASEC 2026 Spring Gala • Live Translation
-      </div>
+      {config.showFooter && (
+        <div className="bg-gray-900 border-t border-gray-800 px-6 py-2 text-center text-xs text-gray-500">
+          CASEC 2026 Spring Gala • Live Translation
+        </div>
+      )}
 
       {/* Styles for smooth animations */}
       <style>{`
@@ -255,8 +337,8 @@ export default function LiveTranscriptionDisplay() {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .fade-in {
-          animation: fadeIn 0.3s ease-out;
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out forwards;
         }
       `}</style>
     </div>
