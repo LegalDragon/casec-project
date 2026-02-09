@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Wifi, WifiOff, Globe, Settings } from "lucide-react";
 import * as signalR from "@microsoft/signalr";
 import { API_BASE_URL } from "../services/api";
@@ -10,23 +10,57 @@ const LANGUAGES = [
   { code: "fr", name: "Français", flag: "🇫🇷" },
 ];
 
-// URL Params: ?duration=8000&maxLines=5&fadeMode=true&showHeader=true
-function useQueryParams() {
-  return useMemo(() => {
-    const params = new URLSearchParams(window.location.search);
-    return {
-      duration: parseInt(params.get("duration") || "8000"), // ms before line fades (0 = never)
-      maxLines: parseInt(params.get("maxLines") || "5"),    // max lines per column
-      fadeMode: params.get("fadeMode") !== "false",         // auto-remove old lines
-      showHeader: params.get("showHeader") !== "false",     // show language headers
-      showFooter: params.get("showFooter") !== "false",     // show footer
-      fontSize: params.get("fontSize") || "lg",             // sm, md, lg, xl, 2xl
+// URL Params override API settings: ?duration=8000&maxLines=5&fadeMode=true&showHeader=true
+function useConfig() {
+  const [config, setConfig] = useState({
+    duration: 8000,
+    maxLines: 5,
+    fadeMode: true,
+    showHeader: true,
+    showFooter: true,
+    fontSize: "lg",
+  });
+
+  useEffect(() => {
+    // Load settings from API, then override with URL params
+    const loadConfig = async () => {
+      try {
+        const res = await fetch('/api/settings/transcription');
+        if (res.ok) {
+          const apiSettings = await res.json();
+          const params = new URLSearchParams(window.location.search);
+          
+          setConfig({
+            duration: parseInt(params.get("duration") ?? apiSettings.duration ?? 8000),
+            maxLines: parseInt(params.get("maxLines") ?? apiSettings.maxLines ?? 5),
+            fadeMode: params.has("fadeMode") ? params.get("fadeMode") !== "false" : (apiSettings.fadeMode ?? true),
+            showHeader: params.has("showHeader") ? params.get("showHeader") !== "false" : (apiSettings.showHeader ?? true),
+            showFooter: params.has("showFooter") ? params.get("showFooter") !== "false" : (apiSettings.showFooter ?? true),
+            fontSize: params.get("fontSize") ?? apiSettings.fontSize ?? "lg",
+          });
+        }
+      } catch (err) {
+        console.log("Using default config (API unavailable)");
+        // Fall back to URL params only
+        const params = new URLSearchParams(window.location.search);
+        setConfig({
+          duration: parseInt(params.get("duration") || "8000"),
+          maxLines: parseInt(params.get("maxLines") || "5"),
+          fadeMode: params.get("fadeMode") !== "false",
+          showHeader: params.get("showHeader") !== "false",
+          showFooter: params.get("showFooter") !== "false",
+          fontSize: params.get("fontSize") || "lg",
+        });
+      }
     };
+    loadConfig();
   }, []);
+
+  return config;
 }
 
 export default function LiveTranscriptionDisplay() {
-  const config = useQueryParams();
+  const config = useConfig();
   const [status, setStatus] = useState("connecting");
   const [statusMessage, setStatusMessage] = useState("Connecting to server...");
   const [transcriptions, setTranscriptions] = useState({}); // { [langCode]: { lines: [], currentText: "" } }
@@ -44,7 +78,11 @@ export default function LiveTranscriptionDisplay() {
     setTranscriptions(initial);
 
     // Connect to SignalR hub
-    const hubUrl = `${API_BASE_URL}/api/hubs/transcription`;
+    // API_BASE_URL may or may not include /api - handle both cases
+    const baseUrl = API_BASE_URL || window.location.origin;
+    const hubUrl = baseUrl.includes('/api') 
+      ? `${baseUrl}/hubs/transcription`
+      : `${baseUrl}/api/hubs/transcription`;
     
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl)

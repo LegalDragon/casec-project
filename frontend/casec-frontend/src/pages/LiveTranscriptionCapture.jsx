@@ -3,8 +3,8 @@ import { Mic, MicOff, Loader2, Wifi, WifiOff, Volume2 } from "lucide-react";
 import * as signalR from "@microsoft/signalr";
 import { API_BASE_URL } from "../services/api";
 
-// Deepgram streaming via gateway proxy (handles auth server-side)
-const DEEPGRAM_PROXY = "wss://gw.synthia.bot/dgproxy";
+// Deepgram streaming - direct connection with API key  
+const DEEPGRAM_API_KEY = "7b6dcb8a7b12b97ab4196cec7ee1163ac8f792c7";
 const SUPPORTED_LANGUAGES = ["en", "es", "zh", "fr"];
 
 export default function LiveTranscriptionCapture() {
@@ -13,19 +13,26 @@ export default function LiveTranscriptionCapture() {
   const [error, setError] = useState(null);
   const [detectedLanguage, setDetectedLanguage] = useState(null);
   const [transcript, setTranscript] = useState("");
+  const [transcriptHistory, setTranscriptHistory] = useState([]); // Keep history of final transcripts
   const [hubConnected, setHubConnected] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [debugLog, setDebugLog] = useState([]);
 
   const hubConnectionRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
-  const deepgramSocketRef = useRef(null);
+  const processorRef = useRef(null);
+  const socketZhRef = useRef(null);
+  const socketEnRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const streamRef = useRef(null);
 
   // Connect to SignalR hub
   useEffect(() => {
-    const hubUrl = `${API_BASE_URL}/api/hubs/transcription`;
+    // API_BASE_URL may or may not include /api - handle both cases
+    const baseUrl = API_BASE_URL || window.location.origin;
+    const hubUrl = baseUrl.includes('/api') 
+      ? `${baseUrl}/hubs/transcription`
+      : `${baseUrl}/api/hubs/transcription`;
     
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl)
@@ -76,12 +83,20 @@ export default function LiveTranscriptionCapture() {
     return "Browser";
   };
 
+  // Debug logging helper
+  const log = useCallback((msg) => {
+    console.log(`[Capture] ${msg}`);
+    setDebugLog(prev => [...prev.slice(-20), `${new Date().toLocaleTimeString()}: ${msg}`]);
+  }, []);
+
   const startCapture = async () => {
     try {
       setStatus("connecting");
       setError(null);
+      log("Starting capture (dual-stream ZH+EN)...");
 
       // Request microphone access
+      log("Requesting microphone...");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
@@ -91,47 +106,71 @@ export default function LiveTranscriptionCapture() {
         }
       });
       streamRef.current = stream;
+      log("Microphone access granted");
 
       // Set up audio context with 16kHz sample rate for Deepgram
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
+      source.connect(analyserRef.current);
       monitorAudioLevel();
 
-      // Connect to Deepgram via gateway proxy (handles auth)
-      const params = "model=nova-2&encoding=linear16&sample_rate=16000&channels=1&punctuate=true&interim_results=true&smart_format=true&language=en&detect_language=true";
-      const deepgramUrl = `${DEEPGRAM_PROXY}?${params}`;
+      // Create processor for PCM data
+      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+      source.connect(processor);
+      processor.connect(audioContextRef.current.destination);
+      processorRef.current = processor;
+
+      // DUAL STREAM: Create two parallel Deepgram connections - Chinese and English
+      const baseParams = "model=nova-2&encoding=linear16&sample_rate=16000&channels=1&punctuate=true&interim_results=true&smart_format=true";
+      const urlZh = `wss://api.deepgram.com/v1/listen?${baseParams}&language=zh`;
+      const urlEn = `wss://api.deepgram.com/v1/listen?${baseParams}&language=en`;
       
-      const socket = new WebSocket(deepgramUrl);
-      socket.binaryType = "arraybuffer";
-      deepgramSocketRef.current = socket;
+      log("Connecting to Deepgram (ZH stream)...");
+      log("Connecting to Deepgram (EN stream)...");
 
-      socket.onopen = () => {
-        console.log("Deepgram connected");
-        setStatus("connected");
-        setIsCapturing(true);
-        startRecording(stream, socket);
-      };
+      const socketZh = new WebSocket(urlZh, ["token", DEEPGRAM_API_KEY]);
+      const socketEn = new WebSocket(urlEn, ["token", DEEPGRAM_API_KEY]);
+      socketZh.binaryType = "arraybuffer";
+      socketEn.binaryType = "arraybuffer";
+      socketZhRef.current = socketZh;
+      socketEnRef.current = socketEn;
 
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        handleDeepgramResponse(data);
-      };
+      let zhReady = false, enReady = false;
 
-      socket.onerror = (err) => {
-        console.error("Deepgram error:", err);
-        setError("Connection to transcription service failed");
-        setStatus("error");
-        stopCapture();
-      };
-
-      socket.onclose = () => {
-        console.log("Deepgram disconnected");
-        if (isCapturing) {
-          setStatus("idle");
-          setIsCapturing(false);
+      const checkBothReady = () => {
+        if (zhReady && enReady) {
+          log("✓ Both streams connected!");
+          setStatus("connected");
+          setIsCapturing(true);
+          
+          // Send audio to BOTH streams
+          processor.onaudioprocess = (e) => {
+            const inputData = e.inputBuffer.getChannelData(0);
+            const int16Data = new Int16Array(inputData.length);
+            for (let i = 0; i < inputData.length; i++) {
+              const s = Math.max(-1, Math.min(1, inputData[i]));
+              int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            if (socketZh.readyState === WebSocket.OPEN) socketZh.send(int16Data.buffer);
+            if (socketEn.readyState === WebSocket.OPEN) socketEn.send(int16Data.buffer);
+          };
         }
       };
+
+      // Chinese stream handlers
+      socketZh.onopen = () => { log("ZH stream connected"); zhReady = true; checkBothReady(); };
+      socketZh.onmessage = (e) => handleDgMessage(e, "zh");
+      socketZh.onerror = () => log("ZH stream error");
+      socketZh.onclose = (e) => log(`ZH closed: ${e.code}`);
+
+      // English stream handlers
+      socketEn.onopen = () => { log("EN stream connected"); enReady = true; checkBothReady(); };
+      socketEn.onmessage = (e) => handleDgMessage(e, "en");
+      socketEn.onerror = () => log("EN stream error");
+      socketEn.onclose = (e) => log(`EN closed: ${e.code}`);
 
     } catch (err) {
       console.error("Error starting capture:", err);
@@ -140,55 +179,43 @@ export default function LiveTranscriptionCapture() {
     }
   };
 
-  const startRecording = (stream, socket) => {
-    // Use ScriptProcessorNode to get raw PCM data (linear16)
-    const source = audioContextRef.current.createMediaStreamSource(stream);
-    const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
-    
-    processor.onaudioprocess = (e) => {
-      if (socket.readyState === WebSocket.OPEN) {
-        const inputData = e.inputBuffer.getChannelData(0);
-        // Convert float32 to int16
-        const int16Data = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          const s = Math.max(-1, Math.min(1, inputData[i]));
-          int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
-        socket.send(int16Data.buffer);
+  // Handle messages from either Deepgram stream
+  const handleDgMessage = (event, streamLang) => {
+    try {
+      const data = JSON.parse(event.data);
+      const alt = data.channel?.alternatives?.[0];
+      const text = alt?.transcript;
+      if (!text) return;
+
+      const isFinal = data.is_final;
+      
+      // Detect language from content - Chinese characters = zh
+      const hasChinese = /[\u4e00-\u9fff]/.test(text);
+      const detectedLang = hasChinese ? "zh" : "en";
+      
+      // Only process if this stream matches the detected language
+      // This prevents duplicate processing
+      if ((hasChinese && streamLang !== "zh") || (!hasChinese && streamLang !== "en")) {
+        return; // Let the other stream handle it
       }
-    };
-    
-    source.connect(processor);
-    processor.connect(audioContextRef.current.destination);
-    mediaRecorderRef.current = processor; // Store for cleanup
-  };
 
-  const handleDeepgramResponse = (data) => {
-    if (!data.channel?.alternatives?.[0]) return;
+      log(`${streamLang.toUpperCase()}: "${text}" -> ${detectedLang}`);
+      
+      setDetectedLanguage(detectedLang);
+      setTranscript(text);
 
-    const alt = data.channel.alternatives[0];
-    const text = alt.transcript;
-    const isFinal = data.is_final;
-    const detectedLang = alt.languages?.[0] || data.metadata?.detected_language || "en";
-
-    if (!text) return;
-
-    // Map Deepgram language codes to our codes
-    const langMap = {
-      "en": "en", "en-US": "en", "en-GB": "en",
-      "es": "es", "es-ES": "es", "es-MX": "es",
-      "zh": "zh", "zh-CN": "zh", "zh-TW": "zh", "cmn": "zh",
-      "fr": "fr", "fr-FR": "fr"
-    };
-    const normalizedLang = langMap[detectedLang] || "en";
-
-    setDetectedLanguage(normalizedLang);
-    setTranscript(text);
-
-    // Send to SignalR hub
-    if (hubConnectionRef.current?.state === signalR.HubConnectionState.Connected) {
-      hubConnectionRef.current.invoke("SendTranscription", text, normalizedLang, isFinal)
-        .catch(err => console.error("Error sending transcription:", err));
+      if (isFinal) {
+        log(`Final transcript (${detectedLang}): ${text}`);
+        setTranscriptHistory(prev => [...prev.slice(-10), { text, lang: detectedLang, time: new Date() }]);
+        
+        // Send to SignalR hub
+        if (hubConnectionRef.current?.state === signalR.HubConnectionState.Connected) {
+          hubConnectionRef.current.invoke("SendTranscription", text, detectedLang, true)
+            .catch(err => log(`SignalR error: ${err.message}`));
+        }
+      }
+    } catch (e) {
+      log(`Parse error: ${e.message}`);
     }
   };
 
@@ -209,32 +236,41 @@ export default function LiveTranscriptionCapture() {
   };
 
   const stopCapture = useCallback(() => {
+    log("Stopping capture...");
     setIsCapturing(false);
     setStatus("idle");
 
-    if (mediaRecorderRef.current) {
-      // ScriptProcessorNode - disconnect it
-      mediaRecorderRef.current.disconnect();
-      mediaRecorderRef.current = null;
+    // Disconnect processor
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
     }
 
-    if (deepgramSocketRef.current) {
-      deepgramSocketRef.current.close();
-      deepgramSocketRef.current = null;
+    // Close both Deepgram streams
+    if (socketZhRef.current) {
+      socketZhRef.current.close();
+      socketZhRef.current = null;
+    }
+    if (socketEnRef.current) {
+      socketEnRef.current.close();
+      socketEnRef.current = null;
     }
 
+    // Stop microphone
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
 
+    // Close audio context
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
 
     setAudioLevel(0);
-  }, []);
+    log("Capture stopped");
+  }, [log]);
 
   const getLanguageName = (code) => {
     const names = { en: "English", es: "Español", zh: "中文", fr: "Français" };
@@ -315,8 +351,31 @@ export default function LiveTranscriptionCapture() {
         {/* Live Transcript Preview */}
         {transcript && (
           <div className="mt-6 w-full max-w-lg p-4 bg-gray-800/50 rounded-xl">
-            <p className="text-sm text-gray-400 mb-2">Latest:</p>
+            <p className="text-sm text-gray-400 mb-2">Current:</p>
             <p className="text-lg">{transcript}</p>
+          </div>
+        )}
+
+        {/* Transcript History */}
+        {transcriptHistory.length > 0 && (
+          <div className="mt-4 w-full max-w-lg p-4 bg-gray-900 rounded-xl max-h-48 overflow-y-auto">
+            <p className="text-sm text-gray-400 mb-2">History (final transcripts):</p>
+            {transcriptHistory.map((item, idx) => (
+              <div key={idx} className="py-1 border-b border-gray-700 last:border-0">
+                <span className="text-purple-400 text-xs">[{item.lang}]</span>
+                <span className="ml-2 text-white">{item.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Debug Log */}
+        {debugLog.length > 0 && (
+          <div className="mt-4 w-full max-w-lg p-4 bg-gray-950 rounded-xl max-h-32 overflow-y-auto">
+            <p className="text-sm text-gray-500 mb-2">Debug:</p>
+            {debugLog.map((line, idx) => (
+              <p key={idx} className="text-xs text-gray-600 font-mono">{line}</p>
+            ))}
           </div>
         )}
       </div>

@@ -43,6 +43,7 @@ import AdminAssetFileTypes from './pages/admin/AssetFileTypes';
 import AdminSeatingCharts from './pages/admin/SeatingCharts';
 import AdminSeatingChartDetail from './pages/admin/SeatingChartDetail';
 import AdminSeatRaffles from './pages/admin/SeatRaffles';
+import AdminTranscription from './pages/admin/Transcription';
 import SeatRaffleDrawing from './pages/SeatRaffleDrawing';
 import LiveTranscriptionCapture from './pages/LiveTranscriptionCapture';
 import LiveTranscriptionDisplay from './pages/LiveTranscriptionDisplay';
@@ -160,6 +161,7 @@ function App() {
           <Route path="seating-charts" element={<AdminSeatingCharts />} />
           <Route path="seating-charts/:chartId" element={<AdminSeatingChartDetail />} />
           <Route path="seat-raffles" element={<AdminSeatRaffles />} />
+          <Route path="transcription" element={<AdminTranscription />} />
           {/* Admin Routes */}
           <Route path="admin/users" element={
             <AdminRoute><AdminUsers /></AdminRoute>
