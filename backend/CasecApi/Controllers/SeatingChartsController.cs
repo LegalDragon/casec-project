@@ -501,11 +501,11 @@ public class SeatingChartsController : ControllerBase
             if (request == null)
                 return BadRequest(new ApiResponse<int> { Success = false, Message = "Request body is null" });
             
-            var seatIds = request.SeatIds ?? Array.Empty<int>();
+            var seatIdList = (request.SeatIds ?? Array.Empty<int>()).ToList();
             _logger.LogInformation("BulkUpdateSeats: chartId={ChartId}, seatIds count={Count}, status={Status}, isVIP={IsVIP}", 
-                chartId, seatIds.Length, request.Status, request.IsVIP);
+                chartId, seatIdList.Count, request.Status, request.IsVIP);
             
-            var seats = await _context.SeatingSeats.Where(s => s.ChartId == chartId && seatIds.Contains(s.SeatId)).ToListAsync();
+            var seats = await _context.SeatingSeats.Where(s => s.ChartId == chartId && seatIdList.Contains(s.SeatId)).ToListAsync();
 
             foreach (var seat in seats)
             {
@@ -522,7 +522,7 @@ public class SeatingChartsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error bulk updating seats");
-            return StatusCode(500, new ApiResponse<int> { Success = false, Message = "Error updating seats" });
+            return StatusCode(500, new ApiResponse<int> { Success = false, Message = $"Error updating seats: {ex.Message}" });
         }
     }
 
