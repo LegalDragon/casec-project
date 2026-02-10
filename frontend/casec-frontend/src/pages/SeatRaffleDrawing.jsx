@@ -326,24 +326,11 @@ export default function SeatRaffleDrawing() {
     return allSeats.filter(s => s.isExcluded).map(s => s.seatId);
   }, [allSeats]);
   
-  // Eligible seats for raffle
+  // Eligible seats for raffle - use backend's IsEligible flag
+  // Backend already filters out: NotExist, NotAvailable, excluded, non-occupied (if required), previous winners
   const eligibleSeats = useMemo(() => {
     if (!raffle) return [];
-    
-    // Get previous winner seat IDs
-    const previousWinnerIds = new Set((raffle.winners || []).map(w => w.seatId));
-    
-    return allSeats.filter(seat => {
-      // Exclude marked-excluded seats
-      if (seat.isExcluded) return false;
-      // Exclude NotExist and NotAvailable seats
-      if (seat.status === 'NotExist' || seat.status === 'NotAvailable') return false;
-      // Exclude previous winners if not allowed
-      if (!raffle.allowRepeatWinners && previousWinnerIds.has(seat.seatId)) return false;
-      // Require occupied if setting enabled
-      if (raffle.requireOccupied && !seat.attendeeName) return false;
-      return true;
-    });
+    return allSeats.filter(seat => seat.isEligible);
   }, [raffle, allSeats]);
   
   // Load raffle data
