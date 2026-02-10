@@ -184,126 +184,13 @@ function useBackgroundMusic() {
   return { isPlaying, toggleMusic, startMusic, stopMusic };
 }
 
-// Miramar Cultural Center seat layout configuration
-const MIRAMAR_LAYOUT = {
-  orchestra: {
-    left: {
-      // Rows D-W only, varying seat counts
-      rows: [
-        { label: 'D', seats: 7, start: 1 },
-        { label: 'E', seats: 8, start: 1 },
-        { label: 'F', seats: 8, start: 1 },
-        { label: 'G', seats: 9, start: 1 },
-        { label: 'H', seats: 9, start: 1 },
-        { label: 'J', seats: 10, start: 1 },
-        { label: 'K', seats: 10, start: 1 },
-        { label: 'L', seats: 10, start: 1 },
-        { label: 'M', seats: 11, start: 1 },
-        { label: 'N', seats: 11, start: 1 },
-        { label: 'P', seats: 11, start: 1 },
-        { label: 'Q', seats: 11, start: 1 },
-        { label: 'R', seats: 11, start: 1 },
-        { label: 'S', seats: 11, start: 1 },
-        { label: 'T', seats: 11, start: 1 },
-        { label: 'U', seats: 11, start: 1 },
-        { label: 'V', seats: 11, start: 1 },
-        { label: 'W', seats: 11, start: 1 },
-      ]
-    },
-    center: {
-      // Rows A-W, A-B narrower, then expands
-      rows: [
-        { label: 'A', seats: 6, start: 105 },
-        { label: 'B', seats: 8, start: 104 },
-        { label: 'C', seats: 12, start: 102 },
-        { label: 'D', seats: 14, start: 101 },
-        { label: 'E', seats: 14, start: 101 },
-        { label: 'F', seats: 14, start: 101 },
-        { label: 'G', seats: 14, start: 101 },
-        { label: 'H', seats: 14, start: 101 },
-        { label: 'J', seats: 14, start: 101 },
-        { label: 'K', seats: 14, start: 101 },
-        { label: 'L', seats: 14, start: 101 },
-        { label: 'M', seats: 14, start: 101 },
-        { label: 'N', seats: 14, start: 101 },
-        { label: 'P', seats: 14, start: 101 },
-        { label: 'Q', seats: 14, start: 101 },
-        { label: 'R', seats: 14, start: 101 },
-        { label: 'S', seats: 10, start: 103 }, // Sound board area
-        { label: 'T', seats: 10, start: 103 }, // Sound board area
-        { label: 'U', seats: 14, start: 101 },
-        { label: 'V', seats: 14, start: 101 },
-        { label: 'W', seats: 14, start: 101 },
-      ]
-    },
-    right: {
-      // Mirror of left
-      rows: [
-        { label: 'D', seats: 7, start: 1 },
-        { label: 'E', seats: 8, start: 1 },
-        { label: 'F', seats: 8, start: 1 },
-        { label: 'G', seats: 9, start: 1 },
-        { label: 'H', seats: 9, start: 1 },
-        { label: 'J', seats: 10, start: 1 },
-        { label: 'K', seats: 10, start: 1 },
-        { label: 'L', seats: 10, start: 1 },
-        { label: 'M', seats: 11, start: 1 },
-        { label: 'N', seats: 11, start: 1 },
-        { label: 'P', seats: 11, start: 1 },
-        { label: 'Q', seats: 11, start: 1 },
-        { label: 'R', seats: 11, start: 1 },
-        { label: 'S', seats: 11, start: 1 },
-        { label: 'T', seats: 11, start: 1 },
-        { label: 'U', seats: 11, start: 1 },
-        { label: 'V', seats: 11, start: 1 },
-        { label: 'W', seats: 11, start: 1 },
-      ]
-    }
-  },
-  balcony: {
-    left: {
-      rows: [
-        { label: 'AA', seats: 8, start: 1 },
-        { label: 'BB', seats: 8, start: 1 },
-        { label: 'CC', seats: 8, start: 1 },
-        { label: 'DD', seats: 8, start: 1 },
-        { label: 'EE', seats: 8, start: 1 },
-        { label: 'FF', seats: 8, start: 1 },
-      ]
-    },
-    center: {
-      rows: [
-        { label: 'AA', seats: 14, start: 101 },
-        { label: 'BB', seats: 14, start: 101 },
-        { label: 'CC', seats: 14, start: 101 },
-        { label: 'DD', seats: 14, start: 101 },
-        { label: 'EE', seats: 14, start: 101 },
-        { label: 'FF', seats: 14, start: 101 },
-      ]
-    },
-    right: {
-      rows: [
-        { label: 'AA', seats: 8, start: 1 },
-        { label: 'BB', seats: 8, start: 1 },
-        { label: 'CC', seats: 8, start: 1 },
-        { label: 'DD', seats: 8, start: 1 },
-        { label: 'EE', seats: 8, start: 1 },
-        { label: 'FF', seats: 8, start: 1 },
-      ]
-    }
-  }
-};
-
-// Seat component
-function Seat({ seatId, section, row, seatNum, isHighlighted, isWinner, isExcluded, attendeeName, onClick }) {
+// Seat component - now uses actual seatNumber from DB
+function Seat({ seatId, visibleNumber, isHighlighted, isWinner, isExcluded, attendeeName, onClick }) {
   let bgColor = 'bg-gray-600 border-gray-500 text-gray-300';
   if (isExcluded) bgColor = 'bg-red-900/50 border-red-800 text-red-300';
   else if (isWinner) bgColor = 'bg-green-500 border-green-400 text-white';
   else if (isHighlighted) bgColor = 'bg-yellow-400 border-yellow-300 text-gray-900';
   else if (attendeeName) bgColor = 'bg-purple-600 border-purple-500 text-white';
-  
-  // Display seat number (strip leading 10x for center sections)
-  const displayNum = seatNum >= 100 ? seatNum - 100 : seatNum;
   
   return (
     <div
@@ -314,24 +201,49 @@ function Seat({ seatId, section, row, seatNum, isHighlighted, isWinner, isExclud
         ${isHighlighted ? 'scale-150 shadow-lg shadow-yellow-400/50 z-10' : ''}
         ${isWinner ? 'scale-175 shadow-xl shadow-green-400/70 animate-pulse z-20' : ''}
         hover:scale-125 hover:bg-indigo-500 hover:text-white hover:z-10`}
-      title={`${section} ${row}-${seatNum}${attendeeName ? `: ${attendeeName}` : ''}`}
+      title={`Seat ${visibleNumber}${attendeeName ? `: ${attendeeName}` : ''}`}
     >
-      {displayNum}
+      {visibleNumber}
     </div>
   );
 }
 
-// Section component
-function Section({ title, sectionKey, rows, seats, highlightedSeat, winnerSeat, excludedSeats, onSeatClick }) {
-  const maxSeats = Math.max(...rows.map(r => r.seats));
+// Dynamic Section component - renders seats from DB data
+function DynamicSection({ title, section, seats, highlightedSeatId, winnerSeatId, excludedSeatIds, onSeatClick }) {
+  // Group seats by row
+  const rowsData = useMemo(() => {
+    if (!seats || seats.length === 0) return [];
+    
+    // Group by rowLabel
+    const grouped = {};
+    seats.forEach(seat => {
+      if (!grouped[seat.rowLabel]) {
+        grouped[seat.rowLabel] = [];
+      }
+      grouped[seat.rowLabel].push(seat);
+    });
+    
+    // Sort rows alphabetically and seats by seatNumber within each row
+    const sortedRows = Object.keys(grouped).sort();
+    return sortedRows.map(rowLabel => ({
+      label: rowLabel,
+      seats: grouped[rowLabel].sort((a, b) => a.seatNumber - b.seatNumber)
+    }));
+  }, [seats]);
+  
+  // Calculate max seats for alignment
+  const maxSeats = useMemo(() => {
+    return Math.max(...rowsData.map(r => r.seats.length), 0);
+  }, [rowsData]);
+  
+  if (rowsData.length === 0) return null;
   
   return (
     <div className="flex flex-col items-center">
       <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">{title}</div>
       <div className="flex flex-col gap-0.5">
-        {rows.map(row => {
-          const rowSeats = [];
-          const padding = Math.floor((maxSeats - row.seats) / 2);
+        {rowsData.map(row => {
+          const padding = Math.floor((maxSeats - row.seats.length) / 2);
           
           return (
             <div key={row.label} className="flex items-center gap-0.5">
@@ -339,26 +251,18 @@ function Section({ title, sectionKey, rows, seats, highlightedSeat, winnerSeat, 
               {/* Left padding */}
               {padding > 0 && <div style={{ width: `${padding * 28}px` }} />}
               {/* Seats */}
-              {Array.from({ length: row.seats }, (_, i) => {
-                const seatNum = row.start + i;
-                const seatId = `${sectionKey}-${row.label}-${seatNum}`;
-                const seatData = seats?.[seatId];
-                
-                return (
-                  <Seat
-                    key={seatId}
-                    seatId={seatId}
-                    section={sectionKey}
-                    row={row.label}
-                    seatNum={seatNum}
-                    isHighlighted={highlightedSeat === seatId}
-                    isWinner={winnerSeat === seatId}
-                    isExcluded={excludedSeats?.includes(seatId)}
-                    attendeeName={seatData?.attendeeName}
-                    onClick={() => onSeatClick?.(seatId, sectionKey, row.label, seatNum)}
-                  />
-                );
-              })}
+              {row.seats.map(seat => (
+                <Seat
+                  key={seat.seatId}
+                  seatId={seat.seatId}
+                  visibleNumber={seat.seatNumber}
+                  isHighlighted={highlightedSeatId === seat.seatId}
+                  isWinner={winnerSeatId === seat.seatId}
+                  isExcluded={excludedSeatIds?.includes(seat.seatId)}
+                  attendeeName={seat.attendeeName}
+                  onClick={() => onSeatClick?.(seat)}
+                />
+              ))}
               {/* Right padding */}
               {padding > 0 && <div style={{ width: `${padding * 28}px` }} />}
             </div>
@@ -373,34 +277,74 @@ export default function SeatRaffleDrawing() {
   const { raffleId } = useParams();
   const [loading, setLoading] = useState(true);
   const [raffle, setRaffle] = useState(null);
-  const [seats, setSeats] = useState({});
+  const [sections, setSections] = useState([]);
+  const [allSeats, setAllSeats] = useState([]);
   const [error, setError] = useState(null);
   
   const [isDrawing, setIsDrawing] = useState(false);
-  const [highlightedSeat, setHighlightedSeat] = useState(null);
-  const [winnerSeat, setWinnerSeat] = useState(null);
+  const [highlightedSeatId, setHighlightedSeatId] = useState(null);
+  const [winnerSeatId, setWinnerSeatId] = useState(null);
   const [winnerInfo, setWinnerInfo] = useState(null);
   const [showModal, setShowModal] = useState(false);
   
   const { isPlaying, toggleMusic } = useBackgroundMusic();
   
-  const allSeatIds = useRef([]);
-  
-  // Build all seat IDs from layout
-  useEffect(() => {
-    const ids = [];
-    Object.entries(MIRAMAR_LAYOUT).forEach(([level, sections]) => {
-      Object.entries(sections).forEach(([position, { rows }]) => {
-        const sectionKey = `${level === 'orchestra' ? 'Orch' : 'Balc'}-${position.charAt(0).toUpperCase() + position.slice(1)}`;
-        rows.forEach(row => {
-          for (let i = 0; i < row.seats; i++) {
-            ids.push(`${sectionKey}-${row.label}-${row.start + i}`);
-          }
-        });
-      });
+  // Group sections by level and position for theater layout
+  const groupedSections = useMemo(() => {
+    const result = {
+      orchestra: { left: null, center: null, right: null },
+      balcony: { left: null, center: null, right: null }
+    };
+    
+    sections.forEach(section => {
+      const name = (section.name || section.shortName || '').toLowerCase();
+      const level = name.includes('balc') ? 'balcony' : 'orchestra';
+      let position = 'center';
+      if (name.includes('left')) position = 'left';
+      else if (name.includes('right')) position = 'right';
+      
+      result[level][position] = section;
     });
-    allSeatIds.current = ids;
-  }, []);
+    
+    return result;
+  }, [sections]);
+  
+  // Group seats by sectionId
+  const seatsBySection = useMemo(() => {
+    const grouped = {};
+    allSeats.forEach(seat => {
+      if (!grouped[seat.sectionId]) {
+        grouped[seat.sectionId] = [];
+      }
+      grouped[seat.sectionId].push(seat);
+    });
+    return grouped;
+  }, [allSeats]);
+  
+  // Excluded seat IDs (numeric IDs from DB)
+  const excludedSeatIds = useMemo(() => {
+    return allSeats.filter(s => s.isExcluded).map(s => s.seatId);
+  }, [allSeats]);
+  
+  // Eligible seats for raffle
+  const eligibleSeats = useMemo(() => {
+    if (!raffle) return [];
+    
+    // Get previous winner seat IDs
+    const previousWinnerIds = new Set((raffle.winners || []).map(w => w.seatId));
+    
+    return allSeats.filter(seat => {
+      // Exclude marked-excluded seats
+      if (seat.isExcluded) return false;
+      // Exclude NotExist and NotAvailable seats
+      if (seat.status === 'NotExist' || seat.status === 'NotAvailable') return false;
+      // Exclude previous winners if not allowed
+      if (!raffle.allowRepeatWinners && previousWinnerIds.has(seat.seatId)) return false;
+      // Require occupied if setting enabled
+      if (raffle.requireOccupied && !seat.attendeeName) return false;
+      return true;
+    });
+  }, [raffle, allSeats]);
   
   // Load raffle data
   useEffect(() => {
@@ -412,33 +356,9 @@ export default function SeatRaffleDrawing() {
       setLoading(true);
       const response = await seatRafflesAPI.getDrawingData(raffleId);
       if (response.success) {
-        // Build a mapping from backend seats to frontend string keys
-        // Backend: {sectionId, rowLabel, seatNumber} → Frontend: "ShortName-RowLabel-SeatNumber"
-        const sectionMap = {};
-        response.data.sections?.forEach(s => {
-          sectionMap[s.sectionId] = s.shortName;
-        });
-        
-        // Convert seats array to map keyed by frontend string format
-        const seatMap = {};
-        const excludedSeatIds = [];
-        response.data.seats?.forEach(s => {
-          const sectionShortName = sectionMap[s.sectionId];
-          if (sectionShortName) {
-            const key = `${sectionShortName}-${s.rowLabel}-${s.seatNumber}`;
-            seatMap[key] = s;
-            if (s.isExcluded) {
-              excludedSeatIds.push(key);
-            }
-          }
-        });
-        
-        // Add excludedSeats array to raffle data
-        setRaffle({
-          ...response.data,
-          excludedSeats: excludedSeatIds
-        });
-        setSeats(seatMap);
+        setRaffle(response.data);
+        setSections(response.data.sections || []);
+        setAllSeats(response.data.seats || []);
       } else {
         setError(response.message);
       }
@@ -450,36 +370,11 @@ export default function SeatRaffleDrawing() {
     }
   };
   
-  const eligibleSeats = useMemo(() => {
-    if (!raffle) return allSeatIds.current;
-    const excluded = new Set(raffle.excludedSeats || []);
-    // Map winners to string keys using seats data
-    const previousWinnerIds = new Set();
-    raffle.winners?.forEach(w => {
-      // Find matching seat key
-      Object.entries(seats).forEach(([key, seat]) => {
-        if (seat.seatId === w.seatId) {
-          previousWinnerIds.add(key);
-        }
-      });
-    });
-    
-    return allSeatIds.current.filter(id => {
-      if (excluded.has(id)) return false;
-      if (!raffle.allowRepeatWinners && previousWinnerIds.has(id)) return false;
-      if (raffle.requireOccupied) {
-        const seat = seats[id];
-        return seat?.attendeeName;
-      }
-      return true;
-    });
-  }, [raffle, seats]);
-  
   const startDraw = async () => {
     if (isDrawing || eligibleSeats.length === 0) return;
     
     setIsDrawing(true);
-    setWinnerSeat(null);
+    setWinnerSeatId(null);
     setWinnerInfo(null);
     setShowModal(false);
     
@@ -489,7 +384,7 @@ export default function SeatRaffleDrawing() {
     
     // Pick winner
     const winnerIndex = Math.floor(Math.random() * eligibleSeats.length);
-    const winner = eligibleSeats[winnerIndex];
+    const winnerSeat = eligibleSeats[winnerIndex];
     
     // Animation
     const steps = 35;
@@ -498,30 +393,28 @@ export default function SeatRaffleDrawing() {
     const animate = () => {
       if (step >= steps) {
         // Final winner
-        setHighlightedSeat(null);
-        setWinnerSeat(winner);
+        setHighlightedSeatId(null);
+        setWinnerSeatId(winnerSeat.seatId);
         playWinner();
         createConfetti();
         
-        // Parse winner info
-        const [section, row, seatNum] = winner.split('-').slice(0, 3);
-        const seatData = seats[winner];
+        // Find section info
+        const section = sections.find(s => s.sectionId === winnerSeat.sectionId);
+        const sectionName = section?.name || section?.shortName || 'Unknown';
+        
         setWinnerInfo({
-          seatId: winner,
-          section: section.replace('Orch-', 'Orchestra ').replace('Balc-', 'Balcony '),
-          row,
-          seatNum: winner.split('-').pop(),
-          attendeeName: seatData?.attendeeName || 'Unknown'
+          seatId: winnerSeat.seatId,
+          section: sectionName,
+          row: winnerSeat.rowLabel,
+          seatNum: winnerSeat.seatNumber,
+          attendeeName: winnerSeat.attendeeName || 'Unknown'
         });
         
         setShowModal(true);
         setIsDrawing(false);
         
-        // Record winner in database - pass the actual seatId
-        const winnerSeatData = seats[winner];
-        if (winnerSeatData?.seatId) {
-          seatRafflesAPI.draw(raffleId, false, winnerSeatData.seatId).catch(console.error);
-        }
+        // Record winner in database
+        seatRafflesAPI.draw(raffleId, false, winnerSeat.seatId).catch(console.error);
         
         return;
       }
@@ -529,14 +422,14 @@ export default function SeatRaffleDrawing() {
       // Highlight random seat, getting closer to winner near the end
       let highlightSeat;
       if (step >= steps - 8) {
-        // Near end, pick from nearby seats
+        // Near end, pick from nearby seats in eligible list
         const nearbySeats = eligibleSeats.filter((s, i) => Math.abs(i - winnerIndex) < 15);
         highlightSeat = nearbySeats[Math.floor(Math.random() * nearbySeats.length)];
       } else {
         highlightSeat = eligibleSeats[Math.floor(Math.random() * eligibleSeats.length)];
       }
       
-      setHighlightedSeat(highlightSeat);
+      setHighlightedSeatId(highlightSeat.seatId);
       playTick();
       
       step++;
@@ -551,7 +444,7 @@ export default function SeatRaffleDrawing() {
     if (!confirm('Reset this raffle and clear all winners?')) return;
     try {
       await seatRafflesAPI.reset(raffleId);
-      setWinnerSeat(null);
+      setWinnerSeatId(null);
       setWinnerInfo(null);
       setShowModal(false);
       loadRaffle();
@@ -582,6 +475,27 @@ export default function SeatRaffleDrawing() {
   const bgStyle = raffle?.backgroundImageUrl 
     ? { backgroundImage: `url(${raffle.backgroundImageUrl})`, backgroundSize: 'cover' }
     : { background: raffle?.backgroundGradient || `linear-gradient(135deg, ${raffle?.backgroundColor || '#1a1a2e'} 0%, #16213e 100%)` };
+
+  // Helper to render a section if it exists
+  const renderSection = (level, position, title) => {
+    const section = groupedSections[level][position];
+    if (!section) return null;
+    
+    return (
+      <DynamicSection
+        title={title}
+        section={section}
+        seats={seatsBySection[section.sectionId] || []}
+        highlightedSeatId={highlightedSeatId}
+        winnerSeatId={winnerSeatId}
+        excludedSeatIds={excludedSeatIds}
+      />
+    );
+  };
+
+  // Check which sections exist to determine layout
+  const hasOrchestra = groupedSections.orchestra.left || groupedSections.orchestra.center || groupedSections.orchestra.right;
+  const hasBalcony = groupedSections.balcony.left || groupedSections.balcony.center || groupedSections.balcony.right;
 
   return (
     <div className="min-h-screen text-white p-4" style={bgStyle}>
@@ -624,7 +538,7 @@ export default function SeatRaffleDrawing() {
               🎉 {raffle?.name || 'Seat Raffle'}
             </h1>
             <p className="text-gray-400 text-sm">
-              {raffle?.eventName || 'CASEC 2026 Spring Gala'} • Miramar Cultural Center
+              {raffle?.eventName || 'CASEC 2026 Spring Gala'} • {raffle?.venueName || 'Venue'}
             </p>
             {raffle?.prizeName && (
               <div className="mt-2 flex items-center justify-center gap-2">
@@ -651,79 +565,54 @@ export default function SeatRaffleDrawing() {
           STAGE
         </div>
         
-        {/* Theater Layout */}
+        {/* Theater Layout - Dynamic based on available sections */}
         <div className="space-y-6">
           {/* Orchestra */}
-          <div className="bg-white/5 rounded-xl p-4">
-            <div className="text-center text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">
-              Orchestra
+          {hasOrchestra && (
+            <div className="bg-white/5 rounded-xl p-4">
+              <div className="text-center text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">
+                Orchestra
+              </div>
+              <div className="flex justify-center gap-6">
+                {renderSection('orchestra', 'left', 'Left')}
+                {renderSection('orchestra', 'center', 'Center')}
+                {renderSection('orchestra', 'right', 'Right')}
+              </div>
             </div>
-            <div className="flex justify-center gap-6">
-              <Section
-                title="Left"
-                sectionKey="Orch-Left"
-                rows={MIRAMAR_LAYOUT.orchestra.left.rows}
-                seats={seats}
-                highlightedSeat={highlightedSeat}
-                winnerSeat={winnerSeat}
-                excludedSeats={raffle?.excludedSeats}
-              />
-              <Section
-                title="Center"
-                sectionKey="Orch-Center"
-                rows={MIRAMAR_LAYOUT.orchestra.center.rows}
-                seats={seats}
-                highlightedSeat={highlightedSeat}
-                winnerSeat={winnerSeat}
-                excludedSeats={raffle?.excludedSeats}
-              />
-              <Section
-                title="Right"
-                sectionKey="Orch-Right"
-                rows={MIRAMAR_LAYOUT.orchestra.right.rows}
-                seats={seats}
-                highlightedSeat={highlightedSeat}
-                winnerSeat={winnerSeat}
-                excludedSeats={raffle?.excludedSeats}
-              />
-            </div>
-          </div>
+          )}
           
           {/* Balcony */}
-          <div className="bg-white/5 rounded-xl p-4">
-            <div className="text-center text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">
-              Balcony
+          {hasBalcony && (
+            <div className="bg-white/5 rounded-xl p-4">
+              <div className="text-center text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">
+                Balcony
+              </div>
+              <div className="flex justify-center gap-6">
+                {renderSection('balcony', 'left', 'Left')}
+                {renderSection('balcony', 'center', 'Center')}
+                {renderSection('balcony', 'right', 'Right')}
+              </div>
             </div>
-            <div className="flex justify-center gap-6">
-              <Section
-                title="Left"
-                sectionKey="Balc-Left"
-                rows={MIRAMAR_LAYOUT.balcony.left.rows}
-                seats={seats}
-                highlightedSeat={highlightedSeat}
-                winnerSeat={winnerSeat}
-                excludedSeats={raffle?.excludedSeats}
-              />
-              <Section
-                title="Center"
-                sectionKey="Balc-Center"
-                rows={MIRAMAR_LAYOUT.balcony.center.rows}
-                seats={seats}
-                highlightedSeat={highlightedSeat}
-                winnerSeat={winnerSeat}
-                excludedSeats={raffle?.excludedSeats}
-              />
-              <Section
-                title="Right"
-                sectionKey="Balc-Right"
-                rows={MIRAMAR_LAYOUT.balcony.right.rows}
-                seats={seats}
-                highlightedSeat={highlightedSeat}
-                winnerSeat={winnerSeat}
-                excludedSeats={raffle?.excludedSeats}
-              />
+          )}
+          
+          {/* Fallback: show all sections generically if they don't match orchestra/balcony pattern */}
+          {!hasOrchestra && !hasBalcony && sections.length > 0 && (
+            <div className="bg-white/5 rounded-xl p-4">
+              <div className="flex justify-center gap-6 flex-wrap">
+                {sections.map(section => (
+                  <DynamicSection
+                    key={section.sectionId}
+                    title={section.name || section.shortName}
+                    section={section}
+                    seats={seatsBySection[section.sectionId] || []}
+                    highlightedSeatId={highlightedSeatId}
+                    winnerSeatId={winnerSeatId}
+                    excludedSeatIds={excludedSeatIds}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
         
         {/* Legend */}
