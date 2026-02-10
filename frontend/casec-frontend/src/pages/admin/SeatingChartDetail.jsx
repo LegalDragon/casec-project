@@ -88,6 +88,7 @@ export default function AdminSeatingChartDetail() {
       case "empty": return seat.status === "Available" && !seat.attendeeName;
       case "vip": return seat.isVIP;
       case "unavailable": return seat.status === "NotAvailable";
+      case "notexist": return seat.status === "NotExist";
       default: return true;
     }
   };
@@ -303,6 +304,7 @@ export default function AdminSeatingChartDetail() {
 
   const getSeatColor = (seat) => {
     if (seat.status === "NotAvailable") return "bg-red-900 border-red-950 opacity-60";
+    if (seat.status === "NotExist") return "bg-black border-gray-800 opacity-30";
     if (seat.isVIP) return "bg-purple-500 border-purple-600";
     if (seat.status === "Occupied" || seat.attendeeName) return "bg-green-500 border-green-600";
     if (seat.status === "Reserved") return "bg-yellow-500 border-yellow-600";
@@ -394,6 +396,7 @@ export default function AdminSeatingChartDetail() {
             <option value="empty">Empty</option>
             <option value="vip">VIP</option>
             <option value="unavailable">Not Available</option>
+          <option value="notexist">Not Exist</option>
           </select>
           <div className="flex gap-4 ml-4 text-sm flex-wrap">
             <span className="flex items-center gap-1">
@@ -407,6 +410,9 @@ export default function AdminSeatingChartDetail() {
             </span>
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded bg-red-900 opacity-60"></span> N/A
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded bg-black opacity-30"></span> Not Exist
           </span>
           </div>
         </div>
@@ -435,6 +441,13 @@ export default function AdminSeatingChartDetail() {
               className="btn btn-secondary text-sm"
             >
               Mark N/A
+            </button>
+            <button
+              onClick={() => handleBulkUpdate("NotExist")}
+              disabled={saving}
+              className="btn btn-secondary text-sm"
+            >
+              Mark Not Exist
             </button>
             <button
               onClick={() => handleBulkUpdate("Available")}
@@ -715,7 +728,8 @@ export default function AdminSeatingChartDetail() {
                   <option value="Reserved">Reserved</option>
                   <option value="Occupied">Occupied</option>
                   <option value="Blocked">Blocked</option>
-                  <option value="NotAvailable">Not Available (seat doesn't exist)</option>
+                  <option value="NotAvailable">Not Available (blocked)</option>
+                  <option value="NotExist">Not Exist (hide from preview)</option>
                 </select>
               </div>
               <div>
@@ -922,7 +936,11 @@ Orch-Center,A,2,Jane Doe,555-5678,jane@email.com,true`}
                   
                   const renderSectionSeats = (section, rowLabel, fixedWidth) => {
                     if (!section) return <div style={{ width: fixedWidth }}></div>;
-                    const sectionSeats = (chart.seats?.filter(s => s.sectionId === section.sectionId && s.rowLabel === rowLabel) || [])
+                    const sectionSeats = (chart.seats?.filter(s => 
+                      s.sectionId === section.sectionId && 
+                      s.rowLabel === rowLabel && 
+                      s.status !== "NotExist"  // Hide NotExist seats in preview
+                    ) || [])
                       .sort((a, b) => section.direction === "RTL" ? b.seatNumber - a.seatNumber : a.seatNumber - b.seatNumber);
                     
                     return (
