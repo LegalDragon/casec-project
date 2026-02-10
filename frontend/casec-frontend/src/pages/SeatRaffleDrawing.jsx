@@ -472,18 +472,8 @@ export default function SeatRaffleDrawing() {
     );
   }
   
-  // Background opacity (default 0.5 if not set)
-  const bgOpacity = raffle?.backgroundOpacity ?? 0.5;
-  
-  const bgStyle = raffle?.backgroundImageUrl 
-    ? { 
-        backgroundImage: `url(${raffle.backgroundImageUrl})`, 
-        backgroundSize: '100% auto',
-        backgroundPosition: 'top center',
-        backgroundRepeat: 'no-repeat',
-        backgroundColor: raffle?.backgroundColor || '#1a1a2e'
-      }
-    : { background: raffle?.backgroundGradient || `linear-gradient(135deg, ${raffle?.backgroundColor || '#1a1a2e'} 0%, #16213e 100%)` };
+  // Background opacity (default 1 if not set)
+  const bgOpacity = raffle?.backgroundOpacity ?? 1;
 
   // Helper to render a section if it exists
   const renderSection = (level, position, title) => {
@@ -514,8 +504,8 @@ export default function SeatRaffleDrawing() {
           className="absolute inset-0 z-0"
           style={{
             backgroundImage: `url(${raffle.backgroundImageUrl})`,
-            backgroundSize: '100% auto',
-            backgroundPosition: 'top center',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center top',
             backgroundRepeat: 'no-repeat',
             opacity: bgOpacity
           }}
