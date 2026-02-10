@@ -25,7 +25,7 @@ export default function AdminSeatingChartDetail() {
   });
 
   const [seatForm, setSeatForm] = useState({
-    attendeeName: "", attendeePhone: "", attendeeEmail: "", attendeeNotes: "", isVIP: false
+    status: "Available", attendeeName: "", attendeePhone: "", attendeeEmail: "", attendeeNotes: "", isVIP: false
   });
 
   const [importData, setImportData] = useState("");
@@ -83,8 +83,9 @@ export default function AdminSeatingChartDetail() {
   const filterSeat = (seat) => {
     switch (filter) {
       case "occupied": return seat.status === "Occupied" || seat.attendeeName;
-      case "empty": return seat.status !== "Occupied" && !seat.attendeeName;
+      case "empty": return seat.status === "Available" && !seat.attendeeName;
       case "vip": return seat.isVIP;
+      case "unavailable": return seat.status === "NotAvailable";
       default: return true;
     }
   };
@@ -154,6 +155,7 @@ export default function AdminSeatingChartDetail() {
   const handleSeatClick = (seat) => {
     setSelectedSeat(seat);
     setSeatForm({
+      status: seat.status || "Available",
       attendeeName: seat.attendeeName || "",
       attendeePhone: seat.attendeePhone || "",
       attendeeEmail: seat.attendeeEmail || "",
@@ -241,6 +243,7 @@ export default function AdminSeatingChartDetail() {
   };
 
   const getSeatColor = (seat) => {
+    if (seat.status === "NotAvailable") return "bg-gray-800 border-gray-900 opacity-50";
     if (seat.isVIP) return "bg-purple-500 border-purple-600";
     if (seat.status === "Occupied" || seat.attendeeName) return "bg-green-500 border-green-600";
     if (seat.status === "Reserved") return "bg-yellow-500 border-yellow-600";
@@ -323,8 +326,9 @@ export default function AdminSeatingChartDetail() {
           <option value="occupied">Occupied</option>
           <option value="empty">Empty</option>
           <option value="vip">VIP</option>
+          <option value="unavailable">Not Available</option>
         </select>
-        <div className="flex gap-4 ml-4 text-sm">
+        <div className="flex gap-4 ml-4 text-sm flex-wrap">
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded bg-green-500"></span> Occupied
           </span>
@@ -333,6 +337,9 @@ export default function AdminSeatingChartDetail() {
           </span>
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded bg-purple-500"></span> VIP
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded bg-gray-800 opacity-50"></span> N/A
           </span>
         </div>
       </div>
@@ -564,6 +571,20 @@ export default function AdminSeatingChartDetail() {
               </button>
             </div>
             <form onSubmit={handleUpdateSeat} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={seatForm.status}
+                  onChange={(e) => setSeatForm({ ...seatForm, status: e.target.value })}
+                  className="input w-full"
+                >
+                  <option value="Available">Available</option>
+                  <option value="Reserved">Reserved</option>
+                  <option value="Occupied">Occupied</option>
+                  <option value="Blocked">Blocked</option>
+                  <option value="NotAvailable">Not Available (seat doesn't exist)</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Attendee Name</label>
                 <input
