@@ -452,7 +452,7 @@ export default function Home() {
         </div>
         <div className="relative z-10">
           <h2 className="text-2xl md:text-3xl font-bold mb-2">
-            🐍 You're Invited to the Year of the Snake Celebration! 🎊
+            🐴 You're Invited to the Year of the Horse Celebration! 🎊
           </h2>
           <p className="text-lg md:text-xl mb-3">
             Join us for CASEC's 2026 Spring Gala — an evening of culture, community, and celebration!
