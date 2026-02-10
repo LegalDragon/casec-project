@@ -887,65 +887,82 @@ Orch-Center,A,2,Jane Doe,555-5678,jane@email.com,true`}
                   const sections = levels[level];
                   if (!sections || sections.length === 0) return null;
                   
+                  // Get all unique rows across all sections in this level, sorted
+                  const allRows = [...new Set(
+                    sections.flatMap(s => 
+                      (chart.seats?.filter(seat => seat.sectionId === s.sectionId) || [])
+                        .map(seat => seat.rowLabel)
+                    )
+                  )].sort();
+                  
+                  // Find sections by position
+                  const leftSection = sections.find(s => s.name.toLowerCase().includes('left'));
+                  const centerSection = sections.find(s => s.name.toLowerCase().includes('center') || s.name.toLowerCase().includes('centre'));
+                  const rightSection = sections.find(s => s.name.toLowerCase().includes('right'));
+                  
+                  const renderSectionSeats = (section, rowLabel) => {
+                    if (!section) return <div className="w-32"></div>; // placeholder
+                    const sectionSeats = (chart.seats?.filter(s => s.sectionId === section.sectionId && s.rowLabel === rowLabel) || [])
+                      .sort((a, b) => section.direction === "RTL" ? b.seatNumber - a.seatNumber : a.seatNumber - b.seatNumber);
+                    
+                    if (sectionSeats.length === 0) return <div className="w-32"></div>; // placeholder for missing row
+                    
+                    return (
+                      <div className="flex items-center gap-0.5 justify-center" style={{ minWidth: '120px' }}>
+                        {sectionSeats.map(seat => {
+                          const isOccupied = seat.status === "Occupied" || seat.attendeeName;
+                          const isVIP = seat.isVIP;
+                          const isNA = seat.status === "NotAvailable";
+                          
+                          let bg = '#3a3a5a';
+                          if (isNA) bg = '#1a1a2e';
+                          else if (isVIP) bg = '#a855f7';
+                          else if (isOccupied) bg = '#22c55e';
+                          
+                          return (
+                            <div
+                              key={seat.seatId}
+                              className="cursor-default transition-transform hover:scale-125"
+                              style={{
+                                width: '12px',
+                                height: '12px',
+                                background: bg,
+                                borderRadius: '2px 2px 4px 4px',
+                                border: '1px solid #4a4a6a',
+                                opacity: isNA ? 0.3 : 1
+                              }}
+                              title={`${section.shortName} ${rowLabel}-${seat.seatNumber}${seat.attendeeName ? `: ${seat.attendeeName}` : ''}`}
+                            />
+                          );
+                        })}
+                      </div>
+                    );
+                  };
+                  
                   return (
                     <div key={level} className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
                       <div className="text-center text-purple-500 text-xs font-semibold uppercase tracking-widest mb-3">
                         {level}
                       </div>
-                      <div className="flex justify-center gap-6">
-                        {sections.map(section => {
-                          const sectionSeats = chart.seats?.filter(s => s.sectionId === section.sectionId) || [];
-                          const rows = [...new Set(sectionSeats.map(s => s.rowLabel))].sort();
-                          const posLabel = section.name.toLowerCase().includes('left') ? 'Left' 
-                            : section.name.toLowerCase().includes('right') ? 'Right' : 'Center';
-                          
-                          return (
-                            <div key={section.sectionId} className="flex flex-col items-center">
-                              <div className="text-gray-500 text-[10px] uppercase mb-1">{posLabel}</div>
-                              <div className="space-y-0.5">
-                                {rows.map(rowLabel => {
-                                  const rowSeats = sectionSeats
-                                    .filter(s => s.rowLabel === rowLabel)
-                                    .sort((a, b) => section.direction === "RTL" 
-                                      ? b.seatNumber - a.seatNumber 
-                                      : a.seatNumber - b.seatNumber);
-                                  
-                                  return (
-                                    <div key={rowLabel} className="flex items-center gap-0.5">
-                                      <span className="w-4 text-right text-[9px] text-gray-600 mr-1">{rowLabel}</span>
-                                      {rowSeats.map(seat => {
-                                        const isOccupied = seat.status === "Occupied" || seat.attendeeName;
-                                        const isVIP = seat.isVIP;
-                                        const isNA = seat.status === "NotAvailable";
-                                        
-                                        let bg = '#3a3a5a'; // available
-                                        if (isNA) bg = '#1a1a2e';
-                                        else if (isVIP) bg = '#a855f7';
-                                        else if (isOccupied) bg = '#22c55e';
-                                        
-                                        return (
-                                          <div
-                                            key={seat.seatId}
-                                            className="cursor-default transition-transform hover:scale-125"
-                                            style={{
-                                              width: '12px',
-                                              height: '12px',
-                                              background: bg,
-                                              borderRadius: '2px 2px 4px 4px',
-                                              border: '1px solid #4a4a6a',
-                                              opacity: isNA ? 0.3 : 1
-                                            }}
-                                            title={`${section.shortName} ${rowLabel}-${seat.seatNumber}${seat.attendeeName ? `: ${seat.attendeeName}` : ''}`}
-                                          />
-                                        );
-                                      })}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
+                      {/* Column headers */}
+                      <div className="flex justify-center items-center gap-4 mb-2">
+                        <div className="text-gray-500 text-[10px] uppercase text-center" style={{ minWidth: '120px' }}>Left</div>
+                        <div className="w-4"></div>
+                        <div className="text-gray-500 text-[10px] uppercase text-center" style={{ minWidth: '160px' }}>Center</div>
+                        <div className="w-4"></div>
+                        <div className="text-gray-500 text-[10px] uppercase text-center" style={{ minWidth: '120px' }}>Right</div>
+                      </div>
+                      {/* Rows */}
+                      <div className="space-y-0.5">
+                        {allRows.map(rowLabel => (
+                          <div key={rowLabel} className="flex justify-center items-center gap-4">
+                            {renderSectionSeats(leftSection, rowLabel)}
+                            <span className="w-4 text-center text-[9px] text-gray-500">{rowLabel}</span>
+                            {renderSectionSeats(centerSection, rowLabel)}
+                            <span className="w-4 text-center text-[9px] text-gray-500">{rowLabel}</span>
+                            {renderSectionSeats(rightSection, rowLabel)}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
