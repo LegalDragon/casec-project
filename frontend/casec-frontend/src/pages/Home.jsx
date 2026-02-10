@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Clock, ChevronLeft, ChevronRight, DollarSign, Building2, ChevronDown, ChevronUp, BarChart3, ClipboardList, Check } from 'lucide-react';
 import { eventsAPI, pollsAPI, surveysAPI, getAssetUrl } from '../services/api';
 import { useTheme } from '../components/ThemeProvider';
@@ -8,9 +8,27 @@ import SurveyWidget from '../components/SurveyWidget';
 
 export default function Home() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [recentPastEvents, setRecentPastEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [redirectCountdown, setRedirectCountdown] = useState(3);
+
+  // Temporary redirect to gala program page after 3 seconds
+  useEffect(() => {
+    const countdownInterval = setInterval(() => {
+      setRedirectCountdown(prev => prev - 1);
+    }, 1000);
+
+    const redirectTimer = setTimeout(() => {
+      navigate('/program/2026-spring-gala');
+    }, 3000);
+
+    return () => {
+      clearInterval(countdownInterval);
+      clearTimeout(redirectTimer);
+    };
+  }, [navigate]);
 
   const upcomingScrollRef = useRef(null);
   const pastScrollRef = useRef(null);
@@ -423,6 +441,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary via-primary-light to-accent flex flex-col">
+      {/* Redirect Banner */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 text-center">
+        <p className="text-lg font-semibold">
+          🎉 Redirecting to 2026 Spring Gala Program in {redirectCountdown}...{' '}
+          <Link to="/program/2026-spring-gala" className="underline hover:text-yellow-300">
+            Click here to go now
+          </Link>
+        </p>
+      </div>
+
       {/* Hero Section - Logo, Name, and CTAs Centered */}
       <section className="px-6 py-12 md:py-16 relative overflow-hidden">
         {/* Video Background */}
