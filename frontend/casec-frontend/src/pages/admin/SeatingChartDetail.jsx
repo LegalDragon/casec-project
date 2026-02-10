@@ -193,6 +193,23 @@ export default function AdminSeatingChartDetail() {
     }
   };
 
+  const handleBulkVIP = async (isVIP) => {
+    if (selectedSeats.length === 0) return;
+    try {
+      setSaving(true);
+      await seatingChartsAPI.bulkUpdateSeats(chartId, { 
+        seatIds: selectedSeats, 
+        isVIP 
+      });
+      setSelectedSeats([]);
+      loadChart();
+    } catch (err) {
+      setError(err.message || "Failed to update seats");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const selectAllInSection = (sectionId) => {
     const sectionSeatIds = (chart.seats || [])
       .filter(s => s.sectionId === sectionId)
@@ -432,6 +449,13 @@ export default function AdminSeatingChartDetail() {
               className="btn btn-secondary text-sm"
             >
               Mark Reserved
+            </button>
+            <button
+              onClick={() => handleBulkVIP(true)}
+              disabled={saving}
+              className="btn btn-secondary text-sm"
+            >
+              Mark VIP
             </button>
             <button
               onClick={() => setSelectedSeats([])}
