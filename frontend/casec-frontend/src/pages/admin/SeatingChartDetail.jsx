@@ -302,7 +302,7 @@ export default function AdminSeatingChartDetail() {
   };
 
   const getSeatColor = (seat) => {
-    if (seat.status === "NotAvailable") return "bg-gray-800 border-gray-900 opacity-50";
+    if (seat.status === "NotAvailable") return "bg-red-900 border-red-950 opacity-60";
     if (seat.isVIP) return "bg-purple-500 border-purple-600";
     if (seat.status === "Occupied" || seat.attendeeName) return "bg-green-500 border-green-600";
     if (seat.status === "Reserved") return "bg-yellow-500 border-yellow-600";
@@ -406,7 +406,7 @@ export default function AdminSeatingChartDetail() {
               <span className="w-3 h-3 rounded bg-purple-500"></span> VIP
             </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-gray-800 opacity-50"></span> N/A
+            <span className="w-3 h-3 rounded bg-red-900 opacity-60"></span> N/A
           </span>
           </div>
         </div>
@@ -914,8 +914,8 @@ Orch-Center,A,2,Jane Doe,555-5678,jane@email.com,true`}
                           const isVIP = seat.isVIP;
                           const isNA = seat.status === "NotAvailable";
                           
-                          let bg = '#3a3a5a';
-                          if (isNA) bg = '#1a1a2e';
+                          let bg = '#3a3a5a'; // available - blue-gray
+                          if (isNA) bg = '#7f1d1d'; // N/A - dark red
                           else if (isVIP) bg = '#a855f7';
                           else if (isOccupied) bg = '#22c55e';
                           
@@ -929,7 +929,7 @@ Orch-Center,A,2,Jane Doe,555-5678,jane@email.com,true`}
                                 background: bg,
                                 borderRadius: '2px 2px 4px 4px',
                                 border: '1px solid #4a4a6a',
-                                opacity: isNA ? 0.3 : 1
+                                opacity: isNA ? 0.6 : 1
                               }}
                               title={`${section.shortName} ${rowLabel}-${seat.seatNumber}${seat.attendeeName ? `: ${seat.attendeeName}` : ''}`}
                             />
