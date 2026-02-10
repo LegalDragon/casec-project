@@ -787,6 +787,200 @@ export default function AdminSeatRaffles() {
                     rows={2}
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  ⚠️ Legacy single prize field. Use "Multiple Prizes" below for better prize management.
+                </p>
+              </div>
+
+              {/* Multiple Prizes Management */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                  <Gift className="w-4 h-4" /> Multiple Prizes
+                </h4>
+                
+                {/* Prize List */}
+                {prizes.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {prizes.sort((a, b) => a.displayOrder - b.displayOrder).map((prize, index) => (
+                      <div key={prize.prizeId} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        {prize.imageUrl ? (
+                          <img 
+                            src={getAssetUrl(prize.imageUrl)} 
+                            alt={prize.name} 
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                            <ImageIcon className="w-6 h-6 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{prize.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {prize.value && <span className="text-green-600">${prize.value}</span>}
+                            {prize.value && prize.quantity && ' • '}
+                            {prize.quantity > 1 && <span>Qty: {prize.quantity}</span>}
+                            {prize.winnersCount > 0 && (
+                              <span className="ml-2 text-purple-600">({prize.winnersCount} won)</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => movePrize(prize.prizeId, 'up')}
+                            disabled={index === 0}
+                            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => movePrize(prize.prizeId, 'down')}
+                            disabled={index === prizes.length - 1}
+                            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEditPrize(prize)}
+                            className="p-1 text-blue-500 hover:text-blue-700"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePrize(prize.prizeId)}
+                            className="p-1 text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add/Edit Prize Form */}
+                <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50/50">
+                  <div className="text-sm font-medium text-gray-700 mb-3">
+                    {editingPrize ? 'Edit Prize' : 'Add New Prize'}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                      <input
+                        type="text"
+                        value={prizeForm.name}
+                        onChange={(e) => setPrizeForm({ ...prizeForm, name: e.target.value })}
+                        className="input w-full text-sm"
+                        placeholder="e.g., iPad Pro"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Value ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={prizeForm.value}
+                        onChange={(e) => setPrizeForm({ ...prizeForm, value: e.target.value })}
+                        className="input w-full text-sm"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Quantity</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={prizeForm.quantity}
+                        onChange={(e) => setPrizeForm({ ...prizeForm, quantity: e.target.value })}
+                        className="input w-full text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Image</label>
+                      <div className="flex items-center gap-2">
+                        {prizeForm.imageUrl ? (
+                          <img 
+                            src={getAssetUrl(prizeForm.imageUrl)} 
+                            alt="Preview" 
+                            className="w-10 h-10 object-cover rounded"
+                          />
+                        ) : null}
+                        <label className="flex-1 cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => e.target.files?.[0] && handlePrizeImageUpload(e.target.files[0])}
+                          />
+                          <div className="btn btn-secondary text-xs w-full flex items-center justify-center gap-1">
+                            {prizeUploading ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Upload className="w-3 h-3" />
+                                {prizeForm.imageUrl ? 'Change' : 'Upload'}
+                              </>
+                            )}
+                          </div>
+                        </label>
+                        {prizeForm.imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setPrizeForm({ ...prizeForm, imageUrl: '' })}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={prizeForm.description}
+                      onChange={(e) => setPrizeForm({ ...prizeForm, description: e.target.value })}
+                      className="input w-full text-sm"
+                      placeholder="Optional description"
+                    />
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    {editingPrize ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleUpdatePrize}
+                          disabled={!prizeForm.name.trim() || submitting}
+                          className="btn btn-primary text-sm flex-1"
+                        >
+                          {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Update Prize'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={resetPrizeForm}
+                          className="btn btn-secondary text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleAddPrize}
+                        disabled={!prizeForm.name.trim() || submitting}
+                        className="btn btn-primary text-sm flex items-center gap-1"
+                      >
+                        {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        Add Prize
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">

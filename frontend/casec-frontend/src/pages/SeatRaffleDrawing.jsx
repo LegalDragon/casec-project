@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Loader2, ArrowLeft, Volume2, VolumeX, RotateCcw, Trophy, Settings } from "lucide-react";
-import { seatRafflesAPI } from "../services/api";
+import { Loader2, ArrowLeft, Volume2, VolumeX, RotateCcw, Trophy, Settings, Gift, ChevronDown } from "lucide-react";
+import { seatRafflesAPI, getAssetUrl } from "../services/api";
 
 // Web Audio context for sound effects
 let audioCtx = null;
@@ -307,6 +307,8 @@ export default function SeatRaffleDrawing() {
   
   const [isDrawing, setIsDrawing] = useState(false);
   const [highlightedSeatId, setHighlightedSeatId] = useState(null);
+  const [selectedPrize, setSelectedPrize] = useState(null);
+  const [showPrizeSelector, setShowPrizeSelector] = useState(false);
   const [winnerSeatId, setWinnerSeatId] = useState(null);
   const [winnerInfo, setWinnerInfo] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -418,14 +420,15 @@ export default function SeatRaffleDrawing() {
           section: sectionName,
           row: winnerSeat.rowLabel,
           seatNum: winnerSeat.seatNumber,
-          attendeeName: winnerSeat.attendeeName || 'Unknown'
+          attendeeName: winnerSeat.attendeeName || 'Unknown',
+          prize: selectedPrize
         });
         
         setShowModal(true);
         setIsDrawing(false);
         
-        // Record winner in database
-        seatRafflesAPI.draw(raffleId, false, winnerSeat.seatId).catch(console.error);
+        // Record winner in database (with optional prizeId)
+        seatRafflesAPI.draw(raffleId, false, winnerSeat.seatId, selectedPrize?.prizeId).catch(console.error);
         
         return;
       }
@@ -616,72 +619,135 @@ export default function SeatRaffleDrawing() {
         />
       )}
       {/* Content */}
-      <div className="relative z-10 p-4">
-      {/* Header */}
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-start justify-between mb-4">
-          {/* Left buttons */}
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={startDraw}
-              disabled={isDrawing || eligibleSeats.length === 0}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full font-bold 
-                shadow-lg shadow-purple-500/40 hover:shadow-purple-500/60 hover:-translate-y-0.5
-                disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              {isDrawing ? '🎰 Drawing...' : '🎲 Start Raffle'}
-            </button>
-            <button
-              onClick={resetDraw}
-              className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 rounded-full text-sm font-bold
-                hover:from-gray-500 hover:to-gray-600 transition-all"
-            >
-              <RotateCcw className="w-4 h-4 inline mr-1" /> Reset
-            </button>
-            <button
-              onClick={toggleMusic}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all
-                ${isPlaying 
-                  ? 'bg-gradient-to-r from-green-500 to-green-600' 
-                  : 'bg-gradient-to-r from-yellow-500 to-orange-500'}`}
-            >
-              {isPlaying ? <Volume2 className="w-4 h-4 inline mr-1" /> : <VolumeX className="w-4 h-4 inline mr-1" />}
-              {isPlaying ? 'Playing' : 'Music'}
-            </button>
-          </div>
-          
-          {/* Title */}
-          <div className="text-center flex-1">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              🎉 {raffle?.name || 'Seat Raffle'}
-            </h1>
-            <p className="text-gray-400 text-sm">
-              {raffle?.eventName || 'CASEC 2026 Spring Gala'} • {raffle?.venueName || 'Venue'}
-            </p>
+      <div className="relative z-10 p-2">
+        {/* Stage bar at top */}
+        <div className="bg-gradient-to-b from-gray-600 to-gray-800 text-white text-center py-2 px-12 
+          rounded-b-[50%] mx-auto w-2/3 max-w-xl font-bold tracking-widest shadow-lg mb-2">
+          STAGE
+        </div>
+        
+        {/* Main layout: sidebar left, seats right */}
+        <div className="flex gap-4">
+          {/* Left sidebar - controls & info */}
+          <div className="flex-shrink-0 w-48 space-y-3">
+            {/* Title */}
+            <div>
+              <h1 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent leading-tight">
+                🎉 {raffle?.name || 'Seat Raffle'}
+              </h1>
+              <p className="text-gray-500 text-xs">
+                {raffle?.eventName || 'CASEC 2026 Spring Gala'}
+              </p>
+            </div>
+            
+            {/* Prize info */}
             {raffle?.prizeName && (
-              <div className="mt-2 flex items-center justify-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-400" />
-                <span>{raffle.prizeName}</span>
-                {raffle.prizeValue && <span className="text-green-400">${raffle.prizeValue}</span>}
+              <div className="flex items-center gap-1 text-sm">
+                <Trophy className="w-4 h-4 text-yellow-400" />
+                <span className="text-white">{raffle.prizeName}</span>
+                {raffle.prizeValue && <span className="text-green-400 text-xs">${raffle.prizeValue}</span>}
               </div>
             )}
-          </div>
-          
-          {/* Right - stats */}
-          <div className="text-right text-sm text-gray-400">
-            <div>Eligible: <span className="text-white font-bold">{eligibleSeats.length}</span></div>
-            <div>Winners: <span className="text-green-400 font-bold">{raffle?.winners?.length || 0}</span></div>
-            <Link to="/admin/seat-raffles" className="text-purple-400 hover:underline text-xs">
+            
+            {/* Stats */}
+            <div className="text-xs text-gray-400 space-y-1">
+              <div>Eligible: <span className="text-white font-bold">{eligibleSeats.length}</span></div>
+              <div>Winners: <span className="text-green-400 font-bold">{raffle?.winners?.length || 0}</span></div>
+            </div>
+            
+            {/* Prize Selector (if multiple prizes) */}
+            {raffle?.prizes?.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowPrizeSelector(!showPrizeSelector)}
+                  className="w-full px-3 py-2 bg-gradient-to-r from-amber-600 to-yellow-500 rounded-lg text-xs font-bold
+                    flex items-center justify-between gap-2 hover:from-amber-500 hover:to-yellow-400 transition-all"
+                >
+                  <span className="flex items-center gap-1 truncate">
+                    <Gift className="w-3 h-3 flex-shrink-0" />
+                    {selectedPrize ? selectedPrize.name : 'Select Prize...'}
+                  </span>
+                  <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${showPrizeSelector ? 'rotate-180' : ''}`} />
+                </button>
+                {showPrizeSelector && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 max-h-48 overflow-y-auto">
+                    <button
+                      onClick={() => { setSelectedPrize(null); setShowPrizeSelector(false); }}
+                      className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-700 flex items-center gap-2
+                        ${!selectedPrize ? 'bg-purple-600/30 text-purple-300' : 'text-gray-300'}`}
+                    >
+                      <div className="w-6 h-6 bg-gray-600 rounded flex items-center justify-center">
+                        <Gift className="w-3 h-3" />
+                      </div>
+                      <span>No specific prize</span>
+                    </button>
+                    {raffle.prizes.sort((a, b) => a.displayOrder - b.displayOrder).map(prize => (
+                      <button
+                        key={prize.prizeId}
+                        onClick={() => { setSelectedPrize(prize); setShowPrizeSelector(false); }}
+                        className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-700 flex items-center gap-2
+                          ${selectedPrize?.prizeId === prize.prizeId ? 'bg-purple-600/30 text-purple-300' : 'text-gray-300'}`}
+                      >
+                        {prize.imageUrl ? (
+                          <img src={getAssetUrl(prize.imageUrl)} alt="" className="w-6 h-6 rounded object-cover" />
+                        ) : (
+                          <div className="w-6 h-6 bg-gray-600 rounded flex items-center justify-center">
+                            <Gift className="w-3 h-3" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate font-medium">{prize.name}</div>
+                          {prize.value && <div className="text-green-400 text-[10px]">${prize.value}</div>}
+                        </div>
+                        {prize.winnersCount > 0 && (
+                          <span className="text-[10px] text-gray-500">({prize.winnersCount} won)</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="space-y-2">
+              <button
+                onClick={startDraw}
+                disabled={isDrawing || eligibleSeats.length === 0}
+                className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full font-bold text-sm
+                  shadow-lg shadow-purple-500/40 hover:shadow-purple-500/60 hover:-translate-y-0.5
+                  disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {isDrawing ? '🎰 Drawing...' : '🎲 Start Raffle'}
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={resetDraw}
+                  className="flex-1 px-2 py-1.5 bg-gradient-to-r from-gray-600 to-gray-700 rounded-full text-xs font-bold
+                    hover:from-gray-500 hover:to-gray-600 transition-all"
+                >
+                  <RotateCcw className="w-3 h-3 inline mr-1" /> Reset
+                </button>
+                <button
+                  onClick={toggleMusic}
+                  className={`flex-1 px-2 py-1.5 rounded-full text-xs font-bold transition-all
+                    ${isPlaying 
+                      ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                      : 'bg-gradient-to-r from-yellow-500 to-orange-500'}`}
+                >
+                  {isPlaying ? <Volume2 className="w-3 h-3 inline" /> : <VolumeX className="w-3 h-3 inline" />}
+                </button>
+              </div>
+            </div>
+            
+            {/* Admin link */}
+            <Link to="/admin/seat-raffles" className="text-purple-400 hover:underline text-xs block">
               ← Admin
             </Link>
           </div>
-        </div>
-        
-        {/* Stage */}
-        <div className="bg-gradient-to-b from-gray-600 to-gray-800 text-white text-center py-2 px-12 
-          rounded-b-[50%] mx-auto w-1/2 font-bold tracking-widest shadow-lg mb-6">
-          STAGE
-        </div>
+          
+          {/* Main seat area */}
+          <div className="flex-1">
         
         {/* Theater Layout - Dynamic based on available sections */}
         <div className="space-y-6">
@@ -709,27 +775,19 @@ export default function SeatRaffleDrawing() {
               </div>
             </div>
           )}
-        </div>
-        
-        {/* Legend */}
-        <div className="flex justify-center gap-6 mt-4 text-xs text-gray-400">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-gray-600" /> Available
+          
+          {/* Legend - compact */}
+          <div className="flex justify-center gap-4 mt-2 text-[10px] text-gray-500">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#3a3a5a]"></span>Available</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500"></span>Occupied</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-purple-500"></span>VIP</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-yellow-400"></span>Scanning</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500 ring-2 ring-green-400"></span>Winner</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-purple-600" /> Occupied
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-yellow-400" /> Scanning
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-green-500" /> Winner
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-red-900/50" /> Excluded
-          </div>
-        </div>
-      </div>
+        </div>{/* End theater layout */}
+        </div>{/* End seat area */}
+        </div>{/* End flex container */}
+      </div>{/* End content */}
       
       {/* Winner Modal */}
       {showModal && winnerInfo && (
@@ -751,8 +809,36 @@ export default function SeatRaffleDrawing() {
               Row {winnerInfo.row}, Seat {winnerInfo.seatNum}
             </div>
             {winnerInfo.attendeeName && winnerInfo.attendeeName !== 'Unknown' && (
-              <div className="text-xl text-yellow-400 mb-6">
+              <div className="text-xl text-yellow-400 mb-4">
                 🏆 {winnerInfo.attendeeName}
+              </div>
+            )}
+            {/* Prize Won */}
+            {winnerInfo.prize && (
+              <div className="bg-gradient-to-r from-amber-900/50 to-yellow-900/50 rounded-xl p-4 mb-6 border border-yellow-500/30">
+                <div className="text-sm text-yellow-300 uppercase tracking-wider mb-2">Prize Won</div>
+                <div className="flex items-center justify-center gap-3">
+                  {winnerInfo.prize.imageUrl ? (
+                    <img 
+                      src={getAssetUrl(winnerInfo.prize.imageUrl)} 
+                      alt={winnerInfo.prize.name}
+                      className="w-16 h-16 object-cover rounded-lg shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-yellow-600/30 rounded-lg flex items-center justify-center">
+                      <Gift className="w-8 h-8 text-yellow-400" />
+                    </div>
+                  )}
+                  <div className="text-left">
+                    <div className="text-xl font-bold text-white">{winnerInfo.prize.name}</div>
+                    {winnerInfo.prize.value && (
+                      <div className="text-lg text-green-400">${winnerInfo.prize.value}</div>
+                    )}
+                    {winnerInfo.prize.description && (
+                      <div className="text-sm text-gray-400">{winnerInfo.prize.description}</div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
             <div className="flex gap-4 justify-center">
@@ -772,8 +858,6 @@ export default function SeatRaffleDrawing() {
           </div>
         </div>
       )}
-      
-      </div>{/* End content wrapper */}
       
       <style>{`
         @keyframes bounce-in {
