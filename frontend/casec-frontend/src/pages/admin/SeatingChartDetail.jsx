@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft, Plus, Edit, Trash2, Users, Grid3X3, Loader2, X,
-  Upload, Download, Check, Save, RefreshCw, User, Filter
+  Upload, Download, Check, Save, RefreshCw, User, Filter, Eye, Maximize2
 } from "lucide-react";
 import { seatingChartsAPI } from "../../services/api";
 
@@ -17,6 +17,7 @@ export default function AdminSeatingChartDetail() {
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [showSeatModal, setShowSeatModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
   const [filter, setFilter] = useState("all"); // all, occupied, empty, vip
 
@@ -286,6 +287,13 @@ export default function AdminSeatingChartDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowPreviewModal(true)}
+            className="btn btn-secondary flex items-center gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            Preview
+          </button>
           <button
             onClick={() => setShowImportModal(true)}
             className="btn btn-secondary flex items-center gap-2"
@@ -677,6 +685,116 @@ Orch-Center,A,2,Jane Doe,555-5678,jane@email.com,true`}
                 <button onClick={handleImport} disabled={saving || !importData.trim()} className="btn btn-primary flex-1">
                   {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Import"}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {showPreviewModal && chart && (
+        <div className="fixed inset-0 bg-gray-900 z-50 overflow-auto">
+          <div className="min-h-screen p-4">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div className="text-white">
+                <h1 className="text-2xl font-bold">{chart.name}</h1>
+                <p className="text-gray-400">{chart.description}</p>
+              </div>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="text-white hover:text-gray-300 p-2"
+              >
+                <X className="w-8 h-8" />
+              </button>
+            </div>
+
+            {/* Stage indicator */}
+            <div className="text-center mb-8">
+              <div className="inline-block bg-gray-700 text-white px-12 py-3 rounded-t-xl text-lg font-medium">
+                STAGE
+              </div>
+            </div>
+
+            {/* Sections */}
+            <div className="space-y-8 max-w-6xl mx-auto">
+              {chart.sections.map((section) => {
+                const sectionSeats = chart.seats?.filter(s => s.sectionId === section.sectionId) || [];
+                const rows = [...new Set(sectionSeats.map(s => s.rowLabel))].sort();
+                
+                return (
+                  <div key={section.sectionId} className="bg-gray-800 rounded-xl p-4">
+                    <h3 className="text-white font-bold text-center mb-4">{section.name}</h3>
+                    <div className="space-y-1">
+                      {rows.map((rowLabel) => {
+                        const rowSeats = sectionSeats
+                          .filter(s => s.rowLabel === rowLabel)
+                          .sort((a, b) => section.direction === "RTL" 
+                            ? b.seatNumber - a.seatNumber 
+                            : a.seatNumber - b.seatNumber);
+                        
+                        return (
+                          <div key={rowLabel} className="flex items-center justify-center gap-1">
+                            <span className="w-6 text-right text-xs font-medium text-gray-400 mr-2">{rowLabel}</span>
+                            {rowSeats.map((seat) => {
+                              const isOccupied = seat.status === "Occupied" || seat.attendeeName;
+                              const isVIP = seat.isVIP;
+                              const isNotAvailable = seat.status === "NotAvailable";
+                              
+                              let bgColor = "bg-gray-600"; // Available
+                              if (isNotAvailable) bgColor = "bg-gray-900 opacity-30";
+                              else if (isVIP) bgColor = "bg-purple-500";
+                              else if (isOccupied) bgColor = "bg-green-500";
+                              
+                              return (
+                                <div
+                                  key={seat.seatId}
+                                  className={`w-6 h-6 rounded text-[10px] font-medium text-white flex items-center justify-center ${bgColor}`}
+                                  title={`${rowLabel}-${seat.seatNumber}${seat.attendeeName ? `: ${seat.attendeeName}` : ''}`}
+                                >
+                                  {seat.seatNumber}
+                                </div>
+                              );
+                            })}
+                            <span className="w-6 text-left text-xs font-medium text-gray-400 ml-2">{rowLabel}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Legend */}
+            <div className="flex justify-center gap-6 mt-8 text-sm text-white">
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded bg-gray-600"></span> Available
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded bg-green-500"></span> Occupied
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded bg-purple-500"></span> VIP
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded bg-gray-900 opacity-30"></span> N/A
+              </span>
+            </div>
+
+            {/* Stats */}
+            <div className="flex justify-center gap-8 mt-6 text-white">
+              <div className="text-center">
+                <div className="text-2xl font-bold">{chart.totalSeats}</div>
+                <div className="text-gray-400 text-sm">Total Seats</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-400">{chart.occupiedSeats}</div>
+                <div className="text-gray-400 text-sm">Occupied</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-400">{chart.totalSeats - chart.occupiedSeats}</div>
+                <div className="text-gray-400 text-sm">Available</div>
               </div>
             </div>
           </div>
