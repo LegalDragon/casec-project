@@ -856,6 +856,7 @@ public class SeatRafflesController : ControllerBase
             BackgroundImageUrl = r.BackgroundImageUrl,
             BackgroundColor = r.BackgroundColor,
             BackgroundGradient = r.BackgroundGradient,
+            BackgroundOpacity = r.BackgroundOpacity,
             PrimaryColor = r.PrimaryColor,
             SecondaryColor = r.SecondaryColor,
             WinnerColor = r.WinnerColor,
