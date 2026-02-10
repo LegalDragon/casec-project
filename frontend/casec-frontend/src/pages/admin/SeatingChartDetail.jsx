@@ -900,15 +900,33 @@ Orch-Center,A,2,Jane Doe,555-5678,jane@email.com,true`}
                   const centerSection = sections.find(s => s.name.toLowerCase().includes('center') || s.name.toLowerCase().includes('centre'));
                   const rightSection = sections.find(s => s.name.toLowerCase().includes('right'));
                   
-                  const renderSectionSeats = (section, rowLabel) => {
-                    if (!section) return <div className="w-32"></div>; // placeholder
+                  // Calculate max seats per row for each section to set fixed widths
+                  const getMaxSeatsInSection = (section) => {
+                    if (!section) return 0;
+                    const sectionSeats = chart.seats?.filter(s => s.sectionId === section.sectionId) || [];
+                    const rowCounts = {};
+                    sectionSeats.forEach(s => {
+                      rowCounts[s.rowLabel] = (rowCounts[s.rowLabel] || 0) + 1;
+                    });
+                    return Math.max(0, ...Object.values(rowCounts));
+                  };
+                  
+                  const leftMaxSeats = getMaxSeatsInSection(leftSection);
+                  const centerMaxSeats = getMaxSeatsInSection(centerSection);
+                  const rightMaxSeats = getMaxSeatsInSection(rightSection);
+                  
+                  // Width = seats * 14px (12px seat + 2px gap)
+                  const leftWidth = Math.max(80, leftMaxSeats * 14);
+                  const centerWidth = Math.max(100, centerMaxSeats * 14);
+                  const rightWidth = Math.max(80, rightMaxSeats * 14);
+                  
+                  const renderSectionSeats = (section, rowLabel, fixedWidth) => {
+                    if (!section) return <div style={{ width: fixedWidth }}></div>;
                     const sectionSeats = (chart.seats?.filter(s => s.sectionId === section.sectionId && s.rowLabel === rowLabel) || [])
                       .sort((a, b) => section.direction === "RTL" ? b.seatNumber - a.seatNumber : a.seatNumber - b.seatNumber);
                     
-                    if (sectionSeats.length === 0) return <div className="w-32"></div>; // placeholder for missing row
-                    
                     return (
-                      <div className="flex items-center gap-0.5 justify-center" style={{ minWidth: '120px' }}>
+                      <div className="flex items-center gap-0.5 justify-center" style={{ width: fixedWidth }}>
                         {sectionSeats.map(seat => {
                           const isOccupied = seat.status === "Occupied" || seat.attendeeName;
                           const isVIP = seat.isVIP;
@@ -946,21 +964,21 @@ Orch-Center,A,2,Jane Doe,555-5678,jane@email.com,true`}
                       </div>
                       {/* Column headers */}
                       <div className="flex justify-center items-center gap-4 mb-2">
-                        <div className="text-gray-500 text-[10px] uppercase text-center" style={{ minWidth: '120px' }}>Left</div>
+                        <div className="text-gray-500 text-[10px] uppercase text-center" style={{ width: leftWidth }}>Left</div>
                         <div className="w-4"></div>
-                        <div className="text-gray-500 text-[10px] uppercase text-center" style={{ minWidth: '160px' }}>Center</div>
+                        <div className="text-gray-500 text-[10px] uppercase text-center" style={{ width: centerWidth }}>Center</div>
                         <div className="w-4"></div>
-                        <div className="text-gray-500 text-[10px] uppercase text-center" style={{ minWidth: '120px' }}>Right</div>
+                        <div className="text-gray-500 text-[10px] uppercase text-center" style={{ width: rightWidth }}>Right</div>
                       </div>
                       {/* Rows */}
                       <div className="space-y-0.5">
                         {allRows.map(rowLabel => (
                           <div key={rowLabel} className="flex justify-center items-center gap-4">
-                            {renderSectionSeats(leftSection, rowLabel)}
+                            {renderSectionSeats(leftSection, rowLabel, leftWidth)}
                             <span className="w-4 text-center text-[9px] text-gray-500">{rowLabel}</span>
-                            {renderSectionSeats(centerSection, rowLabel)}
+                            {renderSectionSeats(centerSection, rowLabel, centerWidth)}
                             <span className="w-4 text-center text-[9px] text-gray-500">{rowLabel}</span>
-                            {renderSectionSeats(rightSection, rowLabel)}
+                            {renderSectionSeats(rightSection, rowLabel, rightWidth)}
                           </div>
                         ))}
                       </div>
