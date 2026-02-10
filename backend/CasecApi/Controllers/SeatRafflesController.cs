@@ -131,6 +131,10 @@ public class SeatRafflesController : ControllerBase
             var allSeats = raffle.Chart.Seats.ToList();
             var eligibleSeats = allSeats.Where(s =>
             {
+                // Exclude NotExist and NotAvailable seats
+                if (s.Status == "NotExist" || s.Status == "NotAvailable")
+                    return false;
+
                 // If targets specified, seat must be in targets
                 if (targetSeatIds.Count > 0 && !targetSeatIds.Contains(s.SeatId))
                     return false;
@@ -511,6 +515,9 @@ public class SeatRafflesController : ControllerBase
             // Get eligible seats
             var eligibleSeats = raffle.Chart.Seats.Where(s =>
             {
+                // Exclude NotExist and NotAvailable seats
+                if (s.Status == "NotExist" || s.Status == "NotAvailable")
+                    return false;
                 if (targetSeatIds.Count > 0 && !targetSeatIds.Contains(s.SeatId))
                     return false;
                 if (excludedSeatIds.Contains(s.SeatId))

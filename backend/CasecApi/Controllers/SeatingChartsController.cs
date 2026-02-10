@@ -429,9 +429,11 @@ public class SeatingChartsController : ControllerBase
         var chart = await _context.SeatingCharts.FindAsync(chartId);
         if (chart != null)
         {
-            var seats = await _context.SeatingSeats.Where(s => s.ChartId == chartId).ToListAsync();
-            chart.TotalSeats = seats.Count;
-            chart.OccupiedSeats = seats.Count(s => s.Status == "Occupied" || !string.IsNullOrEmpty(s.AttendeeName));
+            var allSeats = await _context.SeatingSeats.Where(s => s.ChartId == chartId).ToListAsync();
+            // Exclude NotExist and NotAvailable from counts
+            var validSeats = allSeats.Where(s => s.Status != "NotExist" && s.Status != "NotAvailable").ToList();
+            chart.TotalSeats = validSeats.Count;
+            chart.OccupiedSeats = validSeats.Count(s => s.Status == "Occupied" || !string.IsNullOrEmpty(s.AttendeeName));
             chart.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
         }
