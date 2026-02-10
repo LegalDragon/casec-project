@@ -610,7 +610,7 @@ export const seatRafflesAPI = {
   clearTargets: (id) => api.delete(`/seatraffles/${id}/targets`),
 
   // Drawing
-  draw: (id, isTest = false) => api.post(`/seatraffles/${id}/draw?isTest=${isTest}`),
+  draw: (id, isTest = false, seatId = null) => api.post(`/seatraffles/${id}/draw?isTest=${isTest}${seatId ? `&seatId=${seatId}` : ''}`),
   reset: (id, testOnly = false) => api.post(`/seatraffles/${id}/reset?testOnly=${testOnly}`),
 };
 

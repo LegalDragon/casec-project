@@ -492,7 +492,7 @@ public class SeatRafflesController : ControllerBase
     // POST: /SeatRaffles/{id}/draw - Draw a winner
     [Authorize]
     [HttpPost("{id}/draw")]
-    public async Task<ActionResult<ApiResponse<SeatRaffleWinnerDto>>> DrawWinner(int id, [FromQuery] bool isTest = false)
+    public async Task<ActionResult<ApiResponse<SeatRaffleWinnerDto>>> DrawWinner(int id, [FromQuery] bool isTest = false, [FromQuery] int? seatId = null)
     {
         try
         {
@@ -532,9 +532,23 @@ public class SeatRafflesController : ControllerBase
             if (eligibleSeats.Count == 0)
                 return BadRequest(new ApiResponse<SeatRaffleWinnerDto> { Success = false, Message = "No eligible seats remaining" });
 
-            // Random draw
-            var random = new Random();
-            var winnerSeat = eligibleSeats[random.Next(eligibleSeats.Count)];
+            // Use provided seatId if valid, otherwise random draw
+            SeatingSeat winnerSeat;
+            if (seatId.HasValue)
+            {
+                winnerSeat = eligibleSeats.FirstOrDefault(s => s.SeatId == seatId.Value);
+                if (winnerSeat == null)
+                {
+                    // Provided seat is not eligible, fall back to random
+                    var random = new Random();
+                    winnerSeat = eligibleSeats[random.Next(eligibleSeats.Count)];
+                }
+            }
+            else
+            {
+                var random = new Random();
+                winnerSeat = eligibleSeats[random.Next(eligibleSeats.Count)];
+            }
 
             // Record winner
             var drawNumber = raffle.Winners.Count(w => !w.IsTestDraw) + 1;

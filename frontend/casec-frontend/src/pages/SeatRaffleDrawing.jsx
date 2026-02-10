@@ -412,11 +412,31 @@ export default function SeatRaffleDrawing() {
       setLoading(true);
       const response = await seatRafflesAPI.getDrawingData(raffleId);
       if (response.success) {
-        setRaffle(response.data);
-        // Convert seats array to map
+        // Build a mapping from backend seats to frontend string keys
+        // Backend: {sectionId, rowLabel, seatNumber} → Frontend: "ShortName-RowLabel-SeatNumber"
+        const sectionMap = {};
+        response.data.sections?.forEach(s => {
+          sectionMap[s.sectionId] = s.shortName;
+        });
+        
+        // Convert seats array to map keyed by frontend string format
         const seatMap = {};
+        const excludedSeatIds = [];
         response.data.seats?.forEach(s => {
-          seatMap[s.seatId] = s;
+          const sectionShortName = sectionMap[s.sectionId];
+          if (sectionShortName) {
+            const key = `${sectionShortName}-${s.rowLabel}-${s.seatNumber}`;
+            seatMap[key] = s;
+            if (s.isExcluded) {
+              excludedSeatIds.push(key);
+            }
+          }
+        });
+        
+        // Add excludedSeats array to raffle data
+        setRaffle({
+          ...response.data,
+          excludedSeats: excludedSeatIds
         });
         setSeats(seatMap);
       } else {
@@ -433,11 +453,20 @@ export default function SeatRaffleDrawing() {
   const eligibleSeats = useMemo(() => {
     if (!raffle) return allSeatIds.current;
     const excluded = new Set(raffle.excludedSeats || []);
-    const previousWinners = new Set(raffle.winners?.map(w => w.seatId) || []);
+    // Map winners to string keys using seats data
+    const previousWinnerIds = new Set();
+    raffle.winners?.forEach(w => {
+      // Find matching seat key
+      Object.entries(seats).forEach(([key, seat]) => {
+        if (seat.seatId === w.seatId) {
+          previousWinnerIds.add(key);
+        }
+      });
+    });
     
     return allSeatIds.current.filter(id => {
       if (excluded.has(id)) return false;
-      if (!raffle.allowRepeatWinners && previousWinners.has(id)) return false;
+      if (!raffle.allowRepeatWinners && previousWinnerIds.has(id)) return false;
       if (raffle.requireOccupied) {
         const seat = seats[id];
         return seat?.attendeeName;
@@ -488,8 +517,11 @@ export default function SeatRaffleDrawing() {
         setShowModal(true);
         setIsDrawing(false);
         
-        // Record winner in database
-        seatRafflesAPI.draw(raffleId).catch(console.error);
+        // Record winner in database - pass the actual seatId
+        const winnerSeatData = seats[winner];
+        if (winnerSeatData?.seatId) {
+          seatRafflesAPI.draw(raffleId, false, winnerSeatData.seatId).catch(console.error);
+        }
         
         return;
       }
