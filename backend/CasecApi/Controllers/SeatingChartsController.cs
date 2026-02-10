@@ -498,7 +498,13 @@ public class SeatingChartsController : ControllerBase
     {
         try
         {
+            if (request == null)
+                return BadRequest(new ApiResponse<int> { Success = false, Message = "Request body is null" });
+            
             var seatIds = request.SeatIds ?? Array.Empty<int>();
+            _logger.LogInformation("BulkUpdateSeats: chartId={ChartId}, seatIds count={Count}, status={Status}, isVIP={IsVIP}", 
+                chartId, seatIds.Length, request.Status, request.IsVIP);
+            
             var seats = await _context.SeatingSeats.Where(s => s.ChartId == chartId && seatIds.Contains(s.SeatId)).ToListAsync();
 
             foreach (var seat in seats)
