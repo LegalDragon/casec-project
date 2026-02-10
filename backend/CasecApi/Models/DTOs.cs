@@ -2244,6 +2244,8 @@ public class SeatingSectionDto
     public int SeatsPerRow { get; set; }
     public string? RowLabels { get; set; }
     public int StartSeatNumber { get; set; }
+    public int SeatIncrement { get; set; } = 1;
+    public string Direction { get; set; } = "LTR";
     public int SeatCount { get; set; }
 }
 
@@ -2288,6 +2290,8 @@ public class CreateSeatingSectionRequest
     public int SeatsPerRow { get; set; } = 10;
     public string? RowLabels { get; set; }
     public int StartSeatNumber { get; set; } = 1;
+    public int SeatIncrement { get; set; } = 1;
+    public string Direction { get; set; } = "LTR";
 }
 
 public class UpdateSeatingSectionRequest
@@ -2298,6 +2302,8 @@ public class UpdateSeatingSectionRequest
     public int? SeatsPerRow { get; set; }
     public string? RowLabels { get; set; }
     public int? StartSeatNumber { get; set; }
+    public int? SeatIncrement { get; set; }
+    public string? Direction { get; set; }
 }
 
 public class UpdateSeatingSeatRequest

@@ -68,6 +68,11 @@ public class SeatingSection
     
     public int StartSeatNumber { get; set; } = 1;
     
+    public int SeatIncrement { get; set; } = 1; // 1 = consecutive (1,2,3...), 2 = odd-only (1,3,5...) or even-only (2,4,6...)
+    
+    [MaxLength(10)]
+    public string Direction { get; set; } = "LTR"; // LTR = left-to-right, RTL = right-to-left
+    
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     // Navigation properties

@@ -104,6 +104,8 @@ public class SeatingChartsController : ControllerBase
                     SeatsPerRow = s.SeatsPerRow,
                     RowLabels = s.RowLabels,
                     StartSeatNumber = s.StartSeatNumber,
+                    SeatIncrement = s.SeatIncrement,
+                    Direction = s.Direction,
                     SeatCount = chart.Seats.Count(seat => seat.SectionId == s.SectionId)
                 }).ToList(),
                 Seats = chart.Seats.Select(seat => new SeatingSeatDto
@@ -255,7 +257,9 @@ public class SeatingChartsController : ControllerBase
                 RowPrefix = request.RowPrefix,
                 SeatsPerRow = request.SeatsPerRow,
                 RowLabels = request.RowLabels,
-                StartSeatNumber = request.StartSeatNumber
+                StartSeatNumber = request.StartSeatNumber,
+                SeatIncrement = request.SeatIncrement,
+                Direction = request.Direction
             };
 
             _context.SeatingSections.Add(section);
@@ -278,7 +282,9 @@ public class SeatingChartsController : ControllerBase
                     DisplayOrder = section.DisplayOrder,
                     SeatsPerRow = section.SeatsPerRow,
                     RowLabels = section.RowLabels,
-                    StartSeatNumber = section.StartSeatNumber
+                    StartSeatNumber = section.StartSeatNumber,
+                    SeatIncrement = section.SeatIncrement,
+                    Direction = section.Direction
                 }
             });
         }
@@ -306,10 +312,18 @@ public class SeatingChartsController : ControllerBase
             if (request.SeatsPerRow.HasValue) section.SeatsPerRow = request.SeatsPerRow.Value;
             if (request.RowLabels != null) section.RowLabels = request.RowLabels;
             if (request.StartSeatNumber.HasValue) section.StartSeatNumber = request.StartSeatNumber.Value;
+            if (request.SeatIncrement.HasValue) section.SeatIncrement = request.SeatIncrement.Value;
+            if (request.Direction != null) section.Direction = request.Direction;
 
             await _context.SaveChangesAsync();
 
-            return Ok(new ApiResponse<SeatingSectionDto> { Success = true, Data = new SeatingSectionDto { SectionId = section.SectionId, Name = section.Name } });
+            return Ok(new ApiResponse<SeatingSectionDto> { Success = true, Data = new SeatingSectionDto 
+            { 
+                SectionId = section.SectionId, 
+                Name = section.Name,
+                SeatIncrement = section.SeatIncrement,
+                Direction = section.Direction
+            } });
         }
         catch (Exception ex)
         {
@@ -381,11 +395,16 @@ public class SeatingChartsController : ControllerBase
 
         var rows = section.RowLabels.Split(',').Select(r => r.Trim()).Where(r => !string.IsNullOrEmpty(r)).ToList();
         var seats = new List<SeatingSeat>();
+        var increment = section.SeatIncrement > 0 ? section.SeatIncrement : 1;
 
         foreach (var rowLabel in rows)
         {
-            for (int seatNum = section.StartSeatNumber; seatNum < section.StartSeatNumber + section.SeatsPerRow; seatNum++)
+            // Generate SeatsPerRow seats, starting at StartSeatNumber, incrementing by SeatIncrement
+            // e.g., Start=1, Count=10, Increment=2 → 1,3,5,7,9,11,13,15,17,19 (odd only)
+            // e.g., Start=2, Count=10, Increment=2 → 2,4,6,8,10,12,14,16,18,20 (even only)
+            for (int i = 0; i < section.SeatsPerRow; i++)
             {
+                var seatNum = section.StartSeatNumber + (i * increment);
                 seats.Add(new SeatingSeat
                 {
                     ChartId = chartId,

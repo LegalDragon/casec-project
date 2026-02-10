@@ -21,7 +21,7 @@ export default function AdminSeatingChartDetail() {
   const [filter, setFilter] = useState("all"); // all, occupied, empty, vip
 
   const [sectionForm, setSectionForm] = useState({
-    name: "", shortName: "", displayOrder: 0, seatsPerRow: 10, rowLabels: "", startSeatNumber: 1
+    name: "", shortName: "", displayOrder: 0, seatsPerRow: 10, rowLabels: "", startSeatNumber: 1, seatIncrement: 1, direction: "LTR"
   });
 
   const [seatForm, setSeatForm] = useState({
@@ -96,7 +96,7 @@ export default function AdminSeatingChartDetail() {
       const response = await seatingChartsAPI.addSection(chartId, sectionForm);
       if (response.success) {
         setShowSectionModal(false);
-        setSectionForm({ name: "", shortName: "", displayOrder: 0, seatsPerRow: 10, rowLabels: "", startSeatNumber: 1 });
+        setSectionForm({ name: "", shortName: "", displayOrder: 0, seatsPerRow: 10, rowLabels: "", startSeatNumber: 1, seatIncrement: 1, direction: "LTR" });
         loadChart();
       } else {
         setError(response.message);
@@ -233,7 +233,9 @@ export default function AdminSeatingChartDetail() {
       displayOrder: section.displayOrder,
       seatsPerRow: section.seatsPerRow,
       rowLabels: section.rowLabels || "",
-      startSeatNumber: section.startSeatNumber
+      startSeatNumber: section.startSeatNumber,
+      seatIncrement: section.seatIncrement || 1,
+      direction: section.direction || "LTR"
     });
     setShowSectionModal(true);
   };
@@ -291,7 +293,7 @@ export default function AdminSeatingChartDetail() {
           <button
             onClick={() => {
               setEditingSection(null);
-              setSectionForm({ name: "", shortName: "", displayOrder: chart.sections.length, seatsPerRow: 10, rowLabels: "", startSeatNumber: 1 });
+              setSectionForm({ name: "", shortName: "", displayOrder: chart.sections.length, seatsPerRow: 10, rowLabels: "", startSeatNumber: 1, seatIncrement: 1, direction: "LTR" });
               setShowSectionModal(true);
             }}
             className="btn btn-primary flex items-center gap-2"
@@ -415,7 +417,7 @@ export default function AdminSeatingChartDetail() {
           <button
             onClick={() => {
               setEditingSection(null);
-              setSectionForm({ name: "", shortName: "", displayOrder: 0, seatsPerRow: 10, rowLabels: "", startSeatNumber: 1 });
+              setSectionForm({ name: "", shortName: "", displayOrder: 0, seatsPerRow: 10, rowLabels: "", startSeatNumber: 1, seatIncrement: 1, direction: "LTR" });
               setShowSectionModal(true);
             }}
             className="btn btn-primary"
@@ -490,6 +492,33 @@ export default function AdminSeatingChartDetail() {
                     onChange={(e) => setSectionForm({ ...sectionForm, startSeatNumber: parseInt(e.target.value) || 1 })}
                     className="input w-full"
                   />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Seat Increment</label>
+                  <select
+                    value={sectionForm.seatIncrement}
+                    onChange={(e) => setSectionForm({ ...sectionForm, seatIncrement: parseInt(e.target.value) })}
+                    className="input w-full"
+                  >
+                    <option value={1}>Consecutive (1,2,3...)</option>
+                    <option value={2}>Skip (odd or even)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use "Skip" for theaters with odd/even split
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Direction</label>
+                  <select
+                    value={sectionForm.direction}
+                    onChange={(e) => setSectionForm({ ...sectionForm, direction: e.target.value })}
+                    className="input w-full"
+                  >
+                    <option value="LTR">Left to Right</option>
+                    <option value="RTL">Right to Left</option>
+                  </select>
                 </div>
               </div>
               <div>
