@@ -312,6 +312,7 @@ export default function SeatRaffleDrawing() {
   const [winnerSeatId, setWinnerSeatId] = useState(null);
   const [winnerInfo, setWinnerInfo] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showWinnersModal, setShowWinnersModal] = useState(false);
   
   const { isPlaying, toggleMusic } = useBackgroundMusic();
   
@@ -655,7 +656,32 @@ export default function SeatRaffleDrawing() {
             {/* Stats */}
             <div className="text-xs text-gray-400 space-y-1">
               <div>Eligible: <span className="text-white font-bold">{eligibleSeats.length}</span></div>
-              <div>Winners: <span className="text-green-400 font-bold">{raffle?.winners?.length || 0}</span></div>
+            </div>
+            
+            {/* Winners List */}
+            <div 
+              className="bg-white/5 rounded-lg p-2 cursor-pointer hover:bg-white/10 transition-colors"
+              onClick={() => raffle?.winners?.length > 0 && setShowWinnersModal(true)}
+            >
+              <div className="text-xs text-gray-400 mb-1 flex items-center justify-between">
+                <span>🏆 Winners ({raffle?.winners?.length || 0})</span>
+                {raffle?.winners?.length > 0 && <span className="text-[10px] text-purple-400">View All</span>}
+              </div>
+              {raffle?.winners?.length > 0 ? (
+                <div className="space-y-1 max-h-24 overflow-y-auto">
+                  {raffle.winners.slice(-3).reverse().map((w, i) => (
+                    <div key={w.winnerId || i} className="text-[10px] text-green-400 truncate">
+                      #{w.drawNumber} {w.sectionName} {w.rowLabel}-{w.seatNumber}
+                      {w.attendeeName && <span className="text-gray-400"> • {w.attendeeName}</span>}
+                    </div>
+                  ))}
+                  {raffle.winners.length > 3 && (
+                    <div className="text-[10px] text-gray-500">+{raffle.winners.length - 3} more...</div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-[10px] text-gray-500">No winners yet</div>
+              )}
             </div>
             
             {/* Prize Selector (if multiple prizes) */}
@@ -856,6 +882,68 @@ export default function SeatRaffleDrawing() {
                 className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full font-bold"
               >
                 🎲 Draw Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* All Winners Modal */}
+      {showWinnersModal && raffle?.winners?.length > 0 && (
+        <div 
+          className="fixed inset-0 bg-black/85 flex items-center justify-center z-50"
+          onClick={() => setShowWinnersModal(false)}
+        >
+          <div 
+            className="bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-purple-500 rounded-2xl 
+              p-6 shadow-2xl shadow-purple-500/30 max-w-lg w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                🏆 All Winners ({raffle.winners.length})
+              </h2>
+              <button 
+                onClick={() => setShowWinnersModal(false)}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-2">
+              {raffle.winners.map((w, i) => (
+                <div 
+                  key={w.winnerId || i}
+                  className="bg-white/5 rounded-lg p-3 flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center text-gray-900 font-bold text-sm">
+                    {w.drawNumber}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-medium">
+                      {w.sectionName} Row {w.rowLabel}, Seat {w.seatNumber}
+                    </div>
+                    {w.attendeeName && (
+                      <div className="text-green-400 text-sm truncate">{w.attendeeName}</div>
+                    )}
+                    {w.prizeName && (
+                      <div className="text-yellow-400 text-xs flex items-center gap-1">
+                        <Gift className="w-3 h-3" /> {w.prizeName}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-gray-500 text-xs">
+                    {w.drawnAt && new Date(w.drawnAt).toLocaleTimeString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setShowWinnersModal(false)}
+                className="px-6 py-2 bg-gradient-to-r from-gray-600 to-gray-700 rounded-full font-bold text-white"
+              >
+                Close
               </button>
             </div>
           </div>
