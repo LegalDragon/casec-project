@@ -584,7 +584,7 @@ export default function SeatRaffleDrawing() {
           {allRows.map(rowLabel => (
             <React.Fragment key={rowLabel}>
               {/* Add aisle gap before row D (between B and D, since C may not exist in side sections) */}
-              {rowLabel === 'D' && <div className="h-4"></div>}
+              {rowLabel === 'C' && <div className="h-4"></div>}
               <div className="flex justify-center items-center gap-4">
                 {renderSectionSeats(leftSection, rowLabel, leftWidth)}
                 <span className="w-6 text-center text-[10px] opacity-70" style={{ color: textColor }}>{rowLabel}</span>
