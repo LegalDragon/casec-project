@@ -23,5 +23,5 @@ jobs:
           "@
           Write-Host "Executing: $sql"
           $username = if ($env:SQL_USERNAME) { $env:SQL_USERNAME } else { "ftsql" }
-          $result = Invoke-Sqlcmd -ServerInstance "localhost" -Database "casec" -Username $username -Password $env:SQL_PASSWORD -Query $sql
+          $result = Invoke-Sqlcmd -ServerInstance "localhost" -Database "CASECDB" -Username $username -Password $env:SQL_PASSWORD -Query $sql
           $result | Format-Table -AutoSize | Out-String -Width 300 | Write-Host
