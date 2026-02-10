@@ -38,10 +38,10 @@ export default function AdminSeatingChartDetail() {
     try {
       setLoading(true);
       const response = await seatingChartsAPI.getById(chartId);
-      if (response.data.success) {
-        setChart(response.data.data);
+      if (response.success) {
+        setChart(response.data);
       } else {
-        setError(response.data.message);
+        setError(response.message);
       }
     } catch (err) {
       setError("Failed to load chart");
@@ -94,12 +94,12 @@ export default function AdminSeatingChartDetail() {
     try {
       setSaving(true);
       const response = await seatingChartsAPI.addSection(chartId, sectionForm);
-      if (response.data.success) {
+      if (response.success) {
         setShowSectionModal(false);
         setSectionForm({ name: "", shortName: "", displayOrder: 0, seatsPerRow: 10, rowLabels: "", startSeatNumber: 1 });
         loadChart();
       } else {
-        setError(response.data.message);
+        setError(response.message);
       }
     } catch (err) {
       setError(err.message || "Failed to add section");
@@ -139,10 +139,10 @@ export default function AdminSeatingChartDetail() {
     try {
       setSaving(true);
       const response = await seatingChartsAPI.generateSeats(chartId, sectionId);
-      if (response.data.success) {
+      if (response.success) {
         loadChart();
       } else {
-        setError(response.data.message);
+        setError(response.message);
       }
     } catch (err) {
       setError(err.message || "Failed to generate seats");
@@ -209,14 +209,14 @@ export default function AdminSeatingChartDetail() {
       }
 
       const response = await seatingChartsAPI.importSeats(chartId, { seats });
-      if (response.data.success) {
-        const result = response.data.data;
+      if (response.success) {
+        const result = response.data;
         alert(`Import complete: ${result.imported} imported, ${result.updated} updated${result.errors?.length ? `, ${result.errors.length} errors` : ''}`);
         setShowImportModal(false);
         setImportData("");
         loadChart();
       } else {
-        setError(response.data.message);
+        setError(response.message);
       }
     } catch (err) {
       setError(err.message || "Failed to import seats");

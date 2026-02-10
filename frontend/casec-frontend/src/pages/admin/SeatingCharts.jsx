@@ -31,8 +31,8 @@ export default function AdminSeatingCharts() {
     try {
       setLoading(true);
       const response = await seatingChartsAPI.getAll();
-      if (response.data.success) {
-        setCharts(response.data.data);
+      if (response.success) {
+        setCharts(response.data || []);
       }
     } catch (err) {
       setError("Failed to load seating charts");
@@ -44,8 +44,8 @@ export default function AdminSeatingCharts() {
   const loadEvents = async () => {
     try {
       const response = await eventsAPI.getAll();
-      if (response.data.success) {
-        setEvents(response.data.data || []);
+      if (response.success) {
+        setEvents(response.data || []);
       }
     } catch (err) {
       console.error("Failed to load events", err);
@@ -61,12 +61,12 @@ export default function AdminSeatingCharts() {
         description: chartForm.description || null,
         eventId: chartForm.eventId ? parseInt(chartForm.eventId) : null
       });
-      if (response.data.success) {
+      if (response.success) {
         setShowChartModal(false);
         setChartForm({ name: "", description: "", eventId: "" });
         loadCharts();
       } else {
-        setError(response.data.message);
+        setError(response.message);
       }
     } catch (err) {
       setError(err.message || "Failed to create chart");
@@ -85,13 +85,13 @@ export default function AdminSeatingCharts() {
         description: chartForm.description || null,
         eventId: chartForm.eventId ? parseInt(chartForm.eventId) : null
       });
-      if (response.data.success) {
+      if (response.success) {
         setShowChartModal(false);
         setSelectedChart(null);
         setChartForm({ name: "", description: "", eventId: "" });
         loadCharts();
       } else {
-        setError(response.data.message);
+        setError(response.message);
       }
     } catch (err) {
       setError(err.message || "Failed to update chart");
