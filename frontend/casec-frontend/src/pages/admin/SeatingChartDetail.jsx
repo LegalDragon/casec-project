@@ -14,6 +14,7 @@ export default function AdminSeatingChartDetail() {
   const [saving, setSaving] = useState(false);
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [showSeatModal, setShowSeatModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -154,16 +155,56 @@ export default function AdminSeatingChartDetail() {
   };
 
   const handleSeatClick = (seat) => {
-    setSelectedSeat(seat);
-    setSeatForm({
-      status: seat.status || "Available",
-      attendeeName: seat.attendeeName || "",
-      attendeePhone: seat.attendeePhone || "",
-      attendeeEmail: seat.attendeeEmail || "",
-      attendeeNotes: seat.attendeeNotes || "",
-      isVIP: seat.isVIP
+    if (multiSelectMode) {
+      // Toggle seat selection
+      setSelectedSeats(prev => 
+        prev.includes(seat.seatId) 
+          ? prev.filter(id => id !== seat.seatId)
+          : [...prev, seat.seatId]
+      );
+    } else {
+      setSelectedSeat(seat);
+      setSeatForm({
+        status: seat.status || "Available",
+        attendeeName: seat.attendeeName || "",
+        attendeePhone: seat.attendeePhone || "",
+        attendeeEmail: seat.attendeeEmail || "",
+        attendeeNotes: seat.attendeeNotes || "",
+        isVIP: seat.isVIP
+      });
+      setShowSeatModal(true);
+    }
+  };
+
+  const handleBulkUpdate = async (status) => {
+    if (selectedSeats.length === 0) return;
+    try {
+      setSaving(true);
+      await seatingChartsAPI.bulkUpdateSeats(chartId, { 
+        seatIds: selectedSeats, 
+        status 
+      });
+      setSelectedSeats([]);
+      loadChart();
+    } catch (err) {
+      setError(err.message || "Failed to update seats");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const selectAllInSection = (sectionId) => {
+    const sectionSeatIds = (chart.seats || [])
+      .filter(s => s.sectionId === sectionId)
+      .map(s => s.seatId);
+    setSelectedSeats(prev => {
+      const allSelected = sectionSeatIds.every(id => prev.includes(id));
+      if (allSelected) {
+        return prev.filter(id => !sectionSeatIds.includes(id));
+      } else {
+        return [...new Set([...prev, ...sectionSeatIds])];
+      }
     });
-    setShowSeatModal(true);
   };
 
   const handleUpdateSeat = async (e) => {
@@ -322,35 +363,85 @@ export default function AdminSeatingChartDetail() {
         </div>
       )}
 
-      {/* Filter */}
-      <div className="flex items-center gap-2">
-        <Filter className="w-4 h-4 text-gray-500" />
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="input w-40"
-        >
-          <option value="all">All Seats</option>
-          <option value="occupied">Occupied</option>
-          <option value="empty">Empty</option>
-          <option value="vip">VIP</option>
-          <option value="unavailable">Not Available</option>
-        </select>
-        <div className="flex gap-4 ml-4 text-sm flex-wrap">
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-green-500"></span> Occupied
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-gray-400"></span> Empty
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-purple-500"></span> VIP
-          </span>
+      {/* Filter & Multi-Select */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-500" />
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="input w-40"
+          >
+            <option value="all">All Seats</option>
+            <option value="occupied">Occupied</option>
+            <option value="empty">Empty</option>
+            <option value="vip">VIP</option>
+            <option value="unavailable">Not Available</option>
+          </select>
+          <div className="flex gap-4 ml-4 text-sm flex-wrap">
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded bg-green-500"></span> Occupied
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded bg-gray-400"></span> Empty
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded bg-purple-500"></span> VIP
+            </span>
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded bg-gray-800 opacity-50"></span> N/A
           </span>
+          </div>
         </div>
+        <button
+          onClick={() => {
+            setMultiSelectMode(!multiSelectMode);
+            if (multiSelectMode) setSelectedSeats([]);
+          }}
+          className={`btn ${multiSelectMode ? 'btn-primary' : 'btn-secondary'} flex items-center gap-2`}
+        >
+          <Check className="w-4 h-4" />
+          {multiSelectMode ? 'Exit Multi-Select' : 'Multi-Select'}
+        </button>
       </div>
+
+      {/* Bulk Action Bar */}
+      {multiSelectMode && selectedSeats.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+          <span className="font-medium text-blue-800">
+            {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} selected
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleBulkUpdate("NotAvailable")}
+              disabled={saving}
+              className="btn btn-secondary text-sm"
+            >
+              Mark N/A
+            </button>
+            <button
+              onClick={() => handleBulkUpdate("Available")}
+              disabled={saving}
+              className="btn btn-secondary text-sm"
+            >
+              Mark Available
+            </button>
+            <button
+              onClick={() => handleBulkUpdate("Reserved")}
+              disabled={saving}
+              className="btn btn-secondary text-sm"
+            >
+              Mark Reserved
+            </button>
+            <button
+              onClick={() => setSelectedSeats([])}
+              className="btn btn-secondary text-sm"
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sections */}
       <div className="space-y-6">
@@ -366,6 +457,15 @@ export default function AdminSeatingChartDetail() {
                 </p>
               </div>
               <div className="flex gap-2">
+                {multiSelectMode && (
+                  <button
+                    onClick={() => selectAllInSection(section.sectionId)}
+                    className="btn btn-secondary text-sm flex items-center gap-1"
+                  >
+                    <Check className="w-4 h-4" />
+                    Select All
+                  </button>
+                )}
                 <button
                   onClick={() => handleGenerateSeats(section.sectionId)}
                   className="btn btn-secondary text-sm flex items-center gap-1"
@@ -408,7 +508,8 @@ export default function AdminSeatingChartDetail() {
                               onClick={() => handleSeatClick(seat)}
                               className={`w-8 h-8 rounded text-xs font-medium text-white border-2 
                                 ${getSeatColor(seat)} hover:opacity-80 transition-opacity
-                                flex items-center justify-center`}
+                                flex items-center justify-center
+                                ${multiSelectMode && selectedSeats.includes(seat.seatId) ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
                               title={`${section.shortName} ${rowLabel}-${seat.seatNumber}${seat.attendeeName ? `: ${seat.attendeeName}` : ''}`}
                             >
                               {seat.seatNumber}
