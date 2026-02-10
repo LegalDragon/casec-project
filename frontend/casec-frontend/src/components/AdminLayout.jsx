@@ -30,6 +30,7 @@ export default function AdminLayout() {
     { path: '/admin/polls', label: 'Polls', icon: BarChart3, areaKey: 'polls' },
     { path: '/admin/surveys', label: 'Surveys', icon: ClipboardList, areaKey: 'surveys' },
     { path: '/admin/raffles', label: 'Raffles', icon: Ticket, areaKey: 'raffles' },
+    { path: '/admin/seat-raffles', label: 'Seat Raffles', icon: Ticket, areaKey: 'raffles' },
     { type: 'divider', label: 'Appearance', category: 'appearance' },
     { path: '/admin/slideshows', label: 'SlideShows', icon: Image, areaKey: 'slideshows' },
     { path: '/admin/theme', label: 'Theme Settings', icon: Palette, areaKey: 'theme' },
