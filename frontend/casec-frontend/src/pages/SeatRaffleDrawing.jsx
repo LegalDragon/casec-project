@@ -428,8 +428,10 @@ export default function SeatRaffleDrawing() {
         setShowModal(true);
         setIsDrawing(false);
         
-        // Record winner in database (with optional prizeId)
-        seatRafflesAPI.draw(raffleId, false, winnerSeat.seatId, selectedPrize?.prizeId).catch(console.error);
+        // Record winner in database (with optional prizeId) then reload data
+        seatRafflesAPI.draw(raffleId, false, winnerSeat.seatId, selectedPrize?.prizeId)
+          .then(() => loadRaffle()) // Refresh winners list
+          .catch(console.error);
         
         return;
       }
