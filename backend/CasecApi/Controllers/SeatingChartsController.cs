@@ -656,11 +656,12 @@ public class SeatingChartsController : ControllerBase
                     SectionId = s.SectionId,
                     Name = s.Name,
                     ShortName = s.ShortName,
-                    Rows = s.Rows,
                     SeatsPerRow = s.SeatsPerRow,
-                    StartRow = s.StartRow,
                     Direction = s.Direction,
-                    DisplayOrder = s.DisplayOrder
+                    DisplayOrder = s.DisplayOrder,
+                    RowLabels = s.RowLabels,
+                    StartSeatNumber = s.StartSeatNumber,
+                    SeatIncrement = s.SeatIncrement
                 }).ToList(),
                 Seats = chart.Seats.Select(seat => new SeatingSeatDto
                 {
