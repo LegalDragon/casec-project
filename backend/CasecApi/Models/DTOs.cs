@@ -2389,9 +2389,12 @@ public class SeatRaffleDetailDto : SeatRaffleDto
     public bool ShowAttendeeName { get; set; }
     public bool ShowAttendeePhone { get; set; }
 
-    // Prize
+    // Prize (legacy - kept for backward compatibility)
     public string? PrizeDescription { get; set; }
     public string? PrizeImageUrl { get; set; }
+
+    // Prizes list
+    public List<SeatRafflePrizeDto> Prizes { get; set; } = new();
 
     // Exclusions and targets
     public List<int> ExcludedSeatIds { get; set; } = new();
