@@ -632,6 +632,25 @@ export default function SeatRaffleDrawing() {
           STAGE
         </div>
         
+        {/* Floating Prize Image - top left when prize selected */}
+        {selectedPrize?.imageUrl && (
+          <div className="fixed top-4 left-4 z-30 pointer-events-none">
+            <div className="bg-black/40 backdrop-blur-sm rounded-xl p-2 shadow-2xl border border-yellow-500/30">
+              <img 
+                src={getAssetUrl(selectedPrize.imageUrl)} 
+                alt={selectedPrize.name}
+                className="w-32 h-32 object-cover rounded-lg shadow-lg"
+              />
+              <div className="text-center mt-1">
+                <div className="text-sm font-bold text-yellow-400 truncate max-w-32">{selectedPrize.name}</div>
+                {selectedPrize.value && (
+                  <div className="text-xs text-green-400">${selectedPrize.value}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Floating Admin Panel - bottom left */}
         <div className="fixed bottom-4 left-4 z-40 w-52 bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700 shadow-2xl p-3 space-y-3">
             {/* Title */}
