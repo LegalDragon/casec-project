@@ -626,16 +626,14 @@ export default function SeatRaffleDrawing() {
       )}
       {/* Content */}
       <div className="relative z-10 p-2">
-        {/* Stage bar at top */}
+        {/* Stage bar at top - centered */}
         <div className="bg-gradient-to-b from-gray-600 to-gray-800 text-white text-center py-2 px-12 
           rounded-b-[50%] mx-auto w-2/3 max-w-xl font-bold tracking-widest shadow-lg mb-2">
           STAGE
         </div>
         
-        {/* Main layout: sidebar left, seats right */}
-        <div className="flex gap-4">
-          {/* Left sidebar - controls & info */}
-          <div className="flex-shrink-0 w-48 space-y-3">
+        {/* Floating Admin Panel - bottom left */}
+        <div className="fixed bottom-4 left-4 z-40 w-52 bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700 shadow-2xl p-3 space-y-3">
             {/* Title */}
             <div>
               <h1 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent leading-tight">
@@ -776,11 +774,8 @@ export default function SeatRaffleDrawing() {
               ← Admin
             </Link>
           </div>
-          
-          {/* Main seat area */}
-          <div className="flex-1">
         
-        {/* Theater Layout - Dynamic based on available sections */}
+        {/* Theater Layout - centered, full width */}
         <div className="space-y-6">
           {/* Orchestra - unified row layout */}
           {hasOrchestra && renderLevel('orchestra', 'Orchestra')}
@@ -816,8 +811,6 @@ export default function SeatRaffleDrawing() {
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500 ring-2 ring-green-400"></span>Winner</span>
           </div>
         </div>{/* End theater layout */}
-        </div>{/* End seat area */}
-        </div>{/* End flex container */}
       </div>{/* End content */}
       
       {/* Winner Modal */}
