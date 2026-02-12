@@ -297,11 +297,27 @@ export default function AdminSeatRaffles() {
     newPrizes.forEach((p, i) => { p.displayOrder = i; });
     setPrizes(newPrizes);
 
-    // Persist changes
+    // Persist changes - send full prize objects to avoid clearing other fields
     try {
+      const prize1 = newPrizes[index];
+      const prize2 = newPrizes[newIndex];
       await Promise.all([
-        seatRafflesAPI.updatePrize(selectedRaffle.seatRaffleId, newPrizes[index].prizeId, { displayOrder: index }),
-        seatRafflesAPI.updatePrize(selectedRaffle.seatRaffleId, newPrizes[newIndex].prizeId, { displayOrder: newIndex })
+        seatRafflesAPI.updatePrize(selectedRaffle.seatRaffleId, prize1.prizeId, {
+          name: prize1.name,
+          description: prize1.description || null,
+          imageUrl: prize1.imageUrl || null,
+          value: prize1.value || null,
+          quantity: prize1.quantity || 1,
+          displayOrder: index
+        }),
+        seatRafflesAPI.updatePrize(selectedRaffle.seatRaffleId, prize2.prizeId, {
+          name: prize2.name,
+          description: prize2.description || null,
+          imageUrl: prize2.imageUrl || null,
+          value: prize2.value || null,
+          quantity: prize2.quantity || 1,
+          displayOrder: newIndex
+        })
       ]);
     } catch (err) {
       console.error('Failed to reorder prizes:', err);
