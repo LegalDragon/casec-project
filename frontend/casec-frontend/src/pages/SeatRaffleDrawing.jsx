@@ -366,9 +366,9 @@ export default function SeatRaffleDrawing() {
     loadRaffle();
   }, [raffleId]);
   
-  const loadRaffle = async () => {
+  const loadRaffle = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const response = await seatRafflesAPI.getDrawingData(raffleId);
       if (response.success) {
         setRaffle(response.data);
@@ -381,7 +381,7 @@ export default function SeatRaffleDrawing() {
       setError("Failed to load raffle");
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
   
@@ -447,9 +447,9 @@ export default function SeatRaffleDrawing() {
         setShowModal(true);
         setIsDrawing(false);
         
-        // Record winner in database (with optional prizeId) then reload data
+        // Record winner in database (with optional prizeId) then silently refresh data
         seatRafflesAPI.draw(raffleId, false, winnerSeat.seatId, selectedPrize?.prizeId)
-          .then(() => loadRaffle()) // Refresh winners list
+          .then(() => loadRaffle(false)) // Silent refresh - no loading spinner
           .catch(console.error);
         
         return;
@@ -876,10 +876,10 @@ export default function SeatRaffleDrawing() {
         </div>{/* End theater layout */}
       </div>{/* End content */}
       
-      {/* Winner Modal */}
+      {/* Winner Modal - semi-transparent so seat chart is visible */}
       {showModal && winnerInfo && (
         <div 
-          className="fixed inset-0 bg-black/85 flex items-center justify-center z-[100]"
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]"
           onClick={() => setShowModal(false)}
         >
           <div 
@@ -1036,7 +1036,7 @@ export default function SeatRaffleDrawing() {
                                     e.stopPropagation();
                                     try {
                                       await seatRafflesAPI.lockWinner(raffle.seatRaffleId, w.winnerId, !w.isLocked);
-                                      loadRaffle(); // Refresh data
+                                      loadRaffle(false); // Silent refresh
                                     } catch (err) {
                                       console.error('Failed to toggle lock:', err);
                                     }
