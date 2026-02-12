@@ -308,6 +308,7 @@ export default function SeatRaffleDrawing() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [highlightedSeatId, setHighlightedSeatId] = useState(null);
   const [selectedPrize, setSelectedPrize] = useState(null);
+  const [prizeAnimKey, setPrizeAnimKey] = useState(0); // Key to replay animation
   const [showPrizeSelector, setShowPrizeSelector] = useState(false);
   const [winnerSeatId, setWinnerSeatId] = useState(null);
   const [winnerInfo, setWinnerInfo] = useState(null);
@@ -653,8 +654,11 @@ export default function SeatRaffleDrawing() {
         {/* Center Prize Showcase - shows when prize selected, hides during drawing and when winner modal shown */}
         {selectedPrize && !isDrawing && !showModal && (
           <div className="fixed inset-0 z-30 flex items-center justify-center pointer-events-none">
-            <div className="animate-prize-showcase bg-black/60 backdrop-blur-md rounded-3xl p-8 shadow-2xl border-2 border-yellow-500/50
-              shadow-yellow-500/30">
+            <div 
+              key={prizeAnimKey}
+              onClick={() => setPrizeAnimKey(k => k + 1)}
+              className="animate-prize-showcase bg-black/60 backdrop-blur-md rounded-3xl p-8 shadow-2xl border-2 border-yellow-500/50
+              shadow-yellow-500/30 cursor-pointer pointer-events-auto">
               {selectedPrize.imageUrl ? (
                 <img 
                   src={getAssetUrl(selectedPrize.imageUrl)} 
@@ -767,7 +771,7 @@ export default function SeatRaffleDrawing() {
                       return (
                         <button
                           key={prize.prizeId}
-                          onClick={() => { if (!isFull) { setSelectedPrize(prize); setShowPrizeSelector(false); }}}
+                          onClick={() => { if (!isFull) { setSelectedPrize(prize); setPrizeAnimKey(k => k + 1); setShowPrizeSelector(false); }}}
                           className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-700 flex items-center gap-2
                             ${selectedPrize?.prizeId === prize.prizeId ? 'bg-purple-600/30 text-purple-300' : 'text-gray-300'}
                             ${isFull ? 'opacity-50 cursor-not-allowed' : ''}`}
