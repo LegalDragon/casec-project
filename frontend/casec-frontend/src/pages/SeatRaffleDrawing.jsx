@@ -732,7 +732,7 @@ export default function SeatRaffleDrawing() {
                   <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${showPrizeSelector ? 'rotate-180' : ''}`} />
                 </button>
                 {showPrizeSelector && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 max-h-48 overflow-y-auto">
+                  <div className="absolute bottom-full left-0 right-0 mb-1 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 max-h-64 overflow-y-auto">
                     <button
                       onClick={() => { setSelectedPrize(null); setShowPrizeSelector(false); }}
                       className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-700 flex items-center gap-2
