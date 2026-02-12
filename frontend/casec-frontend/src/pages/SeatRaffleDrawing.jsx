@@ -860,7 +860,7 @@ export default function SeatRaffleDrawing() {
       {/* Winner Modal */}
       {showModal && winnerInfo && (
         <div 
-          className="fixed inset-0 bg-black/85 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/85 flex items-center justify-center z-[100]"
           onClick={() => setShowModal(false)}
         >
           <div 
