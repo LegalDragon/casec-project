@@ -407,7 +407,7 @@ export default function SlideShow({ code, id, onComplete, onSkip, adminMode = fa
               className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
               src={getAssetUrl(backgroundVideoUrl)}
               autoPlay
-              muted={!slideShow?.enableAudio}
+              muted={!config?.enableAudio}
               loop
               playsInline
               preload="auto"
