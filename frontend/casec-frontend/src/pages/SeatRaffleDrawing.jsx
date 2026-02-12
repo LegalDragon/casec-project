@@ -48,21 +48,22 @@ const playWinner = () => {
   });
 };
 
-// Confetti effect
+// Confetti effect - z-index 50 so it's behind winner modal (z-100) but visible over seat chart
 const createConfetti = () => {
   const colors = ['#a855f7', '#ec4899', '#22c55e', '#fbbf24', '#3b82f6', '#ef4444'];
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 50; i++) { // Reduced from 80 to 50 for less intrusive effect
     const confetti = document.createElement('div');
     confetti.style.cssText = `
       position: fixed;
       pointer-events: none;
-      z-index: 1001;
+      z-index: 50;
       left: ${Math.random() * 100}vw;
       top: -10px;
-      width: ${Math.random() * 12 + 6}px;
-      height: ${Math.random() * 12 + 6}px;
+      width: ${Math.random() * 10 + 4}px;
+      height: ${Math.random() * 10 + 4}px;
       background: ${colors[Math.floor(Math.random() * colors.length)]};
       border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+      opacity: 0.8;
       animation: confetti-fall ${Math.random() * 2 + 2}s linear forwards;
     `;
     document.body.appendChild(confetti);
