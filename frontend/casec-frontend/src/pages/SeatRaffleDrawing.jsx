@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Loader2, ArrowLeft, Volume2, VolumeX, RotateCcw, Trophy, Settings, Gift, ChevronDown } from "lucide-react";
+import { Loader2, ArrowLeft, Volume2, VolumeX, RotateCcw, Trophy, Settings, Gift, ChevronDown, Lock, Unlock } from "lucide-react";
 import { seatRafflesAPI, getAssetUrl } from "../services/api";
 
 // Web Audio context for sound effects
@@ -1011,7 +1011,26 @@ export default function SeatRaffleDrawing() {
                           {/* Winners List */}
                           <div className="space-y-1">
                             {winners.map((w, i) => (
-                              <div key={w.winnerId || i} className="flex items-center gap-2 text-sm">
+                              <div key={w.winnerId || i} className="flex items-center gap-2 text-sm group">
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      await seatRafflesAPI.lockWinner(raffle.seatRaffleId, w.winnerId, !w.isLocked);
+                                      loadRaffle(); // Refresh data
+                                    } catch (err) {
+                                      console.error('Failed to toggle lock:', err);
+                                    }
+                                  }}
+                                  className={`p-1 rounded transition-colors ${
+                                    w.isLocked 
+                                      ? 'text-yellow-400 hover:text-yellow-300' 
+                                      : 'text-gray-500 hover:text-gray-300 opacity-0 group-hover:opacity-100'
+                                  }`}
+                                  title={w.isLocked ? 'Unlock winner' : 'Lock winner'}
+                                >
+                                  {w.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                                </button>
                                 <span className="text-purple-400 font-medium">#{w.drawNumber || i + 1}</span>
                                 <span className="text-white">
                                   {w.sectionName} {w.rowLabel}-{w.seatNumber}

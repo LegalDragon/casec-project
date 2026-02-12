@@ -2500,6 +2500,7 @@ public class SeatRaffleWinnerDto
     public int? PrizeId { get; set; }
     public string? PrizeName { get; set; }
     public bool IsTestDraw { get; set; }
+    public bool IsLocked { get; set; }
     public DateTime DrawnAt { get; set; }
 }
 

@@ -253,6 +253,7 @@ public class SeatRafflesController : ControllerBase
                     SeatNumber = w.SeatNumber,
                     PrizeId = w.PrizeId,
                     PrizeName = raffle.Prizes.FirstOrDefault(p => p.PrizeId == w.PrizeId)?.Name,
+                    IsLocked = w.IsLocked,
                     DrawnAt = w.DrawnAt
                 }).ToList()
             };
@@ -753,13 +754,18 @@ public class SeatRafflesController : ControllerBase
                 {
                     prizeName = prize.Name;
                     
-                    // Remove any existing winner for this prize (each prize can only have one winner)
+                    // Check if prize has reached its quantity limit
                     var existingWinners = await _context.SeatRaffleWinners
-                        .Where(w => w.SeatRaffleId == id && w.PrizeId == prizeId.Value && !w.IsTestDraw)
+                        .Where(w => w.SeatRaffleId == id && w.PrizeId == prizeId.Value && !w.IsTestDraw && !w.IsLocked)
+                        .OrderBy(w => w.DrawnAt)
                         .ToListAsync();
-                    if (existingWinners.Any())
+                    
+                    // If we've reached the quantity limit, remove the oldest unlocked winner to make room
+                    if (prize.Quantity > 0 && existingWinners.Count >= prize.Quantity)
                     {
-                        _context.SeatRaffleWinners.RemoveRange(existingWinners);
+                        // Remove oldest unlocked winner
+                        var toRemove = existingWinners.First();
+                        _context.SeatRaffleWinners.Remove(toRemove);
                     }
                 }
             }
@@ -815,6 +821,55 @@ public class SeatRafflesController : ControllerBase
         {
             _logger.LogError(ex, "Error drawing winner for raffle {RaffleId}", id);
             return StatusCode(500, new ApiResponse<SeatRaffleWinnerDto> { Success = false, Message = "Error drawing winner" });
+        }
+    }
+
+    // POST: /SeatRaffles/{id}/winners/{winnerId}/lock - Lock/unlock a winner
+    [AllowAnonymous]
+    [HttpPost("{id}/winners/{winnerId}/lock")]
+    public async Task<ActionResult<ApiResponse<SeatRaffleWinnerDto>>> ToggleWinnerLock(int id, int winnerId, [FromQuery] bool locked = true)
+    {
+        try
+        {
+            var winner = await _context.SeatRaffleWinners
+                .Include(w => w.SeatRaffle)
+                    .ThenInclude(r => r.Prizes)
+                .FirstOrDefaultAsync(w => w.WinnerId == winnerId && w.SeatRaffleId == id);
+
+            if (winner == null)
+                return NotFound(new ApiResponse<SeatRaffleWinnerDto> { Success = false, Message = "Winner not found" });
+
+            winner.IsLocked = locked;
+            await _context.SaveChangesAsync();
+
+            var prizeName = winner.PrizeId.HasValue 
+                ? winner.SeatRaffle.Prizes.FirstOrDefault(p => p.PrizeId == winner.PrizeId)?.Name 
+                : null;
+
+            return Ok(new ApiResponse<SeatRaffleWinnerDto>
+            {
+                Success = true,
+                Data = new SeatRaffleWinnerDto
+                {
+                    WinnerId = winner.WinnerId,
+                    SeatId = winner.SeatId,
+                    DrawNumber = winner.DrawNumber,
+                    AttendeeName = winner.AttendeeName,
+                    SectionName = winner.SectionName,
+                    RowLabel = winner.RowLabel,
+                    SeatNumber = winner.SeatNumber,
+                    PrizeId = winner.PrizeId,
+                    PrizeName = prizeName,
+                    IsLocked = winner.IsLocked,
+                    IsTestDraw = winner.IsTestDraw,
+                    DrawnAt = winner.DrawnAt
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling lock for winner {WinnerId}", winnerId);
+            return StatusCode(500, new ApiResponse<SeatRaffleWinnerDto> { Success = false, Message = "Error toggling lock" });
         }
     }
 

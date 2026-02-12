@@ -614,6 +614,9 @@ export const seatRafflesAPI = {
   // Drawing
   draw: (id, isTest = false, seatId = null, prizeId = null) => api.post(`/seatraffles/${id}/draw?isTest=${isTest}${seatId ? `&seatId=${seatId}` : ''}${prizeId ? `&prizeId=${prizeId}` : ''}`),
   reset: (id, testOnly = false) => api.post(`/seatraffles/${id}/reset?testOnly=${testOnly}`),
+  
+  // Winner management
+  lockWinner: (id, winnerId, locked = true) => api.post(`/seatraffles/${id}/winners/${winnerId}/lock?locked=${locked}`),
 
   // Prizes
   getPrizes: (id) => api.get(`/seatraffles/${id}/prizes`),

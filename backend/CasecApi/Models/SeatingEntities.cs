@@ -298,6 +298,8 @@ public class SeatRaffleWinner
     
     public int? PrizeId { get; set; }
     
+    public bool IsLocked { get; set; } = false; // Locked winners won't be replaced when quantity is full
+    
     public DateTime DrawnAt { get; set; } = DateTime.UtcNow;
     public int? DrawnBy { get; set; }
     
