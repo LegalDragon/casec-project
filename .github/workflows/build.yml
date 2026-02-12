@@ -61,3 +61,129 @@ jobs:
           name: frontend
           path: frontend/casec-frontend/dist/
           retention-days: 3
+
+      - name: Upload deploy script
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-script
+          path: Deployment/deploy-iis.ps1
+          retention-days: 3
+
+  deploy:
+    name: Deploy to Production
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, windows, iis]
+    steps:
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend
+          path: artifacts/backend
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: artifacts/frontend
+
+      - name: Download deploy script
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-script
+          path: artifacts/scripts
+
+      - name: Deploy to IIS
+        shell: powershell
+        run: |
+          & artifacts\scripts\deploy-iis.ps1 -SiteName "Asso_CASEC" -AppPoolName "Asso_CASEC" -FrontendArtifact "artifacts\frontend" -BackendArtifact "artifacts\backend"
+
+      - name: Run SQL migrations
+        shell: powershell
+        env:
+          DEPLOY_API_KEY: ${{ secrets.DEPLOY_API_KEY }}
+        run: |
+          Write-Host "[MIGRATIONS] Running deployment SQL..."
+          Start-Sleep -Seconds 10
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          $headers = @{
+            "X-Deploy-Key" = $env:DEPLOY_API_KEY
+            "Content-Type" = "application/json"
+          }
+          $sql = @"
+          IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Deployments')
+          BEGIN
+            CREATE TABLE Deployments (
+              DeploymentId INT IDENTITY(1,1) PRIMARY KEY,
+              Summary NVARCHAR(500) NOT NULL,
+              CommitHash NVARCHAR(40) NULL,
+              Branch NVARCHAR(100) NULL DEFAULT 'main',
+              DeployedBy NVARCHAR(100) NULL DEFAULT 'GitHub Actions',
+              Status NVARCHAR(20) NOT NULL DEFAULT 'success',
+              DurationSeconds INT NULL,
+              DeployedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+            );
+            CREATE INDEX IX_Deployments_DeployedAt ON Deployments (DeployedAt DESC);
+          END
+          "@
+          $body = @{ sql = $sql } | ConvertTo-Json
+          $urls = @("https://app.casecflorida.org/api/admin/migrations/run-sql", "http://app.casecflorida.org/api/admin/migrations/run-sql")
+          $success = $false
+          foreach ($url in $urls) {
+            Write-Host "[MIGRATIONS] Trying $url ..."
+            try {
+              $response = Invoke-RestMethod -Uri $url -Method POST -Headers $headers -Body $body -TimeoutSec 60
+              Write-Host "[MIGRATIONS] $($response.message)"
+              $success = $true
+              break
+            } catch {
+              Write-Host "[MIGRATIONS] Failed on $url : $($_.Exception.Message)"
+            }
+          }
+          if (-not $success) {
+            Write-Host "[MIGRATIONS] WARN: Could not create Deployments table."
+          }
+
+      - name: Record deployment
+        if: always()
+        shell: powershell
+        env:
+          DEPLOY_API_KEY: ${{ secrets.DEPLOY_API_KEY }}
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          $headers = @{
+            "X-Deploy-Key" = $env:DEPLOY_API_KEY
+            "Content-Type" = "application/json"
+          }
+          $commitHash = "${{ github.sha }}".Substring(0,7)
+          $branch = "${{ github.ref_name }}"
+          $summary = ""
+          try {
+            $summary = (git -C artifacts\backend\..\.. log -1 --pretty=format:"%s" 2>$null)
+          } catch {}
+          if (-not $summary -or $summary -eq "") {
+            try {
+              $apiUrl = "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}"
+              $commit = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "deploy" } -TimeoutSec 10
+              $summary = $commit.commit.message.Split([char]10)[0]
+            } catch {}
+          }
+          if (-not $summary -or $summary -eq "") { $summary = "Deployment $commitHash" }
+          $jobStatus = "${{ job.status }}"
+          if ($jobStatus -eq "success") { $status = "success" } else { $status = "failed" }
+          $body = @{
+            summary = $summary
+            commitHash = $commitHash
+            branch = $branch
+            deployedBy = "GitHub Actions"
+            status = $status
+          } | ConvertTo-Json -Depth 3
+          $url = "https://app.casecflorida.org/api/deployments"
+          Write-Host "[DEPLOY] Recording deployment: $summary ($commitHash) [$status]"
+          try {
+            $response = Invoke-RestMethod -Uri $url -Method POST -Headers $headers -Body $body -TimeoutSec 30
+            Write-Host "[DEPLOY] Recorded successfully"
+          } catch {
+            Write-Host "[DEPLOY] Could not record: $($_.Exception.Message)"
+          }
+          exit 0
