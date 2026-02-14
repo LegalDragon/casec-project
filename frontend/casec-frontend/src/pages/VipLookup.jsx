@@ -1,50 +1,56 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Search, User, MapPin, Phone, Ticket, Loader2, Star, Check, X } from "lucide-react";
 import api from "../services/api";
 
 export default function VipLookup() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const [allSeats, setAllSeats] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updating, setUpdating] = useState(null); // seatId being updated
 
-  // Debounced search
-  const search = useCallback(async (query) => {
-    if (!query || query.length < 2) {
-      setResults([]);
-      setSearched(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await api.get(`/seatingcharts/vip-lookup?q=${encodeURIComponent(query)}`);
-      if (response.success) {
-        setResults(response.data || []);
-      } else {
-        setError(response.message || "Search failed");
-        setResults([]);
+  // Load all VIP seats on mount
+  useEffect(() => {
+    const loadAllVip = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Search with a wildcard-like query to get all VIP seats
+        const response = await api.get(`/seatingcharts/vip-lookup?q=*`);
+        if (response.success) {
+          // Sort by name
+          const sorted = (response.data || []).sort((a, b) => {
+            const nameA = (a.attendeeName || '').toLowerCase();
+            const nameB = (b.attendeeName || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+          setAllSeats(sorted);
+        } else {
+          setError(response.message || "Failed to load VIP seats");
+        }
+      } catch (err) {
+        console.error("VIP load error:", err);
+        setError("Failed to load VIP seats. Please try again.");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("VIP lookup error:", err);
-      setError("Failed to search. Please try again.");
-      setResults([]);
-    } finally {
-      setLoading(false);
-      setSearched(true);
-    }
+    };
+    loadAllVip();
   }, []);
 
-  // Debounce effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      search(searchQuery);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, search]);
+  // Filter results based on search query
+  const results = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return allSeats;
+    }
+    const query = searchQuery.toLowerCase().trim();
+    return allSeats.filter(seat => {
+      const name = (seat.attendeeName || '').toLowerCase();
+      const section = (seat.section || '').toLowerCase();
+      const seatLoc = `${seat.row}-${seat.seatNumber}`.toLowerCase();
+      return name.includes(query) || section.includes(query) || seatLoc.includes(query);
+    });
+  }, [allSeats, searchQuery]);
 
   // Toggle ticket pickup status
   const togglePickup = async (seatId, currentStatus) => {
@@ -54,8 +60,8 @@ export default function VipLookup() {
         pickedUp: !currentStatus
       });
       if (response.success) {
-        // Update the local state
-        setResults(prev => prev.map(seat => 
+        // Update the local allSeats state
+        setAllSeats(prev => prev.map(seat => 
           seat.seatId === seatId 
             ? { ...seat, ticketPickedUp: response.data.ticketPickedUp, pickedUpAt: response.data.pickedUpAt }
             : seat
@@ -126,10 +132,15 @@ export default function VipLookup() {
         )}
 
         {/* Results */}
-        {results.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-12 h-12 text-yellow-400 animate-spin mx-auto mb-4" />
+            <div className="text-yellow-200">Loading VIP seats...</div>
+          </div>
+        ) : results.length > 0 ? (
           <div className="space-y-4">
             <div className="text-yellow-200 text-sm mb-2">
-              Found {results.length} VIP seat{results.length !== 1 ? 's' : ''}
+              {searchQuery ? `Found ${results.length} matching` : `${results.length} VIP seats`}
             </div>
             {results.map((seat) => (
               <div
@@ -221,23 +232,17 @@ export default function VipLookup() {
               </div>
             ))}
           </div>
-        ) : searched && searchQuery.length >= 2 && !loading ? (
+        ) : !loading && results.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🔍</div>
-            <div className="text-yellow-200 text-lg">No VIP seats found</div>
-            <div className="text-yellow-100/60 text-sm mt-2">
-              Try a different name or seat number
-            </div>
-          </div>
-        ) : !searched ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎭</div>
             <div className="text-yellow-200 text-lg">
-              Enter a name or seat to search
+              {searchQuery ? "No matching VIP seats found" : "No VIP seats yet"}
             </div>
-            <div className="text-yellow-100/60 text-sm mt-2">
-              Examples: "Chen", "Orchestra Center", "D-107"
-            </div>
+            {searchQuery && (
+              <div className="text-yellow-100/60 text-sm mt-2">
+                Try a different name or seat number
+              </div>
+            )}
           </div>
         ) : null}
 

@@ -753,11 +753,6 @@ public class SeatingChartsController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
-                return Ok(new ApiResponse<List<VipSeatLookupDto>> { Success = true, Data = new List<VipSeatLookupDto>(), Message = "Enter at least 2 characters to search" });
-
-            var searchTerm = q.Trim().ToLower();
-            
             // Build query for VIP seats only
             var query = _context.SeatingSeats
                 .Include(s => s.Section)
@@ -768,19 +763,42 @@ public class SeatingChartsController : ControllerBase
             if (chartId.HasValue)
                 query = query.Where(s => s.ChartId == chartId.Value);
 
-            // Search by name OR seat location
-            var seats = await query
-                .Where(s => 
-                    (s.AttendeeName != null && s.AttendeeName.ToLower().Contains(searchTerm)) ||
-                    (s.Section.Name.ToLower() + " " + s.RowLabel.ToLower() + "-" + s.SeatNumber.ToString()).Contains(searchTerm) ||
-                    (s.RowLabel.ToLower() + "-" + s.SeatNumber.ToString()).Contains(searchTerm) ||
-                    (s.RowLabel.ToLower() + s.SeatNumber.ToString()).Contains(searchTerm)
-                )
-                .OrderBy(s => s.Section.Name)
-                .ThenBy(s => s.RowLabel)
-                .ThenBy(s => s.SeatNumber)
-                .Take(50)
-                .ToListAsync();
+            List<SeatingSeats> seats;
+            
+            // If q is "*" or empty, return all VIP seats (for initial load)
+            if (string.IsNullOrWhiteSpace(q) || q == "*")
+            {
+                seats = await query
+                    .OrderBy(s => s.AttendeeName)
+                    .ThenBy(s => s.Section.Name)
+                    .ThenBy(s => s.RowLabel)
+                    .ThenBy(s => s.SeatNumber)
+                    .Take(500)
+                    .ToListAsync();
+            }
+            else if (q.Length < 2)
+            {
+                return Ok(new ApiResponse<List<VipSeatLookupDto>> { Success = true, Data = new List<VipSeatLookupDto>(), Message = "Enter at least 2 characters to search" });
+            }
+            else
+            {
+                var searchTerm = q.Trim().ToLower();
+                
+                // Search by name OR seat location
+                seats = await query
+                    .Where(s => 
+                        (s.AttendeeName != null && s.AttendeeName.ToLower().Contains(searchTerm)) ||
+                        (s.Section.Name.ToLower() + " " + s.RowLabel.ToLower() + "-" + s.SeatNumber.ToString()).Contains(searchTerm) ||
+                        (s.RowLabel.ToLower() + "-" + s.SeatNumber.ToString()).Contains(searchTerm) ||
+                        (s.RowLabel.ToLower() + s.SeatNumber.ToString()).Contains(searchTerm)
+                    )
+                    .OrderBy(s => s.AttendeeName)
+                    .ThenBy(s => s.Section.Name)
+                    .ThenBy(s => s.RowLabel)
+                    .ThenBy(s => s.SeatNumber)
+                    .Take(100)
+                    .ToListAsync();
+            }
 
             var results = seats.Select(s => new VipSeatLookupDto
             {
